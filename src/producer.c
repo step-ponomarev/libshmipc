@@ -3,7 +3,7 @@
 #include <string.h>
 
 int main(const int argc, const char *argv[]) {
-  IpcBuffer *buf = ipc_create_buffer("test");
+  IpcBuffer *buf = ipc_create_buffer("/22");
 
   int ch;
   while ((ch = getchar()) != EOF) {

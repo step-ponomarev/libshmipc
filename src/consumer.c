@@ -4,14 +4,10 @@
 #include <string.h>
 
 int main(const int argc, const char *argv[]) {
-  IpcBuffer *buf = ipc_create_buffer("test");
+  IpcBuffer *buf = ipc_open_buffer("/22");
 
-  while (1) {
-    if (!ipc_has_message(buf)) {
-      continue;
-    }
-
-    const IpcEntry batch = ipc_read(buf);
-    printf("%s", (char *)batch.payload);
+  IpcEntry e;
+  while ((e = ipc_read(buf)).size != 0) {
+    printf("%s", (char *)e.payload);
   }
 }
