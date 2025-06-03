@@ -19,13 +19,5 @@ int main(const int argc, const char *argv[]) {
          segment.size);
 
   char arr[] = hello_msg;
-  ipc_write(buf, &arr, sizeof(hello_msg));
-
-  const int mssg = 1;
-  for (int i = 0; i < 0;) {
-    if (ipc_write(buf, &arr, sizeof(hello_msg)) == 0) {
-      continue;
-    }
-    printf("%d, ", i++);
-  }
+  ipc_write(buf, &arr, segment.size);
 }

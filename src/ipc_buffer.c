@@ -40,7 +40,7 @@ uint64_t _find_max_power_of_2(const uint64_t);
 IpcBuffer *ipc_buffer_attach(uint8_t *mem, const uint64_t size) {
   IpcBuffer *buffer = malloc(sizeof(IpcBuffer));
   if (buffer == NULL) {
-    perror("ipc_buffer_attach: malloc is failed");
+    fprintf(stderr, "ipc_buffer_attach: malloc is failed\n");
     exit(EXIT_FAILURE);
   }
 
@@ -64,7 +64,7 @@ char ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
   uint64_t full_entry_size =
       ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
   if (full_entry_size > buffer_size) {
-    perror("ipc_write: too large entry");
+    fprintf(stderr, "ipc_write: too large entry\n");
     exit(EXIT_FAILURE);
   }
 
@@ -177,7 +177,7 @@ IpcEntry ipc_read(IpcBuffer *buffer) {
     entry.size = header->payload_size;
     entry.payload = malloc(entry.size);
     if (entry.payload == NULL) {
-      perror("ipc_read: out of memory\n");
+      perror("ipc_read: mallo is failed\n");
       exit(EXIT_FAILURE);
     }
 

@@ -43,7 +43,7 @@ IpcMemorySegment ipc_mmap(const char *name, const uint64_t size) {
 
 void ipc_unmmap(IpcMemorySegment segment) {
   if (segment.memory == NULL) {
-    perror("ipc_unmmap: Segment is not mapped\n");
+    fprintf(stderr, "ipc_unmmap: Segment is not mapped\n");
     exit(EXIT_FAILURE);
   }
 
