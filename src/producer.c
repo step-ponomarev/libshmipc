@@ -5,19 +5,27 @@
 #include <stdio.h>
 #include <string.h>
 
+#define hello_msg "Hello my friend i am from other process!\n"
+
 int main(const int argc, const char *argv[]) {
   IpcMemorySegment segment = ipc_mmap(IPC_TEST_SHM_FILE_NAME, 1);
   IpcBuffer *buf = ipc_buffer_attach(segment.memory, segment.size);
-  ipc_buffer_init(buf);
+
+  if (argc > 1) {
+    ipc_buffer_init(buf);
+  }
 
   printf("Producer initialized, segment: %s, size: %lld\n", segment.name,
          segment.size);
 
-  for (int i = 0; i < INT_MAX;) {
-    if (!ipc_write(buf, &i, sizeof(int))) {
-      printf("DEBUG: ipc write is failed on i=%d\n", i);
+  char arr[] = hello_msg;
+  ipc_write(buf, &arr, sizeof(hello_msg));
+
+  const int mssg = 1;
+  for (int i = 0; i < 0;) {
+    if (ipc_write(buf, &arr, sizeof(hello_msg)) == 0) {
       continue;
     }
-    i++;
+    printf("%d, ", i++);
   }
 }

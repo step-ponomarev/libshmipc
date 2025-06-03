@@ -10,13 +10,13 @@ int main(const int argc, const char *argv[]) {
   printf("Consumer initialized, segment: %s, size: %lld\n", segment.name,
          segment.size);
 
-  while (1) {
-    const IpcEntry entry = ipc_read(buf);
+  IpcEntry entry;
+  while ((entry = ipc_read(buf)).size == 0) {
     if (entry.size == 0) {
       continue;
     }
-
-    int *val = entry.payload;
-    printf("%d, ", *val);
   }
+
+  char *val = entry.payload;
+  printf("%s\n", val);
 }

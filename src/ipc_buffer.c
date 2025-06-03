@@ -1,16 +1,10 @@
 #include "ipc_buffer.h"
 #include "ipc_utils.h"
-#include <_stdio.h>
 #include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// Конфигурацция размера буфера + вырвнивание по размеру пейджей mmap
-// если не влезаем в конец: 2 случая header влезает в конец - пишем его, если
-// хедер не влезает, то полностью переносим. чтобы отличать
-// если размер маленький лучше использовать цикл, а не memcopy
 
 #define IPC_DATA_ALIGN 8
 
@@ -41,7 +35,7 @@ typedef struct EntryHeader {
   uint32_t entry_size;
 } EntryHeader;
 
-uint64_t _2_power_of_2(const uint64_t);
+uint64_t _find_max_power_of_2(const uint64_t);
 
 IpcBuffer *ipc_buffer_attach(uint8_t *mem, const uint64_t size) {
   IpcBuffer *buffer = malloc(sizeof(IpcBuffer));
@@ -50,7 +44,7 @@ IpcBuffer *ipc_buffer_attach(uint8_t *mem, const uint64_t size) {
     exit(EXIT_FAILURE);
   }
 
-  buffer->data_size = _2_power_of_2(size - sizeof(IpcBufferHeader));
+  buffer->data_size = _find_max_power_of_2(size - sizeof(IpcBufferHeader));
   buffer->header = (IpcBufferHeader *)mem;
   buffer->data = (mem + sizeof(IpcBufferHeader));
 
@@ -90,7 +84,7 @@ char ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
           ALIGN_UP(space_to_wrap + sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
     }
 
-    const uint64_t free_space = buffer_size - (head - tail);
+    const uint64_t free_space = buffer_size - (uint64_t)(head - tail);
     if (free_space < full_entry_size) {
       return 0;
     }
@@ -99,29 +93,17 @@ char ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
                                            head + full_entry_size));
 
   uint64_t offset = relative_head;
-  if (sizeof(EntryHeader) > space_to_wrap) {
-    printf("DEBUG: sizeof(EntryHeader) > space_to_wrap : offset: %lld, buffer "
-           "size: %lld, space_to_wrap: %lld\n",
-           offset, buffer_size, space_to_wrap);
-
+  if (space_to_wrap < sizeof(EntryHeader)) {
     _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + relative_head);
     atomic_store_explicit(atomic_flag, FLAG_WRAP_AROUND, memory_order_release);
     offset = RELATIVE(offset + space_to_wrap, buffer_size);
-
-    printf("DEBUG: NEW: sizeof(EntryHeader) > space_to_wrap : offset: %lld, "
-           "buffer "
-           "size: %lld, space_to_wrap: %lld\n",
-           offset, buffer_size, space_to_wrap);
   }
-
-  printf("DEBUG: before fail: offset: %lld, buffer size: %lld\n", offset,
-         buffer_size);
 
   EntryHeader *header = (EntryHeader *)(buffer->data + offset);
   atomic_store_explicit(&header->flag, FLAG_NOT_READY, memory_order_release);
   header->entry_size = full_entry_size;
 
-  offset += sizeof(EntryHeader);
+  offset = RELATIVE(offset + sizeof(EntryHeader), buffer_size);
   uint8_t *entry_payload_ptr = buffer->data + offset;
 
   space_to_wrap = buffer_size - offset;
@@ -131,10 +113,8 @@ char ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
   }
 
   if (space_to_wrap >= size) {
-    printf("DEBUG: write full\n");
     memcpy(entry_payload_ptr, data, size);
   } else {
-    printf("DEBUG: split\n");
     memcpy(entry_payload_ptr, data, space_to_wrap);
     memcpy(buffer->data, ((uint8_t *)data) + space_to_wrap,
            size - space_to_wrap);
@@ -143,7 +123,6 @@ char ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
   header->seq = head;
 
   atomic_store_explicit(&header->flag, FLAG_READY, memory_order_release);
-
   return 1;
 }
 
@@ -166,6 +145,9 @@ IpcEntry ipc_read(IpcBuffer *buffer) {
     uint64_t head =
         atomic_load_explicit(&buffer->header->head, memory_order_acquire);
     tail = atomic_load_explicit(&buffer->header->tail, memory_order_acquire);
+    if (head == tail) {
+      return ((IpcEntry){.size = 0, .payload = NULL});
+    }
 
     relative_tail = RELATIVE(tail, buffer_size);
     _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + relative_tail);
@@ -212,16 +194,15 @@ IpcEntry ipc_read(IpcBuffer *buffer) {
 
   } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
                                            tail + full_entry_size));
-  relative_tail = flag == FLAG_WRAP_AROUND ? 0 : RELATIVE(tail, buffer_size);
 
   return entry;
 }
 
-uint64_t _2_power_of_2(const uint64_t size) {
+uint64_t _find_max_power_of_2(const uint64_t max) {
   uint64_t rounder = 1;
-  while (rounder < size) {
+  while (rounder < max) {
     rounder <<= 1;
   }
 
-  return rounder == size ? size : rounder >> 1;
+  return rounder == max ? max : rounder >> 1;
 }
