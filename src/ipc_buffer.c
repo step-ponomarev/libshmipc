@@ -1,197 +1,216 @@
 #include "ipc_buffer.h"
-#include <errno.h>
+#include "ipc_utils.h"
+#include <_stdio.h>
 #include <stdatomic.h>
-#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/_types/_u_int64_t.h>
-#include <sys/fcntl.h>
-#include <sys/mman.h>
-#include <unistd.h>
 
-#define FLAG_NOT_READY 0
-#define FLAG_READY 1
-#define FLAG_TO_START 2
+// Конфигурацция размера буфера + вырвнивание по размеру пейджей mmap
+// если не влезаем в конец: 2 случая header влезает в конец - пишем его, если
+// хедер не влезает, то полностью переносим. чтобы отличать
+// если размер маленький лучше использовать цикл, а не memcopy
 
-#define BUFFER_SIZE 1024 * 1024 // mb
+#define IPC_DATA_ALIGN 8
 
-// TODO: поодержать колльцо..
-// TODO: решить проблему минимальног записи в упор. entry_size == buffer size/
-// Если tail догнал и перегнал head, то нужно перезаписать head на tail, иначе
-// он может прочитать неправильные данные. Либо вообще не давать обгонять head
+typedef uint8_t Flag;
+
+static const Flag FLAG_NOT_READY = 0;
+static const Flag FLAG_READY = 1;
+static const Flag FLAG_WRAP_AROUND = 2;
+
+typedef struct IpcBufferHeader {
+  _Atomic uint64_t head;
+  _Atomic uint64_t tail;
+  uint64_t data_size;
+} IpcBufferHeader;
 
 typedef struct IpcBuffer {
-  _Atomic size_t head;
-  _Atomic size_t tail;
-  char data[BUFFER_SIZE];
+  uint64_t data_size;
+
+  // mmaped segment
+  IpcBufferHeader *header;
+  uint8_t *data;
 } IpcBuffer;
 
-int _open_shm(const char *, const size_t);
-IpcBuffer *_open_buffer(const char *, const char);
-size_t _reserve_head(IpcBuffer *);
-size_t _reserve_tail(IpcBuffer *, const size_t);
+typedef struct EntryHeader {
+  _Atomic Flag flag;
+  uint64_t seq;
+  uint32_t payload_size;
+  uint32_t entry_size;
+} EntryHeader;
 
-IpcBuffer *ipc_create_buffer(const char *name) { return _open_buffer(name, 1); }
-
-IpcBuffer *ipc_open_buffer(const char *name) { return _open_buffer(name, 0); }
-
-void ipc_write(IpcBuffer *buffer, const void *data, const size_t len) {
-  const size_t tail = _reserve_tail(buffer, len);
-  char *ready_flag_ptr = buffer->data + tail;
-  *ready_flag_ptr = FLAG_NOT_READY;
-
-  char *curr_ptr = ready_flag_ptr + sizeof(char);
-  memcpy(curr_ptr, &len, sizeof(len));
-
-  curr_ptr += sizeof(len);
-  memcpy(curr_ptr, data, len);
-
-  *ready_flag_ptr = FLAG_READY;
-}
-
-IpcEntry ipc_read(IpcBuffer *buffer) {
-  const size_t head = _reserve_head(buffer);
-  const char *ready_flag_ptr = buffer->data + head;
-  if (*ready_flag_ptr != FLAG_READY) {
-    fprintf(stderr, "Reading not ready entry\n");
-    exit(1);
+IpcBuffer *ipc_buffer_attach(uint8_t *mem, const uint64_t size) {
+  IpcBuffer *buffer = malloc(sizeof(IpcBuffer));
+  if (buffer == NULL) {
+    perror("ipc_buffer_attach: malloc is failed");
+    exit(EXIT_FAILURE);
   }
 
-  const char *curr_ptr = ready_flag_ptr + sizeof(char);
-  IpcEntry entry;
-  memcpy(&entry.size, curr_ptr, sizeof(entry.size));
-
-  entry.payload = malloc(entry.size);
-
-  curr_ptr += sizeof(entry.size);
-  memcpy(entry.payload, curr_ptr, entry.size);
-
-  return entry;
-}
-// TODO: нужно подкопить стамины и пофиксить все гонки и проч. Должно работать
-// на минимальном объеме
-size_t _reserve_head(IpcBuffer *buffer) {
-  size_t prev_head;
-  size_t tail;
-  size_t new_head;
-  size_t to_start;
-  size_t fit;
-  char flag;
-  do {
-    prev_head = atomic_load_explicit(&buffer->head, memory_order_acquire);
-    tail = atomic_load_explicit(&buffer->tail, memory_order_acquire);
-    if (tail == prev_head) {
-      continue;
-    }
-
-    char *ptr = buffer->data + prev_head;
-    to_start = *ptr == FLAG_TO_START;
-    if (to_start) {
-      ptr = buffer->data;
-    }
-
-    flag = *ptr;
-    if (flag == FLAG_NOT_READY) {
-      continue;
-    }
-
-    const size_t *size_ptr = (size_t *)(ptr + sizeof(char));
-    new_head = sizeof(char) + sizeof(size_t) + *size_ptr;
-    if (!to_start) {
-      new_head += prev_head;
-    }
-
-    fit = new_head <= BUFFER_SIZE;
-    if (to_start && fit) {
-      new_head = 0;
-    }
-
-  } while (
-      prev_head == tail || flag == FLAG_NOT_READY ||
-      !atomic_compare_exchange_strong(&buffer->head, &prev_head, new_head));
-
-  if (to_start && !fit) {
-    return 0;
-  }
-
-  return prev_head;
-}
-
-size_t _reserve_tail(IpcBuffer *buffer, const size_t len) {
-  const size_t entry_size = len + sizeof(len) + sizeof(char);
-  if (entry_size >= BUFFER_SIZE) {
-
-    // Проблема еще хуже, tail дулает круг и у нас полное равенство
-    // нужно либо делать пустой байт между записями. либо делать кольцо хитрее
-    fprintf(stderr, "Buffer[%d] must be begger than entry : [%d]\n",
-            BUFFER_SIZE, entry_size);
-    exit(1);
-  }
-
-  size_t prev_tail;
-  size_t new_tail;
-  size_t to_start = 0;
-  size_t fit = 0;
-  do {
-    prev_tail = atomic_load_explicit(&buffer->tail, memory_order_acquire);
-
-    new_tail = prev_tail + entry_size;
-    to_start = new_tail >= BUFFER_SIZE;
-    fit = new_tail <= BUFFER_SIZE;
-
-    if (to_start) {
-      new_tail = fit ? 0 : entry_size;
-    }
-  } while (
-      !atomic_compare_exchange_strong(&buffer->tail, &prev_tail, new_tail));
-
-  if (to_start && !fit) {
-    char *to_start_flag_ptr = buffer->data + prev_tail;
-    *to_start_flag_ptr = FLAG_TO_START;
-    return 0;
-  }
-
-  return prev_tail;
-}
-
-IpcBuffer *_open_buffer(const char *name, const char trunc) {
-  const size_t allocation_size = sizeof(IpcBuffer);
-  const int fd = _open_shm(name, allocation_size);
-  if (fd < 0) {
-    perror("Shared memory segment opening error\n");
-    exit(1);
-  }
-
-  IpcBuffer *buffer =
-      mmap(NULL, allocation_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
-  if (trunc) {
-    atomic_store_explicit(&buffer->head, 0, memory_order_release);
-    atomic_store_explicit(&buffer->tail, 0, memory_order_release);
-  }
+  buffer->data_size = size - sizeof(IpcBufferHeader);
+  buffer->header = (IpcBufferHeader *)mem;
+  buffer->data = (mem + sizeof(IpcBufferHeader));
 
   return buffer;
 }
 
-int _open_shm(const char *name, const size_t size) {
-  int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR);
-  if (fd >= 0) {
-    if (ftruncate(fd, size) < 0) {
-      return -1;
+IpcStatus ipc_buffer_init(IpcBuffer *buffer) {
+  buffer->header->data_size = buffer->data_size;
+  buffer->header->head = 0;
+  atomic_store_explicit(&buffer->header->tail, 0, memory_order_release);
+
+  return IPC_OK;
+}
+
+char ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
+  const uint64_t buffer_size = buffer->header->data_size;
+  uint64_t full_entry_size =
+      ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
+  if (full_entry_size > buffer_size) {
+    perror("ipc_write: too large entry");
+    exit(EXIT_FAILURE);
+  }
+
+  uint64_t head;
+  uint64_t tail;
+  uint64_t relative_head;
+  uint64_t space_to_wrap;
+  do {
+    head = atomic_load_explicit(&buffer->header->head, memory_order_acquire);
+    tail = atomic_load_explicit(&buffer->header->tail, memory_order_acquire);
+
+    relative_head = RELATIVE(head, buffer_size);
+    // to move header on start
+    space_to_wrap = buffer_size - relative_head;
+    if (space_to_wrap < sizeof(EntryHeader)) {
+      full_entry_size =
+          ALIGN_UP(space_to_wrap + sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
     }
 
-    return fd;
+    const uint64_t free_space = buffer_size - (head - tail);
+    if (free_space < full_entry_size) {
+      return 0;
+    }
+
+  } while (!atomic_compare_exchange_strong(&buffer->header->head, &head,
+                                           head + full_entry_size));
+
+  uint64_t offset = relative_head;
+  if (sizeof(EntryHeader) > space_to_wrap) {
+    printf("DEBUG: sizeof(EntryHeader) > space_to_wrap : offset: %lld, buffer "
+           "size: %lld, space_to_wrap: %lld\n",
+           offset, buffer_size, space_to_wrap);
+
+    _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + relative_head);
+    atomic_store_explicit(atomic_flag, FLAG_WRAP_AROUND, memory_order_release);
+    offset = RELATIVE(offset + space_to_wrap, buffer_size);
+
+    printf("DEBUG: NEW: sizeof(EntryHeader) > space_to_wrap : offset: %lld, "
+           "buffer "
+           "size: %lld, space_to_wrap: %lld\n",
+           offset, buffer_size, space_to_wrap);
   }
 
-  if (errno != EEXIST) {
-    return -1;
+  printf("DEBUG: before fail: offset: %lld, buffer size: %lld\n", offset,
+         buffer_size);
+
+  EntryHeader *header = (EntryHeader *)(buffer->data + offset);
+  atomic_store_explicit(&header->flag, FLAG_NOT_READY, memory_order_release);
+  header->entry_size = full_entry_size;
+
+  offset += sizeof(EntryHeader);
+  uint8_t *entry_payload_ptr = buffer->data + offset;
+
+  space_to_wrap = buffer_size - offset;
+  if (space_to_wrap == 0) {
+    offset = 0;
+    space_to_wrap = buffer_size;
   }
 
-  fd = shm_open(name, O_RDWR);
-  if (fd < 0) {
-    return -1;
+  if (space_to_wrap >= size) {
+    printf("DEBUG: write full\n");
+    memcpy(entry_payload_ptr, data, size);
+  } else {
+    printf("DEBUG: split\n");
+    memcpy(entry_payload_ptr, data, space_to_wrap);
+    memcpy(buffer->data, ((uint8_t *)data) + space_to_wrap,
+           size - space_to_wrap);
   }
+  header->payload_size = size;
+  header->seq = head;
 
-  return fd;
+  atomic_store_explicit(&header->flag, FLAG_READY, memory_order_release);
+
+  return 1;
+}
+
+IpcEntry ipc_read(IpcBuffer *buffer) {
+  const uint64_t buffer_size = buffer->header->data_size;
+
+  uint64_t tail;
+  uint64_t full_entry_size;
+  uint64_t relative_tail;
+  Flag flag;
+
+  IpcEntry entry;
+  entry.payload = NULL;
+  do {
+    if (entry.payload != NULL) {
+      free(entry.payload);
+      entry.payload = NULL;
+    }
+
+    uint64_t head =
+        atomic_load_explicit(&buffer->header->head, memory_order_acquire);
+    tail = atomic_load_explicit(&buffer->header->tail, memory_order_acquire);
+
+    relative_tail = RELATIVE(tail, buffer_size);
+    _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + relative_tail);
+    flag = atomic_load_explicit(atomic_flag, memory_order_acquire);
+    if (flag == FLAG_NOT_READY) {
+      return ((IpcEntry){.size = 0, .payload = NULL});
+    }
+
+    EntryHeader *header;
+    // need check seq
+    if (flag == FLAG_WRAP_AROUND) {
+      header = (EntryHeader *)buffer->data;
+    } else {
+      header = (EntryHeader *)(buffer->data + relative_tail);
+    }
+
+    if (tail != header->seq) {
+      return ((IpcEntry){.size = 0, .payload = NULL});
+    }
+
+    full_entry_size = header->entry_size;
+
+    relative_tail = flag == FLAG_WRAP_AROUND ? 0 : RELATIVE(tail, buffer_size);
+    uint64_t space_to_wrap =
+        buffer_size - (relative_tail + sizeof(EntryHeader));
+
+    entry.size = header->payload_size;
+    entry.payload = malloc(entry.size);
+    if (entry.payload == NULL) {
+      perror("ipc_read: out of memory\n");
+      exit(EXIT_FAILURE);
+    }
+
+    if (space_to_wrap >= entry.size) {
+      memcpy(entry.payload, buffer->data + relative_tail + sizeof(EntryHeader),
+             entry.size);
+    } else {
+      memcpy(entry.payload, buffer->data + relative_tail + sizeof(EntryHeader),
+             space_to_wrap);
+
+      uint64_t diff = entry.size - space_to_wrap;
+      memcpy(entry.payload + space_to_wrap, buffer->data + diff, diff);
+    }
+
+  } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
+                                           tail + full_entry_size));
+  relative_tail = flag == FLAG_WRAP_AROUND ? 0 : RELATIVE(tail, buffer_size);
+
+  return entry;
 }
