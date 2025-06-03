@@ -41,6 +41,8 @@ typedef struct EntryHeader {
   uint32_t entry_size;
 } EntryHeader;
 
+uint64_t _2_power_of_2(const uint64_t);
+
 IpcBuffer *ipc_buffer_attach(uint8_t *mem, const uint64_t size) {
   IpcBuffer *buffer = malloc(sizeof(IpcBuffer));
   if (buffer == NULL) {
@@ -48,7 +50,7 @@ IpcBuffer *ipc_buffer_attach(uint8_t *mem, const uint64_t size) {
     exit(EXIT_FAILURE);
   }
 
-  buffer->data_size = size - sizeof(IpcBufferHeader);
+  buffer->data_size = _2_power_of_2(size - sizeof(IpcBufferHeader));
   buffer->header = (IpcBufferHeader *)mem;
   buffer->data = (mem + sizeof(IpcBufferHeader));
 
@@ -213,4 +215,13 @@ IpcEntry ipc_read(IpcBuffer *buffer) {
   relative_tail = flag == FLAG_WRAP_AROUND ? 0 : RELATIVE(tail, buffer_size);
 
   return entry;
+}
+
+uint64_t _2_power_of_2(const uint64_t size) {
+  uint64_t rounder = 1;
+  while (rounder < size) {
+    rounder <<= 1;
+  }
+
+  return rounder == size ? size : rounder >> 1;
 }
