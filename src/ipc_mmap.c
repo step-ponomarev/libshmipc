@@ -4,16 +4,17 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
 int _open_shm(const char *, const uint64_t);
-void _unmap(void *, const uint64_t);
+IpcStatus _unmap(void *, const uint64_t);
 
-IpcMemorySegment ipc_mmap(const char *name, const uint64_t size) {
+IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size) {
   if (name == NULL || size == 0) {
     fprintf(stderr, "ipc_mmap: invalid arguments\n");
-    exit(EXIT_FAILURE);
+    return NULL;
   }
 
   const long page_size = sysconf(_SC_PAGESIZE);
@@ -21,7 +22,7 @@ IpcMemorySegment ipc_mmap(const char *name, const uint64_t size) {
   const int fd = _open_shm(name, aligned_size);
   if (fd < 0) {
     perror("ipc_mmap: Shared memory oppening is failed\n");
-    exit(EXIT_FAILURE);
+    return NULL;
   }
 
   uint8_t *memory =
@@ -29,39 +30,48 @@ IpcMemorySegment ipc_mmap(const char *name, const uint64_t size) {
 
   if (close(fd) != 0) {
     perror("ipc_mmap: Close descriptor is failed\n");
-    exit(EXIT_FAILURE);
+    return NULL;
   }
 
   if (memory == MAP_FAILED) {
     perror("ipc_mmap: Mmap is failed\n");
-    exit(EXIT_FAILURE);
+    return NULL;
   }
 
-  return (IpcMemorySegment){
+  const IpcMemorySegment seg = {
       .name = name, .size = aligned_size, .memory = memory};
+
+  IpcMemorySegment *res = malloc(sizeof(IpcMemorySegment));
+  memcpy(res, &seg, sizeof(IpcMemorySegment));
+
+  return res;
 }
 
-void ipc_unmmap(IpcMemorySegment segment) {
+IpcStatus ipc_unmmap(IpcMemorySegment segment) {
   if (segment.memory == NULL) {
     fprintf(stderr, "ipc_unmmap: Segment is not mapped\n");
-    exit(EXIT_FAILURE);
+    return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  _unmap(segment.memory, segment.size);
+  return _unmap(segment.memory, segment.size);
 }
 
-void ipc_unlink(const IpcMemorySegment segment) {
+IpcStatus ipc_unlink(const IpcMemorySegment segment) {
   if (shm_unlink(segment.name) != 0) {
     perror("ipc_destroy_shared_segment: shm_unlink is failed\n");
-    exit(EXIT_FAILURE);
+    return IPC_ERR;
   }
+
+  return IPC_OK;
 }
 
-void _unmap(void *memory, const uint64_t size) {
+IpcStatus _unmap(void *memory, const uint64_t size) {
   if (munmap(memory, size) != 0) {
     perror("ipc_unmmap: unmmap is failed\n");
-    exit(EXIT_FAILURE);
+    return IPC_ERR;
   }
+
+  return IPC_OK;
 }
 
 int _open_shm(const char *name, const uint64_t size) {

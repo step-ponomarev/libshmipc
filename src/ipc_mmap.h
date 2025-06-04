@@ -1,6 +1,7 @@
 #ifndef _IPC_MMAP_H
 #define _IPC_MMAP_H
 
+#include "ipc_status.h"
 #include <stdint.h>
 
 typedef struct IpcMemorySegment {
@@ -9,8 +10,8 @@ typedef struct IpcMemorySegment {
   uint8_t *memory;
 } IpcMemorySegment;
 
-IpcMemorySegment ipc_mmap(const char *, const uint64_t);
-void ipc_unmmap(IpcMemorySegment);
-void ipc_unlink(const IpcMemorySegment);
+IpcMemorySegment *ipc_mmap(const char *, const uint64_t);
+IpcStatus ipc_unmmap(IpcMemorySegment);
+IpcStatus ipc_unlink(const IpcMemorySegment);
 
 #endif

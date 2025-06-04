@@ -1,6 +1,7 @@
 #ifndef IPC_BUFF_H
 #define IPC_BUFF_H
 
+#include "ipc_status.h"
 #include <stdint.h>
 
 typedef struct IpcBuffer IpcBuffer;
@@ -10,12 +11,15 @@ typedef struct IpcEntry {
   void *payload;
 } IpcEntry;
 
-typedef enum { IPC_OK = 0, IPC_ERR_INVALID_SIZE = -1 } IpcStatus;
-
 IpcBuffer *ipc_buffer_attach(uint8_t *, const uint64_t);
 IpcStatus ipc_buffer_init(IpcBuffer *);
 
-char ipc_write(IpcBuffer *, const void *, const uint64_t);
-IpcEntry ipc_read(IpcBuffer *);
+IpcStatus ipc_write(IpcBuffer *, const void *, const uint64_t);
+IpcStatus ipc_read(IpcBuffer *, IpcEntry *);
+
+IpcStatus ipc_read_lock(IpcBuffer *, IpcEntry *);
+IpcStatus ipc_read_release(IpcBuffer *);
+
+IpcStatus ipc_peek_unsafe(IpcBuffer *, IpcEntry *);
 
 #endif

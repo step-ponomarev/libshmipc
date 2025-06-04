@@ -11,12 +11,13 @@ int main(const int argc, const char *argv[]) {
          segment.size);
 
   IpcEntry entry;
-  while ((entry = ipc_read(buf)).size == 0) {
+  while (1) {
+    entry = ipc_read(buf);
     if (entry.size == 0) {
       continue;
     }
-  }
 
-  char *val = entry.payload;
-  printf("%s\n", val);
+    char *val = entry.payload;
+    printf("%s", val);
+  }
 }

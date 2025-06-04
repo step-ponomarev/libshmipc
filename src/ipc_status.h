@@ -1,0 +1,14 @@
+#ifndef IPC_STATUS_H
+#define IPC_STATUS_H
+
+typedef enum {
+  IPC_OK = 0,
+  IPC_EMPTY = 1,
+  IPC_NO_SPACE = 2,
+  IPC_ERR_INVALID_SIZE = -1,
+  IPC_ERR_ALLOCATION = -2,
+  IPC_ERR_INVALID_ARGUMENT = -3,
+  IPC_ERR = -5
+} IpcStatus;
+
+#endif

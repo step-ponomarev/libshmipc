@@ -1,7 +1,9 @@
 #include "ipc_buffer.h"
 #include "ipc_mmap.h"
 #include "test_shm_file_name.h"
+#include <_stdio.h>
 #include <limits.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -15,9 +17,9 @@ int main(const int argc, const char *argv[]) {
     ipc_buffer_init(buf);
   }
 
-  printf("Producer initialized, segment: %s, size: %lld\n", segment.name,
-         segment.size);
-
-  char arr[] = hello_msg;
-  ipc_write(buf, &arr, segment.size);
+  size_t size;
+  char *line;
+  while (((line = fgetln(stdin, &size)) != NULL) && (size > 0)) {
+    ipc_write(buf, line, size);
+  }
 }
