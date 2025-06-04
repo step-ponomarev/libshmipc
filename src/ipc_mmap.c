@@ -1,5 +1,7 @@
 #include "ipc_mmap.h"
+#include "ipc_status.h"
 #include "ipc_utils.h"
+#include <_stdio.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -10,6 +12,7 @@
 
 int _open_shm(const char *, const uint64_t);
 IpcStatus _unmap(void *, const uint64_t);
+IpcStatus _unlink(const char *);
 
 IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size) {
   if (name == NULL || size == 0) {
@@ -47,27 +50,51 @@ IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size) {
   return res;
 }
 
-IpcStatus ipc_unmmap(IpcMemorySegment segment) {
-  if (segment.memory == NULL) {
+IpcStatus ipc_unmmap(IpcMemorySegment *segment) {
+  if (segment == NULL || segment->memory == NULL) {
     fprintf(stderr, "ipc_unmmap: Segment is not mapped\n");
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  return _unmap(segment.memory, segment.size);
+  IpcStatus status = _unmap(segment->memory, segment->size);
+  if (status != IPC_OK) {
+    return status;
+  }
+  free(segment);
+
+  return status;
 }
 
-IpcStatus ipc_unlink(const IpcMemorySegment segment) {
-  if (shm_unlink(segment.name) != 0) {
-    perror("ipc_destroy_shared_segment: shm_unlink is failed\n");
+IpcStatus ipc_unlink(const IpcMemorySegment *segment) {
+  if (segment == NULL) {
+    fprintf(stderr, "ipc_unlink: Segment is null\n");
+    return IPC_ERR_INVALID_ARGUMENT;
+  }
+
+  return _unlink(segment->name);
+}
+
+IpcStatus ipc_reset(const char *name) {
+  if (name == NULL) {
+    fprintf(stderr, "ipc_reset: name cannot be null\n");
+    return IPC_ERR_INVALID_ARGUMENT;
+  }
+
+  return _unlink(name);
+}
+
+IpcStatus _unmap(void *memory, const uint64_t size) {
+  if (munmap(memory, size) != 0) {
+    perror("ipc_unmmap: unmmap is failed\n");
     return IPC_ERR;
   }
 
   return IPC_OK;
 }
 
-IpcStatus _unmap(void *memory, const uint64_t size) {
-  if (munmap(memory, size) != 0) {
-    perror("ipc_unmmap: unmmap is failed\n");
+IpcStatus _unlink(const char *name) {
+  if (shm_unlink(name) != 0) {
+    perror("ipc_destroy_shared_segment: shm_unlink is failed\n");
     return IPC_ERR;
   }
 

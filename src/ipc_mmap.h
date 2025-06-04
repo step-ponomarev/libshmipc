@@ -11,7 +11,8 @@ typedef struct IpcMemorySegment {
 } IpcMemorySegment;
 
 IpcMemorySegment *ipc_mmap(const char *, const uint64_t);
-IpcStatus ipc_unmmap(IpcMemorySegment);
-IpcStatus ipc_unlink(const IpcMemorySegment);
+IpcStatus ipc_unmmap(IpcMemorySegment *);
+IpcStatus ipc_unlink(const IpcMemorySegment *);
+IpcStatus ipc_reset(const char *);
 
 #endif
