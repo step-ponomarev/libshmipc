@@ -1,7 +1,5 @@
 #include "ipc_mmap.h"
-#include "ipc_status.h"
 #include "ipc_utils.h"
-#include <_stdio.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>

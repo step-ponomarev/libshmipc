@@ -3,9 +3,7 @@
 
 #include "lock_erno.h"
 #include <pthread.h>
-#include <stdatomic.h>
 #include <stdbool.h>
-#include <stdint.h>
 
 typedef struct ReadWriteLock {
   pthread_rwlock_t lock;

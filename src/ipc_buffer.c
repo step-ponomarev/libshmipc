@@ -6,8 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/_types/_u_int8_t.h>
-#include <unistd.h>
 
 #define IPC_DATA_ALIGN 8
 
