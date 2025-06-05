@@ -275,9 +275,10 @@ IpcStatus ipc_read_release(IpcBuffer *buffer) {
     return IPC_WARN;
   }
 
-  if (!atomic_compare_exchange_strong(
-          &buffer->header->tail, atomic_load(&buffer->header->locked_tail),
-          buffer->header->tail + header->entry_size)) {
+  uint64_t locked_tail = atomic_load(&buffer->header->locked_tail);
+  if (!atomic_compare_exchange_strong(&buffer->header->tail, &locked_tail,
+                                      buffer->header->tail +
+                                          header->entry_size)) {
     fprintf(stderr, "ipc_read_release: illegal state, tail was changed\n");
     if (!rw_write_unlock(&buffer->header->read_write_lock)) {
       fprintf(stderr, "ipc_read_release: write lock release is failed\n");
