@@ -19,10 +19,9 @@ bool lock_lock(Lock *lock) {
   do {
     // TODO: release cpu core
     //
-    tmp = atomic_load_explicit(lock, memory_order_relaxed);
+    tmp = atomic_load(lock);
   } while (tmp != UNLOCKED ||
-           !atomic_compare_exchange_strong_explicit(
-               lock, &tmp, LOCKED, memory_order_relaxed, memory_order_relaxed));
+           !atomic_compare_exchange_strong(lock, &tmp, LOCKED));
 
   return true;
 }
@@ -36,13 +35,12 @@ bool lock_try_lock(Lock *lock) {
   static uint8_t expected = UNLOCKED;
   uint8_t tmp;
   do {
-    tmp = atomic_load_explicit(lock, memory_order_relaxed);
+    tmp = atomic_load(lock);
     if (tmp == LOCKED) {
       lock_erno = LOCK_OK;
       return false;
     }
-  } while (!atomic_compare_exchange_strong_explicit(
-      lock, &expected, LOCKED, memory_order_relaxed, memory_order_relaxed));
+  } while (!atomic_compare_exchange_strong(lock, &expected, LOCKED));
 
   return true;
 }
@@ -54,9 +52,7 @@ bool lock_unlock(Lock *lock) {
   }
 
   static uint8_t expected = LOCKED;
-  if (!atomic_compare_exchange_strong_explicit(lock, &expected, UNLOCKED,
-                                               memory_order_relaxed,
-                                               memory_order_relaxed)) {
+  if (!atomic_compare_exchange_strong(lock, &expected, UNLOCKED)) {
     lock_erno = LOCK_ERNO_NOT_HELD;
     return false;
   }

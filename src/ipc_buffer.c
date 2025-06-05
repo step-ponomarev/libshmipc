@@ -24,9 +24,13 @@ static const Lock LOCK = 1;
 static const Lock UNLOCKING = 2;
 
 typedef struct IpcBufferHeader {
-  ReadWriteLock read_write_lock;
+  union {
+    uint64_t __align;
+    ReadWriteLock read_write_lock;
+  };
   _Atomic uint64_t head;
   _Atomic uint64_t tail;
+  _Atomic uint64_t locked_tail;
   uint64_t data_size;
 } IpcBufferHeader;
 
@@ -96,9 +100,8 @@ IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
   uint64_t relative_head;
   uint64_t space_to_wrap;
   do {
-    head = atomic_load_explicit(&buffer->header->head, memory_order_acquire);
-    uint64_t tail =
-        atomic_load_explicit(&buffer->header->tail, memory_order_relaxed);
+    head = atomic_load(&buffer->header->head);
+    uint64_t tail = atomic_load(&buffer->header->tail);
     relative_head = RELATIVE(head, buffer_size);
     // to move header on start
     space_to_wrap = buffer_size - relative_head;
@@ -117,19 +120,18 @@ IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
       return IPC_NO_SPACE_CONTIGUOUS;
     }
 
-  } while (!atomic_compare_exchange_strong_explicit(
-      &buffer->header->head, &head, head + full_entry_size,
-      memory_order_release, memory_order_relaxed));
+  } while (!atomic_compare_exchange_strong(&buffer->header->head, &head,
+                                           head + full_entry_size));
 
   uint64_t offset = relative_head;
   if (space_to_wrap < sizeof(EntryHeader)) {
     _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + relative_head);
-    atomic_store_explicit(atomic_flag, FLAG_WRAP_AROUND, memory_order_release);
+    atomic_store(atomic_flag, FLAG_WRAP_AROUND);
     offset = RELATIVE(offset + space_to_wrap, buffer_size);
   }
 
   EntryHeader *header = (EntryHeader *)(buffer->data + offset);
-  atomic_store_explicit(&header->flag, FLAG_NOT_READY, memory_order_release);
+  atomic_store(&header->flag, FLAG_NOT_READY);
   header->entry_size = full_entry_size;
 
   offset = RELATIVE(offset + sizeof(EntryHeader), buffer_size);
@@ -144,7 +146,7 @@ IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
   header->payload_size = size;
   header->seq = head;
 
-  atomic_store_explicit(&header->flag, FLAG_READY, memory_order_release);
+  atomic_store(&header->flag, FLAG_READY);
   return IPC_OK;
 }
 
@@ -171,9 +173,8 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
   IpcEntry entry;
   entry.payload = NULL;
   do {
-    uint64_t head =
-        atomic_load_explicit(&buffer->header->head, memory_order_acquire);
-    tail = atomic_load_explicit(&buffer->header->tail, memory_order_relaxed);
+    uint64_t head = atomic_load(&buffer->header->head);
+    tail = atomic_load(&buffer->header->tail);
 
     EntryHeader *header;
     if (head == tail || (header = _fetch_tail_header(buffer, tail)) == NULL) {
@@ -211,9 +212,8 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
     relative_tail =
         space_to_wrap < entry.size ? 0 : relative_tail + sizeof(EntryHeader);
     memcpy(entry.payload, buffer->data + relative_tail, entry.size);
-  } while (!atomic_compare_exchange_strong_explicit(
-      &buffer->header->tail, &tail, tail + full_entry_size,
-      memory_order_release, memory_order_relaxed));
+  } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
+                                           tail + full_entry_size));
 
   memcpy(dest, &entry, sizeof(entry));
   if (!rw_read_unlock(&buffer->header->read_write_lock)) {
@@ -235,10 +235,8 @@ IpcStatus ipc_read_lock(IpcBuffer *buffer, IpcEntry *dest) {
     return IPC_ERR;
   }
 
-  const uint64_t head =
-      atomic_load_explicit(&buffer->header->head, memory_order_acquire);
-  const uint64_t tail =
-      atomic_load_explicit(&buffer->header->tail, memory_order_relaxed);
+  const uint64_t head = atomic_load(&buffer->header->head);
+  const uint64_t tail = atomic_load(&buffer->header->tail);
 
   EntryHeader *header;
   if (head == tail || ((header = _fetch_tail_header(buffer, tail)) == NULL)) {
@@ -252,6 +250,8 @@ IpcStatus ipc_read_lock(IpcBuffer *buffer, IpcEntry *dest) {
   dest->payload = (uint8_t *)header + sizeof(EntryHeader);
   dest->size = header->payload_size;
 
+  atomic_store(&buffer->header->locked_tail, tail);
+
   return IPC_OK;
 }
 
@@ -262,10 +262,8 @@ IpcStatus ipc_read_release(IpcBuffer *buffer) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  const uint64_t head =
-      atomic_load_explicit(&buffer->header->head, memory_order_acquire);
-  const uint64_t tail =
-      atomic_load_explicit(&buffer->header->tail, memory_order_relaxed);
+  const uint64_t head = atomic_load(&buffer->header->head);
+  const uint64_t tail = atomic_load(&buffer->header->tail);
 
   EntryHeader *header;
   if (head == tail || ((header = _fetch_tail_header(buffer, tail)) == NULL)) {
@@ -277,9 +275,17 @@ IpcStatus ipc_read_release(IpcBuffer *buffer) {
     return IPC_WARN;
   }
 
-  atomic_store_explicit(&buffer->header->tail,
-                        buffer->header->tail + header->entry_size,
-                        memory_order_release);
+  if (!atomic_compare_exchange_strong(
+          &buffer->header->tail, atomic_load(&buffer->header->locked_tail),
+          buffer->header->tail + header->entry_size)) {
+    fprintf(stderr, "ipc_read_release: illegal state, tail was changed\n");
+    if (!rw_write_unlock(&buffer->header->read_write_lock)) {
+      fprintf(stderr, "ipc_read_release: write lock release is failed\n");
+      return IPC_ERR;
+    }
+
+    return IPC_ERR;
+  }
 
   if (!rw_write_unlock(&buffer->header->read_write_lock)) {
     fprintf(stderr, "ipc_read_release: write lock release is failed\n");
@@ -295,10 +301,8 @@ IpcStatus ipc_peek_unsafe(IpcBuffer *buffer, IpcEntry *dest) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  const uint64_t head =
-      atomic_load_explicit(&buffer->header->head, memory_order_acquire);
-  const uint64_t tail =
-      atomic_load_explicit(&buffer->header->tail, memory_order_relaxed);
+  const uint64_t head = atomic_load(&buffer->header->head);
+  const uint64_t tail = atomic_load(&buffer->header->tail);
 
   EntryHeader *header;
   if (head == tail || (header = _fetch_tail_header(buffer, tail)) == NULL) {
@@ -312,9 +316,8 @@ IpcStatus ipc_peek_unsafe(IpcBuffer *buffer, IpcEntry *dest) {
 }
 
 IpcBufferStat ipc_buffer_stat(const IpcBuffer *buffer) {
-  const uint64_t head =
-      atomic_load_explicit(&buffer->header->head, memory_order_acquire);
-  const uint64_t tail = buffer->header->tail;
+  const uint64_t head = atomic_load(&buffer->header->head);
+  const uint64_t tail = atomic_load(&buffer->header->tail);
 
   return (IpcBufferStat){.buffer_size = buffer->data_size,
                          .head_pos = RELATIVE(head, buffer->data_size),
@@ -325,7 +328,7 @@ EntryHeader *_fetch_tail_header(const IpcBuffer *buffer, const uint64_t tail) {
   const uint64_t buffer_size = buffer->header->data_size;
   const uint64_t relative_tail = RELATIVE(tail, buffer_size);
   _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + relative_tail);
-  const Flag flag = atomic_load_explicit(atomic_flag, memory_order_acquire);
+  const Flag flag = atomic_load(atomic_flag);
   if (flag == FLAG_NOT_READY) {
     return NULL;
   }

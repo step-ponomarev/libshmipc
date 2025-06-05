@@ -28,12 +28,12 @@ bool rw_read_lock(ReadWriteLock *lock) {
     while (!_is_unlocked(&lock->lock))
       ; // TODO: cpu_relax()
 
-    atomic_fetch_add_explicit(&lock->readers, 1, memory_order_acquire);
+    atomic_fetch_add(&lock->readers, 1);
 
     if (_is_unlocked(&lock->lock))
       return true;
 
-    atomic_fetch_sub_explicit(&lock->readers, 1, memory_order_release);
+    atomic_fetch_sub(&lock->readers, 1);
   }
 }
 
@@ -48,10 +48,10 @@ bool rw_read_try_lock(ReadWriteLock *lock) {
     return false;
   }
 
-  atomic_fetch_add_explicit(&lock->readers, 1, memory_order_relaxed);
+  atomic_fetch_add(&lock->readers, 1);
 
   if (!_is_unlocked(&lock->lock)) {
-    atomic_fetch_sub_explicit(&lock->readers, 1, memory_order_relaxed);
+    atomic_fetch_sub(&lock->readers, 1);
     lock_erno = LOCK_OK;
     return false;
   }
@@ -65,9 +65,8 @@ bool rw_read_unlock(ReadWriteLock *lock) {
     return false;
   }
 
-  if (atomic_fetch_sub_explicit(&lock->readers, 1, memory_order_relaxed) ==
-      0) { // rollback if zero dec
-    atomic_fetch_add_explicit(&lock->readers, 1, memory_order_relaxed);
+  if (atomic_fetch_sub(&lock->readers, 1) == 0) { // rollback if zero dec
+    atomic_fetch_add(&lock->readers, 1);
     lock_erno = LOCK_ERNO_NOT_HELD;
     return false;
   }
@@ -85,9 +84,8 @@ bool rw_write_lock(ReadWriteLock *lock) {
   // TODO: CPU relax
   do {
     tmp = atomic_load_explicit(&lock->lock, memory_order_relaxed);
-  } while (tmp != UNLOCKED || !atomic_compare_exchange_strong_explicit(
-                                  &lock->lock, &tmp, WAIT_READERS_FINISHED,
-                                  memory_order_relaxed, memory_order_relaxed));
+  } while (tmp != UNLOCKED || !atomic_compare_exchange_strong(
+                                  &lock->lock, &tmp, WAIT_READERS_FINISHED));
 
   // TODO: CPU relax
   while (atomic_load_explicit(&lock->readers, memory_order_relaxed) != 0)
@@ -105,9 +103,7 @@ bool rw_write_unlock(ReadWriteLock *lock) {
   }
 
   static uint8_t expected = LOCKED;
-  if (!atomic_compare_exchange_strong_explicit(&lock->lock, &expected, UNLOCKED,
-                                               memory_order_relaxed,
-                                               memory_order_relaxed)) {
+  if (!atomic_compare_exchange_strong(&lock->lock, &expected, UNLOCKED)) {
     lock_erno = LOCK_ERNO_NOT_HELD;
     return false;
   }
@@ -116,5 +112,5 @@ bool rw_write_unlock(ReadWriteLock *lock) {
 }
 
 static bool _is_unlocked(const RwLock *lock) {
-  return atomic_load_explicit(lock, memory_order_relaxed) == UNLOCKED;
+  return atomic_load(lock) == UNLOCKED;
 }
