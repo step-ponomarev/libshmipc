@@ -1,7 +1,6 @@
 #include "ipc_buffer.h"
 #include "ipc_status.h"
 #include "ipc_utils.h"
-#include "lock/lock_erno.h"
 #include "lock/read_write_lock.h"
 #include <stdatomic.h>
 #include <stdio.h>

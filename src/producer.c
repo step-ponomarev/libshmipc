@@ -37,7 +37,7 @@ int main(const int argc, const char *argv[]) {
 
   int msg = 1;
   int msg_neg = 1;
-  for (int i = 0; i < 10000;) {
+  for (int i = 0; i < 1000000000;) {
     const int m = ((i & 1) == 0 ? msg : msg_neg);
     IpcStatus status = ipc_write(buf, &m, sizeof(int));
     if (status != IPC_OK) {
