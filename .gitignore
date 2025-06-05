@@ -53,3 +53,7 @@ dkms.conf
 
 .DS_Store
 /**/.DS_Store
+
+test_runner.dSYM
+.clangd
+
