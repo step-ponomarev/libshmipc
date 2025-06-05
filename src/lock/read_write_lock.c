@@ -8,13 +8,17 @@ static const RwLock UNLOCKED = 0;
 static const RwLock WAIT_READERS_FINISHED = 1;
 static const RwLock LOCKED = 2;
 
-ReadWriteLock read_write_lock_create() {
-  return (ReadWriteLock){.lock = UNLOCKED, .readers = 0};
-}
-
 static bool _is_unlocked(const RwLock *);
 
-bool read_lock(ReadWriteLock *lock) {
+ReadWriteLock rw_lock_create() {
+  ReadWriteLock lock;
+  atomic_init(&lock.lock, UNLOCKED);
+  atomic_init(&lock.lock, 0);
+
+  return lock;
+}
+
+bool rw_read_lock(ReadWriteLock *lock) {
   if (lock == NULL) {
     lock_erno = LOCK_ERNO_INVALID_ARGUMENT;
     return false;
@@ -33,14 +37,14 @@ bool read_lock(ReadWriteLock *lock) {
   }
 }
 
-bool read_try_lock(ReadWriteLock *lock) {
+bool rw_read_try_lock(ReadWriteLock *lock) {
   if (lock == NULL) {
     lock_erno = LOCK_ERNO_INVALID_ARGUMENT;
     return false;
   }
 
   if (!_is_unlocked(&lock->lock)) {
-    lock_erno = LOCK_ERNO_OK;
+    lock_erno = LOCK_OK;
     return false;
   }
 
@@ -48,14 +52,14 @@ bool read_try_lock(ReadWriteLock *lock) {
 
   if (!_is_unlocked(&lock->lock)) {
     atomic_fetch_sub_explicit(&lock->readers, 1, memory_order_relaxed);
-    lock_erno = LOCK_ERNO_OK;
+    lock_erno = LOCK_OK;
     return false;
   }
 
   return true;
 }
 
-bool read_unlock(ReadWriteLock *lock) {
+bool rw_read_unlock(ReadWriteLock *lock) {
   if (lock == NULL) {
     lock_erno = LOCK_ERNO_INVALID_ARGUMENT;
     return false;
@@ -71,7 +75,7 @@ bool read_unlock(ReadWriteLock *lock) {
   return true;
 }
 
-bool write_lock(ReadWriteLock *lock) {
+bool rw_write_lock(ReadWriteLock *lock) {
   if (lock == NULL) {
     lock_erno = LOCK_ERNO_INVALID_ARGUMENT;
     return false;
@@ -94,7 +98,7 @@ bool write_lock(ReadWriteLock *lock) {
   return true;
 }
 
-bool write_unlock(ReadWriteLock *lock) {
+bool rw_write_unlock(ReadWriteLock *lock) {
   if (lock == NULL) {
     lock_erno = LOCK_ERNO_INVALID_ARGUMENT;
     return false;

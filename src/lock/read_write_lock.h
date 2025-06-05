@@ -13,13 +13,13 @@ typedef struct ReadWriteLock {
   _Atomic uint8_t readers;
 } ReadWriteLock;
 
-ReadWriteLock read_write_lock_create();
-bool read_lock(ReadWriteLock *);
-bool read_try_lock(ReadWriteLock *);
-bool read_unlock(ReadWriteLock *);
+ReadWriteLock rw_lock_create();
+bool rw_read_lock(ReadWriteLock *);
+bool rw_read_try_lock(ReadWriteLock *);
+bool rw_read_unlock(ReadWriteLock *);
 
-bool write_lock(ReadWriteLock *);
-bool write_try_lock(ReadWriteLock *);
-bool write_unlock(ReadWriteLock *);
+bool rw_write_lock(ReadWriteLock *);
+bool rw_write_try_lock(ReadWriteLock *);
+bool rw_write_unlock(ReadWriteLock *);
 
 #endif

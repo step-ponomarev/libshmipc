@@ -38,7 +38,7 @@ bool lock_try_lock(Lock *lock) {
   do {
     tmp = atomic_load_explicit(lock, memory_order_relaxed);
     if (tmp == LOCKED) {
-      lock_erno = LOCK_ERNO_OK;
+      lock_erno = LOCK_OK;
       return false;
     }
   } while (!atomic_compare_exchange_strong_explicit(

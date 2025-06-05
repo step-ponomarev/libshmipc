@@ -1,6 +1,8 @@
 #include "ipc_buffer.h"
 #include "ipc_status.h"
 #include "ipc_utils.h"
+#include "lock/lock_erno.h"
+#include "lock/read_write_lock.h"
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,9 +25,7 @@ static const Lock LOCK = 1;
 static const Lock UNLOCKING = 2;
 
 typedef struct IpcBufferHeader {
-  _Atomic uint32_t readers;
-  _Atomic Lock lock;
-
+  ReadWriteLock read_write_lock;
   _Atomic uint64_t head;
   _Atomic uint64_t tail;
   uint64_t data_size;
@@ -72,8 +72,7 @@ IpcBuffer *ipc_buffer_attach(uint8_t *mem, const uint64_t size) {
 
 IpcStatus ipc_buffer_init(IpcBuffer *buffer) {
   buffer->header->data_size = buffer->data_size;
-  atomic_init(&buffer->header->lock, UNLOCK);
-  atomic_init(&buffer->header->readers, 0);
+  buffer->header->read_write_lock = rw_lock_create();
   atomic_init(&buffer->header->head, 0);
   atomic_init(&buffer->header->tail, 0);
 
@@ -156,12 +155,14 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  if (atomic_load_explicit(&buffer->header->lock, memory_order_relaxed) !=
-      UNLOCK) {
+  if (!rw_read_try_lock(&buffer->header->read_write_lock)) {
+    if (lock_erno != LOCK_OK) {
+      fprintf(stderr, "ipc_read: read lock acquire is failed\n");
+      return IPC_ERR;
+    }
+
     return IPC_BUFFER_LOCKED;
   }
-
-  atomic_fetch_add_explicit(&buffer->header->readers, 1, memory_order_release);
 
   const uint64_t buffer_size = buffer->header->data_size;
   uint64_t tail;
@@ -171,14 +172,6 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
   IpcEntry entry;
   entry.payload = NULL;
   do {
-    if (atomic_load_explicit(&buffer->header->lock, memory_order_relaxed) !=
-        UNLOCK) {
-      free(entry.payload);
-      atomic_fetch_add_explicit(&buffer->header->readers, 1,
-                                memory_order_release);
-      return IPC_BUFFER_LOCKED;
-    }
-
     uint64_t head =
         atomic_load_explicit(&buffer->header->head, memory_order_acquire);
     tail = atomic_load_explicit(&buffer->header->tail, memory_order_relaxed);
@@ -186,8 +179,11 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
     EntryHeader *header;
     if (head == tail || (header = _fetch_tail_header(buffer, tail)) == NULL) {
       free(entry.payload);
-      atomic_fetch_sub_explicit(&buffer->header->readers, 1,
-                                memory_order_release);
+      if (!rw_read_unlock(&buffer->header->read_write_lock)) {
+        fprintf(stderr, "ipc_read: read lock release is failed\n");
+        return IPC_ERR;
+      }
+
       return IPC_EMPTY;
     }
 
@@ -205,9 +201,10 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
 
     if (entry.payload == NULL) {
       perror("ipc_read: allocation is failed\n");
-      atomic_fetch_sub_explicit(&buffer->header->readers, 1,
-                                memory_order_release);
-
+      if (!rw_read_unlock(&buffer->header->read_write_lock)) {
+        fprintf(stderr, "ipc_read: read lock release is failed\n");
+        return IPC_ERR;
+      }
       return IPC_ERR_ALLOCATION;
     }
 
@@ -220,7 +217,10 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
       memory_order_release, memory_order_relaxed));
 
   memcpy(dest, &entry, sizeof(entry));
-  atomic_fetch_sub_explicit(&buffer->header->readers, 1, memory_order_release);
+  if (!rw_read_unlock(&buffer->header->read_write_lock)) {
+    fprintf(stderr, "ipc_read: read lock release is failed\n");
+    return IPC_ERR;
+  }
 
   return IPC_OK;
 }
@@ -231,22 +231,10 @@ IpcStatus ipc_read_lock(IpcBuffer *buffer, IpcEntry *dest) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  uint8_t lock;
-  do {
-    lock = atomic_load_explicit(&buffer->header->lock, memory_order_relaxed);
-    if (lock != UNLOCK) {
-      return IPC_BUFFER_LOCKED;
-    }
-
-  } while (!atomic_compare_exchange_strong_explicit(
-      &buffer->header->lock, &lock, LOCK, memory_order_release,
-      memory_order_relaxed));
-
-  // wait readers
-  while (atomic_load_explicit(&buffer->header->readers, memory_order_relaxed) >
-         0) {
-    // TODO: разгружать CPU?
-  };
+  if (!rw_write_lock(&buffer->header->read_write_lock)) {
+    fprintf(stderr, "ipc_read_lock: write lock acquire is failed\n");
+    return IPC_ERR;
+  }
 
   const uint64_t head =
       atomic_load_explicit(&buffer->header->head, memory_order_acquire);
@@ -255,7 +243,10 @@ IpcStatus ipc_read_lock(IpcBuffer *buffer, IpcEntry *dest) {
 
   EntryHeader *header;
   if (head == tail || ((header = _fetch_tail_header(buffer, tail)) == NULL)) {
-    atomic_store_explicit(&buffer->header->lock, UNLOCK, memory_order_release);
+    if (!rw_write_unlock(&buffer->header->read_write_lock)) {
+      fprintf(stderr, "ipc_read_lock: write lock release is failed\n");
+      return IPC_ERR;
+    }
     return IPC_EMPTY;
   }
 
@@ -265,22 +256,12 @@ IpcStatus ipc_read_lock(IpcBuffer *buffer, IpcEntry *dest) {
   return IPC_OK;
 }
 
+//  tail must be static on method call
 IpcStatus ipc_read_release(IpcBuffer *buffer) {
   if (buffer == NULL) {
     fprintf(stderr, "ipc_read_release: arguments cannot be null\n");
     return IPC_ERR_INVALID_ARGUMENT;
   }
-
-  uint8_t lock;
-  do {
-    lock = atomic_load_explicit(&buffer->header->lock, memory_order_relaxed);
-    if (lock != LOCK) {
-      return IPC_OK;
-    }
-
-  } while (!atomic_compare_exchange_strong_explicit(
-      &buffer->header->lock, &lock, UNLOCKING, memory_order_release,
-      memory_order_relaxed));
 
   const uint64_t head =
       atomic_load_explicit(&buffer->header->head, memory_order_acquire);
@@ -289,15 +270,22 @@ IpcStatus ipc_read_release(IpcBuffer *buffer) {
 
   EntryHeader *header;
   if (head == tail || ((header = _fetch_tail_header(buffer, tail)) == NULL)) {
-    fprintf(stderr, "ipc_read_release: unexpected state: no data\n");
-    atomic_store_explicit(&buffer->header->lock, UNLOCK, memory_order_release);
+    fprintf(stderr, "ipc_read_release: illegal state, no data\n");
+    if (!rw_write_unlock(&buffer->header->read_write_lock)) {
+      fprintf(stderr, "ipc_read_release: write lock release is failed\n");
+      return IPC_ERR;
+    }
     return IPC_WARN;
   }
 
   atomic_store_explicit(&buffer->header->tail,
                         buffer->header->tail + header->entry_size,
                         memory_order_release);
-  atomic_store_explicit(&buffer->header->lock, UNLOCK, memory_order_release);
+
+  if (!rw_write_unlock(&buffer->header->read_write_lock)) {
+    fprintf(stderr, "ipc_read_release: write lock release is failed\n");
+    return IPC_ERR;
+  }
 
   return IPC_OK;
 }
