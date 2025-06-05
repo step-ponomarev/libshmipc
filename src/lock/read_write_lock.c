@@ -1,21 +1,27 @@
 #include "read_write_lock.h"
 #include "lock_erno.h"
+#include <errno.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
-static const RwLock UNLOCKED = 0;
-static const RwLock WAIT_READERS_FINISHED = 1;
-static const RwLock LOCKED = 2;
+bool rw_init(ReadWriteLock *dest) {
+  if (dest == NULL) {
+    lock_erno = LOCK_ERNO_INVALID_ARGUMENT;
+    return false;
+  }
 
-static bool _is_unlocked(const RwLock *);
-
-ReadWriteLock rw_lock_create() {
   ReadWriteLock lock;
-  atomic_init(&lock.lock, UNLOCKED);
-  atomic_init(&lock.lock, 0);
+  if (pthread_rwlock_init(&lock.lock, NULL) != 0) {
+    perror("rw_init: rw init is failed\n");
+    return false;
+  }
 
-  return lock;
+  memcpy(dest, &lock, sizeof(ReadWriteLock));
+
+  return true;
 }
 
 bool rw_read_lock(ReadWriteLock *lock) {
@@ -24,17 +30,13 @@ bool rw_read_lock(ReadWriteLock *lock) {
     return false;
   }
 
-  while (true) {
-    while (!_is_unlocked(&lock->lock))
-      ; // TODO: cpu_relax()
-
-    atomic_fetch_add(&lock->readers, 1);
-
-    if (_is_unlocked(&lock->lock))
-      return true;
-
-    atomic_fetch_sub(&lock->readers, 1);
+  if (pthread_rwlock_rdlock(&lock->lock) != 0) {
+    perror("rw_read_lock: read lock acquiring is failed\n");
+    lock_erno = LOCK_ERNO_ERR;
+    return false;
   }
+
+  return true;
 }
 
 bool rw_read_try_lock(ReadWriteLock *lock) {
@@ -43,31 +45,28 @@ bool rw_read_try_lock(ReadWriteLock *lock) {
     return false;
   }
 
-  if (!_is_unlocked(&lock->lock)) {
-    lock_erno = LOCK_OK;
-    return false;
+  const int res = pthread_rwlock_tryrdlock(&lock->lock);
+  if (res == 0) {
+    return true;
   }
 
-  atomic_fetch_add(&lock->readers, 1);
-
-  if (!_is_unlocked(&lock->lock)) {
-    atomic_fetch_sub(&lock->readers, 1);
-    lock_erno = LOCK_OK;
-    return false;
+  if (res != EBUSY) {
+    perror("rw_read_try_lock: read lock try acquiring is failed\n");
+    lock_erno = LOCK_ERNO_ERR;
   }
 
-  return true;
+  return false;
 }
 
-bool rw_read_unlock(ReadWriteLock *lock) {
+bool rw_unlock(ReadWriteLock *lock) {
   if (lock == NULL) {
     lock_erno = LOCK_ERNO_INVALID_ARGUMENT;
     return false;
   }
 
-  if (atomic_fetch_sub(&lock->readers, 1) == 0) { // rollback if zero dec
-    atomic_fetch_add(&lock->readers, 1);
-    lock_erno = LOCK_ERNO_NOT_HELD;
+  if (pthread_rwlock_unlock(&lock->lock) != 0) {
+    perror("rw_read_unlock: unlock is failed\n");
+    lock_erno = LOCK_ERNO_ERR;
     return false;
   }
 
@@ -80,37 +79,11 @@ bool rw_write_lock(ReadWriteLock *lock) {
     return false;
   }
 
-  uint8_t tmp;
-  // TODO: CPU relax
-  do {
-    tmp = atomic_load_explicit(&lock->lock, memory_order_relaxed);
-  } while (tmp != UNLOCKED || !atomic_compare_exchange_strong(
-                                  &lock->lock, &tmp, WAIT_READERS_FINISHED));
-
-  // TODO: CPU relax
-  while (atomic_load_explicit(&lock->readers, memory_order_relaxed) != 0)
-    ;
-
-  atomic_store_explicit(&lock->lock, LOCKED, memory_order_relaxed);
-
-  return true;
-}
-
-bool rw_write_unlock(ReadWriteLock *lock) {
-  if (lock == NULL) {
-    lock_erno = LOCK_ERNO_INVALID_ARGUMENT;
-    return false;
-  }
-
-  static uint8_t expected = LOCKED;
-  if (!atomic_compare_exchange_strong(&lock->lock, &expected, UNLOCKED)) {
-    lock_erno = LOCK_ERNO_NOT_HELD;
+  if (pthread_rwlock_wrlock(&lock->lock) != 0) {
+    perror("rw_write_lock: write lock is failed\n");
+    lock_erno = LOCK_ERNO_ERR;
     return false;
   }
 
   return true;
-}
-
-static bool _is_unlocked(const RwLock *lock) {
-  return atomic_load(lock) == UNLOCKED;
 }

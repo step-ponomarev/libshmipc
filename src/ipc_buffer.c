@@ -75,7 +75,12 @@ IpcBuffer *ipc_buffer_attach(uint8_t *mem, const uint64_t size) {
 
 IpcStatus ipc_buffer_init(IpcBuffer *buffer) {
   buffer->header->data_size = buffer->data_size;
-  buffer->header->read_write_lock = rw_lock_create();
+  if (!rw_init(&buffer->header->read_write_lock)) {
+    fprintf(stderr,
+            "ipc_buffer_init: read/write lock initialization is failed\n");
+    return IPC_ERR;
+  }
+
   atomic_init(&buffer->header->head, 0);
   atomic_init(&buffer->header->tail, 0);
 
@@ -179,7 +184,7 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
     EntryHeader *header;
     if (head == tail || (header = _fetch_tail_header(buffer, tail)) == NULL) {
       free(entry.payload);
-      if (!rw_read_unlock(&buffer->header->read_write_lock)) {
+      if (!rw_unlock(&buffer->header->read_write_lock)) {
         fprintf(stderr, "ipc_read: read lock release is failed\n");
         return IPC_ERR;
       }
@@ -201,7 +206,7 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
 
     if (entry.payload == NULL) {
       perror("ipc_read: allocation is failed\n");
-      if (!rw_read_unlock(&buffer->header->read_write_lock)) {
+      if (!rw_unlock(&buffer->header->read_write_lock)) {
         fprintf(stderr, "ipc_read: read lock release is failed\n");
         return IPC_ERR;
       }
@@ -216,7 +221,8 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
                                            tail + full_entry_size));
 
   memcpy(dest, &entry, sizeof(entry));
-  if (!rw_read_unlock(&buffer->header->read_write_lock)) {
+
+  if (!rw_unlock(&buffer->header->read_write_lock)) {
     fprintf(stderr, "ipc_read: read lock release is failed\n");
     return IPC_ERR;
   }
@@ -240,7 +246,7 @@ IpcStatus ipc_read_lock(IpcBuffer *buffer, IpcEntry *dest) {
 
   EntryHeader *header;
   if (head == tail || ((header = _fetch_tail_header(buffer, tail)) == NULL)) {
-    if (!rw_write_unlock(&buffer->header->read_write_lock)) {
+    if (!rw_unlock(&buffer->header->read_write_lock)) {
       fprintf(stderr, "ipc_read_lock: write lock release is failed\n");
       return IPC_ERR;
     }
@@ -268,7 +274,7 @@ IpcStatus ipc_read_release(IpcBuffer *buffer) {
   EntryHeader *header;
   if (head == tail || ((header = _fetch_tail_header(buffer, tail)) == NULL)) {
     fprintf(stderr, "ipc_read_release: illegal state, no data\n");
-    if (!rw_write_unlock(&buffer->header->read_write_lock)) {
+    if (!rw_unlock(&buffer->header->read_write_lock)) {
       fprintf(stderr, "ipc_read_release: write lock release is failed\n");
       return IPC_ERR;
     }
@@ -280,7 +286,7 @@ IpcStatus ipc_read_release(IpcBuffer *buffer) {
                                       buffer->header->tail +
                                           header->entry_size)) {
     fprintf(stderr, "ipc_read_release: illegal state, tail was changed\n");
-    if (!rw_write_unlock(&buffer->header->read_write_lock)) {
+    if (!rw_unlock(&buffer->header->read_write_lock)) {
       fprintf(stderr, "ipc_read_release: write lock release is failed\n");
       return IPC_ERR;
     }
@@ -288,7 +294,7 @@ IpcStatus ipc_read_release(IpcBuffer *buffer) {
     return IPC_ERR;
   }
 
-  if (!rw_write_unlock(&buffer->header->read_write_lock)) {
+  if (!rw_unlock(&buffer->header->read_write_lock)) {
     fprintf(stderr, "ipc_read_release: write lock release is failed\n");
     return IPC_ERR;
   }
