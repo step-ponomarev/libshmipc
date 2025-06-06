@@ -12,39 +12,28 @@ int main(const int argc, const char *argv[]) {
   IpcMemorySegment *segment = ipc_mmap(
       IPC_TEST_SHM_FILE_NAME, ipc_allign_size(IPC_TEST_SHM_BUFFER_SIZE));
 
-  IpcBuffer *buf = ipc_buffer_attach(segment->memory, segment->size);
+  IpcBuffer *buf = ipc_buffer_attach(segment->memory);
   printf("Consumer initialized, segment: %s, size: %lld\n", segment->name,
          segment->size);
 
-  const char mode = argc == 1 ? DIGITS_MODE : STRING_MODE;
+  if (buf == NULL) {
+    return 1;
+  }
 
   IpcEntry entry;
   while (1) {
-    IpcStatus status = ipc_lock_read(buf);
-    if (status != IPC_OK) {
-      fprintf(stderr, "Lock is failed!\n");
-    }
-    printf("Lock\n");
-
-    if (ipc_peek_unsafe(buf, &entry) == IPC_OK) {
-      void *payload = entry.payload;
-      char *got_mode = (char *)(payload);
-      if (*got_mode == mode) {
-        got_mode++;
-        if (mode == DIGITS_MODE) {
-          int d;
-          memcpy(&d, (void *)got_mode, sizeof(int));
-          printf("Got: %d\n", d);
-        } else {
-          printf("Got: %s\n", got_mode);
-        }
-      }
+    if (ipc_read(buf, &entry) != IPC_OK) {
+      continue;
     }
 
-    if (ipc_release_read(buf) != IPC_OK) {
-      fprintf(stderr, "Release is failed!\n");
+    MsgHeader *header = (MsgHeader *)entry.payload;
+    if (header->type == DIGITS_MODE) {
+      int d;
+      memcpy(&d, ((char *)header) + sizeof(MsgHeader), header->size);
+      printf("Recive digit: %d\n", d);
+    } else {
+      printf("Recive strung: %s\n", ((char *)(header) + sizeof(MsgHeader)));
     }
-    printf("Unlock\n");
   }
 
   return 0;

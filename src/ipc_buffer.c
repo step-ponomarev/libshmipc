@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/resource.h>
 #include <unistd.h>
 
 #define IPC_DATA_ALIGN 8
@@ -19,13 +20,10 @@ static const Flag FLAG_WRAP_AROUND = 2;
 typedef struct IpcBufferHeader {
   _Atomic uint64_t head;
   _Atomic uint64_t tail;
-  uint64_t data_size;
+  _Atomic uint64_t data_size;
 } IpcBufferHeader;
 
 typedef struct IpcBuffer {
-  const uint64_t data_size;
-
-  // mmaped segment
   IpcBufferHeader *header;
   uint8_t *data;
 } IpcBuffer;
@@ -33,42 +31,65 @@ typedef struct IpcBuffer {
 typedef struct EntryHeader {
   _Atomic Flag flag;
   uint64_t seq;
-  uint32_t payload_size;
-  uint32_t entry_size;
+  uint64_t payload_size;
+  uint64_t entry_size;
 } EntryHeader;
 
 uint64_t _find_max_power_of_2(const uint64_t);
 void _free_safe(void *);
-EntryHeader *_fetch_tail_header(const IpcBuffer *, const uint64_t);
+EntryHeader *_fetch_head_header(const IpcBuffer *, const uint64_t);
 
 inline uint64_t ipc_allign_size(uint64_t size) {
   return size + sizeof(IpcBufferHeader);
 }
 
-IpcBuffer *ipc_buffer_attach(uint8_t *mem, const uint64_t size) {
-  IpcBuffer *buffer = malloc(sizeof(IpcBuffer));
-  if (buffer == NULL) {
-    fprintf(stderr, "ipc_buffer_attach: malloc is failed\n");
+IpcBuffer *ipc_buffer_create(uint8_t *mem, const uint64_t size) {
+  if (mem == NULL) {
+    fprintf(stderr, "ipc_buffer_create: argument is null\n");
     return NULL;
   }
 
-  IpcBuffer tmp = {.data_size =
-                       _find_max_power_of_2(size - sizeof(IpcBufferHeader)),
-                   .header = (IpcBufferHeader *)mem,
-                   .data = (mem + sizeof(IpcBufferHeader))};
-  memcpy(buffer, &tmp, sizeof(IpcBuffer));
+  IpcBuffer *buffer = malloc(sizeof(IpcBuffer));
+  if (buffer == NULL) {
+    perror("ipc_buffer_create: allocation is failed\n");
+    return NULL;
+  }
+
+  buffer->header = (IpcBufferHeader *)mem;
+  buffer->data = mem + sizeof(IpcBufferHeader);
+
+  atomic_init(&buffer->header->data_size, size - sizeof(IpcBufferHeader));
+  atomic_init(&buffer->header->head, 0);
+  atomic_init(&buffer->header->tail, 0);
+
+  printf("Created head: %lld tail: %lld, data_size: %lld\n",
+         buffer->header->head, buffer->header->tail, buffer->header->data_size);
 
   return buffer;
 }
 
-IpcStatus ipc_buffer_init(IpcBuffer *buffer) {
-  buffer->header->data_size = buffer->data_size;
-  atomic_init(&buffer->header->head, 0);
-  atomic_init(&buffer->header->tail, 0);
+IpcBuffer *ipc_buffer_attach(uint8_t *mem) {
+  if (mem == NULL) {
+    fprintf(stderr, "ipc_buffer_attach: argument is null\n");
+    return NULL;
+  }
 
-  return IPC_OK;
+  IpcBuffer *buffer = malloc(sizeof(IpcBuffer));
+  if (buffer == NULL) {
+    perror("ipc_buffer_attach: allocation is failed\n");
+    return NULL;
+  }
+
+  buffer->header = (IpcBufferHeader *)mem;
+  buffer->data = mem + sizeof(IpcBufferHeader);
+
+  printf("Attched head: %lld tail: %lld, data_size: %lld\n",
+         buffer->header->head, buffer->header->tail, buffer->header->data_size);
+
+  return buffer;
 }
 
+// TODO: need fix bugs read/write
 IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
   if (buffer == NULL || data == NULL) {
     fprintf(stderr, "ipc_write: arguments is null\n");
@@ -83,15 +104,15 @@ IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
     return IPC_ERR_INVALID_SIZE;
   }
 
-  uint64_t head;
-  uint64_t relative_head;
+  uint64_t tail;
+  uint64_t relative_tail;
   uint64_t space_to_wrap;
   do {
-    head = atomic_load(&buffer->header->head);
-    uint64_t tail = atomic_load(&buffer->header->tail);
-    relative_head = RELATIVE(head, buffer_size);
+    tail = atomic_load(&buffer->header->tail);
+    uint64_t head = atomic_load(&buffer->header->head);
+    relative_tail = RELATIVE(tail, buffer_size);
     // to move header on start
-    space_to_wrap = buffer_size - relative_head;
+    space_to_wrap = buffer_size - relative_tail;
     if (space_to_wrap < sizeof(EntryHeader)) {
       full_entry_size =
           ALIGN_UP(space_to_wrap + sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
@@ -102,38 +123,37 @@ IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
                    IPC_DATA_ALIGN);
     }
 
-    const uint64_t free_space = buffer_size - (uint64_t)(head - tail);
+    const uint64_t free_space = buffer_size - (uint64_t)(tail - head);
     if (free_space < full_entry_size) { // no space or payload cannot be
       return IPC_NO_SPACE_CONTIGUOUS;
     }
 
-  } while (!atomic_compare_exchange_strong(&buffer->header->head, &head,
-                                           head + full_entry_size));
+  } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
+                                           tail + full_entry_size));
 
-  uint64_t offset = relative_head;
+  uint64_t offset = relative_tail;
   if (space_to_wrap < sizeof(EntryHeader)) {
-    _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + relative_head);
+    _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + relative_tail);
     atomic_store(atomic_flag, FLAG_WRAP_AROUND);
-    offset = RELATIVE(offset + space_to_wrap, buffer_size);
+    offset = 0;
   }
 
   EntryHeader *header = (EntryHeader *)(buffer->data + offset);
   atomic_store(&header->flag, FLAG_NOT_READY);
   header->entry_size = full_entry_size;
 
-  offset = RELATIVE(offset + sizeof(EntryHeader), buffer_size);
-  uint8_t *entry_payload_ptr = buffer->data + offset;
-
-  space_to_wrap = buffer_size - offset;
-  if (space_to_wrap < size) {
-    entry_payload_ptr = buffer->data;
+  offset += sizeof(EntryHeader);
+  if (offset + header->payload_size > buffer_size) {
+    offset = 0;
   }
+
+  uint8_t *entry_payload_ptr = buffer->data + offset;
 
   memcpy(entry_payload_ptr, data, size);
   header->payload_size = size;
-  header->seq = head;
-
+  header->seq = tail;
   atomic_store(&header->flag, FLAG_READY);
+
   return IPC_OK;
 }
 
@@ -144,27 +164,20 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
   }
 
   const uint64_t buffer_size = buffer->header->data_size;
-  uint64_t tail;
+  uint64_t head;
   uint64_t full_entry_size;
-  uint64_t relative_tail;
 
   IpcEntry entry;
   entry.payload = NULL;
   do {
-    uint64_t head = atomic_load(&buffer->header->head);
-    tail = atomic_load(&buffer->header->tail);
+    uint64_t tail = atomic_load(&buffer->header->tail);
+    head = atomic_load(&buffer->header->head);
 
-    EntryHeader *header;
-    if (head == tail || (header = _fetch_tail_header(buffer, tail)) == NULL) {
+    EntryHeader *header; // if wrap around -no header
+    if (tail == head || (header = _fetch_head_header(buffer, head)) == NULL) {
       free(entry.payload);
       return IPC_EMPTY;
     }
-
-    full_entry_size = header->entry_size;
-    relative_tail =
-        header->flag == FLAG_WRAP_AROUND ? 0 : RELATIVE(tail, buffer_size);
-    uint64_t space_to_wrap =
-        buffer_size - (relative_tail + sizeof(EntryHeader));
 
     if (entry.payload == NULL) {
       entry.payload = malloc(header->payload_size);
@@ -178,12 +191,18 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
       return IPC_ERR_ALLOCATION;
     }
 
+    full_entry_size = header->entry_size;
+    uint64_t relative_head = RELATIVE(head, buffer_size);
+    const uint64_t space_to_wrap = buffer_size - relative_head;
+
     entry.size = header->payload_size;
-    relative_tail =
-        space_to_wrap < entry.size ? 0 : relative_tail + sizeof(EntryHeader);
-    memcpy(entry.payload, buffer->data + relative_tail, entry.size);
-  } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
-                                           tail + full_entry_size));
+    relative_head = space_to_wrap < header->entry_size
+                        ? 0
+                        : relative_head + sizeof(EntryHeader);
+
+    memcpy(entry.payload, buffer->data + relative_head, entry.size);
+  } while (!atomic_compare_exchange_strong(&buffer->header->head, &head,
+                                           head + full_entry_size));
 
   memcpy(dest, &entry, sizeof(entry));
 
@@ -196,19 +215,18 @@ IpcStatus ipc_delete(IpcBuffer *buffer) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  uint64_t tail;
+  uint64_t head;
   EntryHeader *header;
   do {
-    uint64_t head = atomic_load(&buffer->header->head);
-    tail = atomic_load(&buffer->header->tail);
+    uint64_t tail = atomic_load(&buffer->header->tail);
+    head = atomic_load(&buffer->header->head);
 
-    if (head == tail || (header = _fetch_tail_header(buffer, tail)) == NULL) {
-
+    if (tail == head || (header = _fetch_head_header(buffer, head)) == NULL) {
       return IPC_EMPTY;
     }
 
-  } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
-                                           tail + header->entry_size));
+  } while (!atomic_compare_exchange_strong(&buffer->header->head, &head,
+                                           head + header->entry_size));
 
   return IPC_OK;
 }
@@ -219,26 +237,28 @@ IpcStatus ipc_peek(IpcBuffer *buffer, IpcEntry *dest) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  const uint64_t head = atomic_load(&buffer->header->head);
   const uint64_t tail = atomic_load(&buffer->header->tail);
+  const uint64_t head = atomic_load(&buffer->header->head);
   EntryHeader *header;
-  if (head == tail || (header = _fetch_tail_header(buffer, tail)) == NULL) {
+  if (tail == head || (header = _fetch_head_header(buffer, head)) == NULL) {
     return IPC_EMPTY;
   }
 
   dest->size = header->payload_size;
-  dest->payload = (RELATIVE(tail, buffer->data_size) + header->entry_size >
-                   buffer->data_size)
-                      ? buffer->data
-                      : (uint8_t *)header + sizeof(EntryHeader);
+  dest->payload =
+      (RELATIVE(head, buffer->header->data_size) + header->entry_size >
+       buffer->header->data_size)
+          ? buffer->data
+          : (uint8_t *)header + sizeof(EntryHeader);
 
   return IPC_OK;
 }
 
-EntryHeader *_fetch_tail_header(const IpcBuffer *buffer, const uint64_t tail) {
+EntryHeader *_fetch_head_header(const IpcBuffer *buffer, const uint64_t head) {
   const uint64_t buffer_size = buffer->header->data_size;
-  const uint64_t relative_tail = RELATIVE(tail, buffer_size);
-  _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + relative_tail);
+  const uint64_t relative_head = RELATIVE(head, buffer_size);
+
+  _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + relative_head);
   const Flag flag = atomic_load(atomic_flag);
   if (flag == FLAG_NOT_READY) {
     return NULL;
@@ -249,12 +269,15 @@ EntryHeader *_fetch_tail_header(const IpcBuffer *buffer, const uint64_t tail) {
   if (flag == FLAG_WRAP_AROUND) {
     header = (EntryHeader *)buffer->data;
   } else {
-    header = (EntryHeader *)(buffer->data + relative_tail);
+    header = (EntryHeader *)(buffer->data + relative_head);
   }
 
-  if (tail != header->seq) {
+  if (head != header->seq) {
     return NULL;
   }
+
+  printf("FOUND ENTRY size: %u, payload_size: %u!\n", header->entry_size,
+         header->payload_size);
 
   return header;
 }

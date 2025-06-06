@@ -11,9 +11,8 @@ typedef struct IpcEntry {
 } IpcEntry;
 
 uint64_t ipc_allign_size(uint64_t);
-
-IpcBuffer *ipc_buffer_attach(uint8_t *, const uint64_t);
-IpcStatus ipc_buffer_init(IpcBuffer *);
+IpcBuffer *ipc_buffer_create(uint8_t *, const uint64_t);
+IpcBuffer *ipc_buffer_attach(uint8_t *);
 
 IpcStatus ipc_write(IpcBuffer *, const void *, const uint64_t);
 IpcStatus ipc_read(IpcBuffer *, IpcEntry *);

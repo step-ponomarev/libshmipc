@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char *hello_msg = "Hello my friend i am from other process!\n";
+static const char hello_msg[] = "Hello my friend i am from other process!\n";
 #define DIGITS_MODE 1
 #define STRING_MODE 2
 
@@ -29,26 +29,36 @@ int main(const int argc, const char *argv[]) {
     printf("Successful reset!\n");
   }
 
-  IpcBuffer *buf = ipc_buffer_attach(segment->memory, segment->size);
-  printf("Consumer initialized, segment: %s, size: %lld\n", segment->name,
+  IpcBuffer *buf = ipc_buffer_create(segment->memory, segment->size);
+  printf("Prodiucer initialized, segment: %s, size: %lld\n", segment->name,
          segment->size);
 
-  if (argc > 1) {
-    ipc_buffer_init(buf);
+  if (buf == NULL) {
+    return 1;
   }
-  const char mode = argc == 1 ? DIGITS_MODE : STRING_MODE;
 
-  const size_t str_len = strlen(hello_msg);
-  const int size =
-      sizeof(char) + ((mode == DIGITS_MODE) ? sizeof(int) : str_len);
+  char mode = argc == 1 ? DIGITS_MODE : STRING_MODE;
+  const MsgHeader header = {.type = mode,
+                            .size = mode == DIGITS_MODE ? sizeof(int)
+                                                        : strlen(hello_msg)};
+  for (int i = 0; i < 100000000;) {
+    if (i % 8 == 0) {
+      mode = STRING_MODE;
+    } else {
+      mode = DIGITS_MODE;
+    }
 
-  int msg = 1;
-  int msg_neg = 1;
-  for (int i = 0; i < 1000000000;) {
-    char msg[size];
-    memcpy(msg, &mode, sizeof(char));
-    memcpy(msg + sizeof(char), (mode == DIGITS_MODE) ? &i : &hello_msg,
-           (mode == DIGITS_MODE) ? sizeof(int) : str_len);
-    ipc_write(buf, &msg, size) == IPC_OK &&i++;
+    const MsgHeader header = {.type = mode,
+                              .size = mode == DIGITS_MODE ? sizeof(int)
+                                                          : strlen(hello_msg)};
+    char msg[sizeof(header) + header.size];
+    memcpy(msg, &header, sizeof(header));
+    memcpy(msg + sizeof(header), (mode == DIGITS_MODE) ? &i : hello_msg,
+           header.size);
+
+    if (ipc_write(buf, msg, sizeof(header) + header.size) != IPC_OK) {
+      continue;
+    };
+    i++;
   }
 }
