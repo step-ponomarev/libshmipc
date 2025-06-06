@@ -1,0 +1,44 @@
+[
+{
+  "directory": "/Users/stepan.ponomarev/ipc/build",
+  "command": "/usr/bin/cc  -I/Users/stepan.ponomarev/ipc/src -std=gnu11 -arch arm64 -o CMakeFiles/ipc_lib.dir/src/consumer.c.o -c /Users/stepan.ponomarev/ipc/src/consumer.c",
+  "file": "/Users/stepan.ponomarev/ipc/src/consumer.c",
+  "output": "CMakeFiles/ipc_lib.dir/src/consumer.c.o"
+},
+{
+  "directory": "/Users/stepan.ponomarev/ipc/build",
+  "command": "/usr/bin/cc  -I/Users/stepan.ponomarev/ipc/src -std=gnu11 -arch arm64 -o CMakeFiles/ipc_lib.dir/src/ipc_buffer.c.o -c /Users/stepan.ponomarev/ipc/src/ipc_buffer.c",
+  "file": "/Users/stepan.ponomarev/ipc/src/ipc_buffer.c",
+  "output": "CMakeFiles/ipc_lib.dir/src/ipc_buffer.c.o"
+},
+{
+  "directory": "/Users/stepan.ponomarev/ipc/build",
+  "command": "/usr/bin/cc  -I/Users/stepan.ponomarev/ipc/src -std=gnu11 -arch arm64 -o CMakeFiles/ipc_lib.dir/src/ipc_mmap.c.o -c /Users/stepan.ponomarev/ipc/src/ipc_mmap.c",
+  "file": "/Users/stepan.ponomarev/ipc/src/ipc_mmap.c",
+  "output": "CMakeFiles/ipc_lib.dir/src/ipc_mmap.c.o"
+},
+{
+  "directory": "/Users/stepan.ponomarev/ipc/build",
+  "command": "/usr/bin/cc  -I/Users/stepan.ponomarev/ipc/src -std=gnu11 -arch arm64 -o CMakeFiles/ipc_lib.dir/src/lock/lock_erno.c.o -c /Users/stepan.ponomarev/ipc/src/lock/lock_erno.c",
+  "file": "/Users/stepan.ponomarev/ipc/src/lock/lock_erno.c",
+  "output": "CMakeFiles/ipc_lib.dir/src/lock/lock_erno.c.o"
+},
+{
+  "directory": "/Users/stepan.ponomarev/ipc/build",
+  "command": "/usr/bin/cc  -I/Users/stepan.ponomarev/ipc/src -std=gnu11 -arch arm64 -o CMakeFiles/ipc_lib.dir/src/lock/read_write_lock.c.o -c /Users/stepan.ponomarev/ipc/src/lock/read_write_lock.c",
+  "file": "/Users/stepan.ponomarev/ipc/src/lock/read_write_lock.c",
+  "output": "CMakeFiles/ipc_lib.dir/src/lock/read_write_lock.c.o"
+},
+{
+  "directory": "/Users/stepan.ponomarev/ipc/build",
+  "command": "/usr/bin/cc  -I/Users/stepan.ponomarev/ipc/src -std=gnu11 -arch arm64 -o CMakeFiles/ipc_lib.dir/src/producer.c.o -c /Users/stepan.ponomarev/ipc/src/producer.c",
+  "file": "/Users/stepan.ponomarev/ipc/src/producer.c",
+  "output": "CMakeFiles/ipc_lib.dir/src/producer.c.o"
+},
+{
+  "directory": "/Users/stepan.ponomarev/ipc/build",
+  "command": "/usr/bin/cc  -I/opt/homebrew/include -I/Users/stepan.ponomarev/ipc/src -std=gnu11 -arch arm64 -o CMakeFiles/ipc_tests.dir/tests/test.c.o -c /Users/stepan.ponomarev/ipc/tests/test.c",
+  "file": "/Users/stepan.ponomarev/ipc/tests/test.c",
+  "output": "CMakeFiles/ipc_tests.dir/tests/test.c.o"
+}
+]

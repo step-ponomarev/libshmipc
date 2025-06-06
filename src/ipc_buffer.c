@@ -2,10 +2,14 @@
 #include "ipc_status.h"
 #include "ipc_utils.h"
 #include "lock/read_write_lock.h"
+#include <_time.h>
 #include <stdatomic.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define IPC_DATA_ALIGN 8
 
@@ -21,18 +25,22 @@ static const Lock UNLOCK = 0;
 static const Lock LOCK = 1;
 static const Lock UNLOCKING = 2;
 
+typedef uint64_t Id;
+static const Id FREE_LOCK_OWNER_ID = 0;
+
 typedef struct IpcBufferHeader {
   union {
     uint64_t __align;
     ReadWriteLock read_write_lock;
   };
+  _Atomic Id lock_owner_id;
   _Atomic uint64_t head;
   _Atomic uint64_t tail;
-  _Atomic uint64_t locked_tail;
   uint64_t data_size;
 } IpcBufferHeader;
 
 typedef struct IpcBuffer {
+  const Id id;
   const uint64_t data_size;
 
   // mmaped segment
@@ -50,8 +58,9 @@ typedef struct EntryHeader {
 uint64_t _find_max_power_of_2(const uint64_t);
 void _free_safe(void *);
 EntryHeader *_fetch_tail_header(const IpcBuffer *, const uint64_t);
+bool _is_read_lock_owner(const IpcBuffer *);
 
-inline uint64_t ipc_optimize_size(uint64_t size) {
+inline uint64_t ipc_allign_size(uint64_t size) {
   return size + sizeof(IpcBufferHeader);
 }
 
@@ -62,7 +71,14 @@ IpcBuffer *ipc_buffer_attach(uint8_t *mem, const uint64_t size) {
     return NULL;
   }
 
-  IpcBuffer tmp = {.data_size =
+  Id id;
+  if (pthread_threadid_np(NULL, &id) != 0) {
+    fprintf(stderr, "ipc_buffer_attach: id allocation is failed\n");
+    return NULL;
+  }
+
+  IpcBuffer tmp = {.id = id,
+                   .data_size =
                        _find_max_power_of_2(size - sizeof(IpcBufferHeader)),
                    .header = (IpcBufferHeader *)mem,
                    .data = (mem + sizeof(IpcBufferHeader))};
@@ -80,6 +96,7 @@ IpcStatus ipc_buffer_init(IpcBuffer *buffer) {
   }
 
   atomic_init(&buffer->header->head, 0);
+  atomic_init(&buffer->header->lock_owner_id, FREE_LOCK_OWNER_ID);
   atomic_init(&buffer->header->tail, 0);
 
   return IPC_OK;
@@ -159,13 +176,16 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
+  bool lock_owner = false;
   if (!rw_read_try_lock(&buffer->header->read_write_lock)) {
     if (lock_erno != LOCK_OK) {
       fprintf(stderr, "ipc_read: read lock acquire is failed\n");
       return IPC_ERR;
     }
 
-    return IPC_BUFFER_LOCKED;
+    if (!(lock_owner = _is_read_lock_owner(buffer))) {
+      return IPC_BUFFER_LOCKED;
+    }
   }
 
   const uint64_t buffer_size = buffer->header->data_size;
@@ -182,7 +202,7 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
     EntryHeader *header;
     if (head == tail || (header = _fetch_tail_header(buffer, tail)) == NULL) {
       free(entry.payload);
-      if (!rw_unlock(&buffer->header->read_write_lock)) {
+      if (!lock_owner && !rw_unlock(&buffer->header->read_write_lock)) {
         fprintf(stderr, "ipc_read: read lock release is failed\n");
         return IPC_ERR;
       }
@@ -199,15 +219,17 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
     if (entry.payload == NULL) {
       entry.payload = malloc(header->payload_size);
     } else if (entry.size != header->payload_size) {
-      entry.payload = realloc(entry.payload, header->payload_size);
+      free(entry.payload);
+      entry.payload = malloc(header->payload_size);
     }
 
     if (entry.payload == NULL) {
       perror("ipc_read: allocation is failed\n");
-      if (!rw_unlock(&buffer->header->read_write_lock)) {
+      if (!lock_owner && !rw_unlock(&buffer->header->read_write_lock)) {
         fprintf(stderr, "ipc_read: read lock release is failed\n");
         return IPC_ERR;
       }
+
       return IPC_ERR_ALLOCATION;
     }
 
@@ -220,7 +242,7 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
 
   memcpy(dest, &entry, sizeof(entry));
 
-  if (!rw_unlock(&buffer->header->read_write_lock)) {
+  if (!lock_owner && !rw_unlock(&buffer->header->read_write_lock)) {
     fprintf(stderr, "ipc_read: read lock release is failed\n");
     return IPC_ERR;
   }
@@ -228,8 +250,47 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
   return IPC_OK;
 }
 
-IpcStatus ipc_read_lock(IpcBuffer *buffer, IpcEntry *dest) {
-  if (buffer == NULL || dest == NULL) {
+IpcStatus ipc_skip(IpcBuffer *buffer) {
+  if (buffer == NULL) {
+    fprintf(stderr, "ipc_read: arguments cannot be null\n");
+    return IPC_ERR_INVALID_ARGUMENT;
+  }
+
+  bool lock_owner = false;
+  if (!rw_read_try_lock(&buffer->header->read_write_lock)) {
+    if (lock_erno != LOCK_OK) {
+      fprintf(stderr, "ipc_read: read lock acquire is failed\n");
+      return IPC_ERR;
+    }
+
+    if (!(lock_owner = _is_read_lock_owner(buffer))) {
+      return IPC_BUFFER_LOCKED;
+    }
+  }
+
+  uint64_t tail;
+  EntryHeader *header;
+  do {
+    uint64_t head = atomic_load(&buffer->header->head);
+    tail = atomic_load(&buffer->header->tail);
+
+    if (head == tail || (header = _fetch_tail_header(buffer, tail)) == NULL) {
+      if (!lock_owner && !rw_unlock(&buffer->header->read_write_lock)) {
+        fprintf(stderr, "ipc_skip: read lock release is failed\n");
+        return IPC_ERR;
+      }
+
+      return IPC_EMPTY;
+    }
+
+  } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
+                                           tail + header->entry_size));
+
+  return IPC_OK;
+}
+
+IpcStatus ipc_lock_read(IpcBuffer *buffer) {
+  if (buffer == NULL) {
     fprintf(stderr, "ipc_read_lock: arguments cannot be null\n");
     return IPC_ERR_INVALID_ARGUMENT;
   }
@@ -239,54 +300,39 @@ IpcStatus ipc_read_lock(IpcBuffer *buffer, IpcEntry *dest) {
     return IPC_ERR;
   }
 
-  const uint64_t head = atomic_load(&buffer->header->head);
-  const uint64_t tail = atomic_load(&buffer->header->tail);
-
-  EntryHeader *header;
-  if (head == tail || ((header = _fetch_tail_header(buffer, tail)) == NULL)) {
+  Id expected_free_id = FREE_LOCK_OWNER_ID;
+  if (!atomic_compare_exchange_strong(&buffer->header->lock_owner_id,
+                                      &expected_free_id, buffer->id)) {
+    fprintf(
+        stderr,
+        "ipc_read_lock: unexpected lock owner id, expected %lld, got %lld\n",
+        expected_free_id, buffer->header->lock_owner_id);
     if (!rw_unlock(&buffer->header->read_write_lock)) {
       fprintf(stderr, "ipc_read_lock: write lock release is failed\n");
-      return IPC_ERR;
     }
-    return IPC_EMPTY;
+
+    return IPC_ERR;
   }
-
-  dest->payload = (uint8_t *)header + sizeof(EntryHeader);
-  dest->size = header->payload_size;
-
-  atomic_store(&buffer->header->locked_tail, tail);
 
   return IPC_OK;
 }
 
-//  tail must be static on method call
-IpcStatus ipc_read_release(IpcBuffer *buffer) {
+IpcStatus ipc_release_read(IpcBuffer *buffer) {
   if (buffer == NULL) {
     fprintf(stderr, "ipc_read_release: arguments cannot be null\n");
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  const uint64_t head = atomic_load(&buffer->header->head);
-  const uint64_t tail = atomic_load(&buffer->header->tail);
-
-  EntryHeader *header;
-  if (head == tail || ((header = _fetch_tail_header(buffer, tail)) == NULL)) {
-    fprintf(stderr, "ipc_read_release: illegal state, no data\n");
+  Id expected_curr_buffer_id = buffer->id;
+  if (!atomic_compare_exchange_strong(&buffer->header->lock_owner_id,
+                                      &expected_curr_buffer_id,
+                                      FREE_LOCK_OWNER_ID)) {
+    fprintf(
+        stderr,
+        "ipc_read_release: illegal state, expected owner id: %lld, got: %lld\n",
+        expected_curr_buffer_id, buffer->header->lock_owner_id);
     if (!rw_unlock(&buffer->header->read_write_lock)) {
       fprintf(stderr, "ipc_read_release: write lock release is failed\n");
-      return IPC_ERR;
-    }
-    return IPC_WARN;
-  }
-
-  uint64_t locked_tail = atomic_load(&buffer->header->locked_tail);
-  if (!atomic_compare_exchange_strong(&buffer->header->tail, &locked_tail,
-                                      buffer->header->tail +
-                                          header->entry_size)) {
-    fprintf(stderr, "ipc_read_release: illegal state, tail was changed\n");
-    if (!rw_unlock(&buffer->header->read_write_lock)) {
-      fprintf(stderr, "ipc_read_release: write lock release is failed\n");
-      return IPC_ERR;
     }
 
     return IPC_ERR;
@@ -308,25 +354,18 @@ IpcStatus ipc_peek_unsafe(IpcBuffer *buffer, IpcEntry *dest) {
 
   const uint64_t head = atomic_load(&buffer->header->head);
   const uint64_t tail = atomic_load(&buffer->header->tail);
-
   EntryHeader *header;
   if (head == tail || (header = _fetch_tail_header(buffer, tail)) == NULL) {
     return IPC_EMPTY;
   }
 
-  dest->payload = (uint8_t *)header + sizeof(EntryHeader);
   dest->size = header->payload_size;
+  dest->payload = (RELATIVE(tail, buffer->data_size) + header->entry_size >
+                   buffer->data_size)
+                      ? buffer->data
+                      : (uint8_t *)header + sizeof(EntryHeader);
 
   return IPC_OK;
-}
-
-IpcBufferStat ipc_buffer_stat(const IpcBuffer *buffer) {
-  const uint64_t head = atomic_load(&buffer->header->head);
-  const uint64_t tail = atomic_load(&buffer->header->tail);
-
-  return (IpcBufferStat){.buffer_size = buffer->data_size,
-                         .head_pos = RELATIVE(head, buffer->data_size),
-                         .tail_pos = RELATIVE(tail, buffer->data_size)};
 }
 
 EntryHeader *_fetch_tail_header(const IpcBuffer *buffer, const uint64_t tail) {
@@ -360,4 +399,8 @@ inline uint64_t _find_max_power_of_2(const uint64_t max) {
   }
 
   return rounder == max ? max : rounder >> 1;
+}
+
+inline bool _is_read_lock_owner(const IpcBuffer *buffer) {
+  return buffer->id == atomic_load(&buffer->header->lock_owner_id);
 }

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libipc_lib.a CMakeFiles/ipc_lib.dir/src/consumer.c.o CMakeFiles/ipc_lib.dir/src/ipc_buffer.c.o CMakeFiles/ipc_lib.dir/src/ipc_mmap.c.o CMakeFiles/ipc_lib.dir/src/lock/lock_erno.c.o CMakeFiles/ipc_lib.dir/src/lock/read_write_lock.c.o CMakeFiles/ipc_lib.dir/src/producer.c.o
+/usr/bin/ranlib libipc_lib.a

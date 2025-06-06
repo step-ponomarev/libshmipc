@@ -1,0 +1,19 @@
+Start testing: Jun 05 19:08 MSK
+----------------------------------------------------------
+Unable to find executable: /Users/stepan.ponomarev/ipc/build/ipc_tests
+1/1 Testing: all_tests
+1/1 Test: all_tests
+Command: ""
+Directory: /Users/stepan.ponomarev/ipc/build
+"all_tests" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"all_tests" end time: Jun 05 19:08 MSK
+"all_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jun 05 19:08 MSK

@@ -1,9 +1,6 @@
 #include "read_write_lock.h"
-#include "lock_erno.h"
 #include <errno.h>
-#include <stdatomic.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
