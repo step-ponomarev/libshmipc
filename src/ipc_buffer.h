@@ -17,10 +17,7 @@ IpcStatus ipc_buffer_init(IpcBuffer *);
 
 IpcStatus ipc_write(IpcBuffer *, const void *, const uint64_t);
 IpcStatus ipc_read(IpcBuffer *, IpcEntry *);
-IpcStatus ipc_skip(IpcBuffer *);
-
-IpcStatus ipc_lock_read(IpcBuffer *);
-IpcStatus ipc_peek_unsafe(IpcBuffer *, IpcEntry *);
-IpcStatus ipc_release_read(IpcBuffer *);
+IpcStatus ipc_peek(IpcBuffer *, IpcEntry *);
+IpcStatus ipc_delete(IpcBuffer *);
 
 #endif

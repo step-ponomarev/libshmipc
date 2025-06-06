@@ -8,17 +8,19 @@
 #include <stdio.h>
 #include <string.h>
 
-#define hello_msg "Hello my friend i am from other process!\n"
+static const char *hello_msg = "Hello my friend i am from other process!\n";
+#define DIGITS_MODE 1
+#define STRING_MODE 2
 
 int main(const int argc, const char *argv[]) {
   IpcMemorySegment *segment = ipc_mmap(
-      IPC_TEST_SHM_FILE_NAME, ipc_optimize_size(IPC_TEST_SHM_BUFFER_SIZE));
+      IPC_TEST_SHM_FILE_NAME, ipc_allign_size(IPC_TEST_SHM_BUFFER_SIZE));
 
   if (segment == NULL) {
     printf("Trying reset..\n");
     ipc_reset(IPC_TEST_SHM_FILE_NAME);
     segment = ipc_mmap(IPC_TEST_SHM_FILE_NAME,
-                       ipc_optimize_size(IPC_TEST_SHM_BUFFER_SIZE));
+                       ipc_allign_size(IPC_TEST_SHM_BUFFER_SIZE));
 
     if (segment == NULL) {
       return 1;
@@ -34,15 +36,19 @@ int main(const int argc, const char *argv[]) {
   if (argc > 1) {
     ipc_buffer_init(buf);
   }
+  const char mode = argc == 1 ? DIGITS_MODE : STRING_MODE;
+
+  const size_t str_len = strlen(hello_msg);
+  const int size =
+      sizeof(char) + ((mode == DIGITS_MODE) ? sizeof(int) : str_len);
 
   int msg = 1;
   int msg_neg = 1;
   for (int i = 0; i < 1000000000;) {
-    const int m = ((i & 1) == 0 ? msg : msg_neg);
-    IpcStatus status = ipc_write(buf, &m, sizeof(int));
-    if (status != IPC_OK) {
-      continue;
-    }
-    i++;
+    char msg[size];
+    memcpy(msg, &mode, sizeof(char));
+    memcpy(msg + sizeof(char), (mode == DIGITS_MODE) ? &i : &hello_msg,
+           (mode == DIGITS_MODE) ? sizeof(int) : str_len);
+    ipc_write(buf, &msg, size) == IPC_OK &&i++;
   }
 }
