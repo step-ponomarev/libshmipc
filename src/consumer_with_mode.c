@@ -26,14 +26,7 @@ int main(const int argc, const char *argv[]) {
       continue;
     }
 
-    MsgHeader *header = (MsgHeader *)entry.payload;
-    if (header->type == DIGITS_MODE) {
-      int d;
-      memcpy(&d, ((char *)header) + sizeof(MsgHeader), header->size);
-      printf("Recive digit: %d\n", d);
-    } else {
-      printf("Recive strung: %s\n", ((char *)(header) + sizeof(MsgHeader)));
-    }
+    printf("Recive strung: %s\n", ((char *)entry.payload));
   }
 
   return 0;

@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char hello_msg[] = "Hello my friend i am from other process!\n";
+const char hello_msg[] = "Hello my friend i am from other process!\n";
 #define DIGITS_MODE 1
 #define STRING_MODE 2
 
@@ -38,25 +38,8 @@ int main(const int argc, const char *argv[]) {
   }
 
   char mode = argc == 1 ? DIGITS_MODE : STRING_MODE;
-  const MsgHeader header = {.type = mode,
-                            .size = mode == DIGITS_MODE ? sizeof(int)
-                                                        : strlen(hello_msg)};
-  for (int i = 0; i < 100000000;) {
-    if (i % 8 == 0) {
-      mode = STRING_MODE;
-    } else {
-      mode = DIGITS_MODE;
-    }
-
-    const MsgHeader header = {.type = mode,
-                              .size = mode == DIGITS_MODE ? sizeof(int)
-                                                          : strlen(hello_msg)};
-    char msg[sizeof(header) + header.size];
-    memcpy(msg, &header, sizeof(header));
-    memcpy(msg + sizeof(header), (mode == DIGITS_MODE) ? &i : hello_msg,
-           header.size);
-
-    if (ipc_write(buf, msg, sizeof(header) + header.size) != IPC_OK) {
+  for (int i = 0; i < 1024;) {
+    if (ipc_write(buf, hello_msg, (strlen(hello_msg) + 1)) != IPC_OK) {
       continue;
     };
     i++;
