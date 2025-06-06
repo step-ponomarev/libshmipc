@@ -1,1 +1,0 @@
-/usr/bin/cc  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/ipc_tests.dir/tests/test.c.o -o ipc_tests  libipc_lib.a /opt/homebrew/lib/libcriterion.dylib
