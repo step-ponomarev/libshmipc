@@ -19,4 +19,7 @@ IpcStatus ipc_read(IpcBuffer *, IpcEntry *);
 IpcStatus ipc_peek(IpcBuffer *, IpcEntry *);
 IpcStatus ipc_delete(IpcBuffer *);
 
+IpcStatus ipc_reserve_entry(IpcBuffer *, const uint64_t, uint8_t **);
+IpcStatus ipc_commit_entry(IpcBuffer *, const uint8_t *);
+
 #endif
