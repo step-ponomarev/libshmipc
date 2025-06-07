@@ -155,14 +155,15 @@ IpcStatus ipc_peek(IpcBuffer *buffer, IpcEntry *dest) {
   }
 
   const uint64_t head = atomic_load(&buffer->header->head);
-  IpcStatus status;
+
   EntryHeader *header;
-  if (_fetch_entry_header(buffer, head, &header) != IPC_OK) {
+  const IpcStatus status = _fetch_entry_header(buffer, head, &header);
+  if (status != IPC_OK) {
     return status;
   }
 
   dest->size = header->payload_size;
-  dest->payload = ((uint8_t *)header) + sizeof(EntryHeader);
+  dest->payload = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
 
   return IPC_OK;
 }
@@ -207,14 +208,14 @@ IpcStatus ipc_reserve_entry(IpcBuffer *buffer, const uint64_t size,
   uint64_t offset = relative_tail;
   if (space_to_wrap < full_entry_size) {
     _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + offset);
-    atomic_store(atomic_flag, FLAG_WRAP_AROUND);
+    atomic_store_explicit(atomic_flag, FLAG_WRAP_AROUND, memory_order_release);
     offset = 0;
   } else {
     offset = relative_tail;
   }
 
   EntryHeader *header = (EntryHeader *)(buffer->data + offset);
-  atomic_store(&header->flag, FLAG_NOT_READY);
+  atomic_store_explicit(&header->flag, FLAG_NOT_READY, memory_order_release);
   header->entry_size = full_entry_size;
 
   *dest = ((uint8_t *)header) + sizeof(EntryHeader);
@@ -231,7 +232,7 @@ IpcStatus ipc_commit_entry(IpcBuffer *buffer, const uint8_t *payload) {
   }
 
   EntryHeader *header = (EntryHeader *)(payload - sizeof(EntryHeader));
-  atomic_store(&header->flag, FLAG_READY);
+  atomic_store_explicit(&header->flag, FLAG_READY, memory_order_release);
 
   return IPC_OK;
 }
@@ -248,7 +249,7 @@ IpcStatus _fetch_entry_header(const IpcBuffer *buffer, const uint64_t head,
 
   const _Atomic Flag *atomic_flag =
       (_Atomic Flag *)(buffer->data + relative_head);
-  const Flag flag = atomic_load(atomic_flag);
+  const Flag flag = atomic_load_explicit(atomic_flag, memory_order_acquire);
   if (flag == FLAG_NOT_READY) {
     return IPC_NOT_READY;
   }
