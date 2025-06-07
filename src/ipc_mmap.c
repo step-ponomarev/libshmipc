@@ -7,6 +7,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+// TODO: Fix it, use groups and owner
+#define OPEN_MODE 0666
+
 struct IpcMemorySegment {
   char *name;
   uint64_t size;
@@ -23,14 +26,9 @@ IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size) {
     return NULL;
   }
 
-  char *name_copy = _copy(name);
-  if (name_copy == NULL) {
-    return NULL;
-  }
-
   const long page_size = sysconf(_SC_PAGESIZE);
   const uint64_t aligned_size = ALIGN_UP(size, page_size);
-  const int fd = _open_shm(name_copy, aligned_size);
+  const int fd = _open_shm(name, aligned_size);
   if (fd < 0) {
     return NULL;
   }
@@ -50,6 +48,14 @@ IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size) {
     _unmap(mem, aligned_size);
     return NULL;
   }
+
+  char *name_copy = _copy(name);
+  if (name_copy == NULL) {
+    _unmap(mem, aligned_size);
+    free(res);
+    return NULL;
+  }
+
   res->name = name_copy;
   res->memory = mem;
   res->size = aligned_size;
@@ -106,7 +112,7 @@ IpcStatus _unlink(const char *name) {
 }
 
 int _open_shm(const char *name, const uint64_t size) {
-  int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR);
+  int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, OPEN_MODE);
   if (fd >= 0) {
     if (ftruncate(fd, size) < 0) {
       return -1;
