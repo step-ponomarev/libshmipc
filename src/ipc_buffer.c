@@ -113,7 +113,6 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
     EntryHeader *header;
     const IpcStatus status = _fetch_entry_header(buffer, head, &header);
     if (status != IPC_OK) {
-      dest->size = 0;
       return status;
     }
 
