@@ -5,7 +5,6 @@
 #include <string.h>
 
 // TODO:  Сделать надежнее, поддержать дестрой лока, выводить коды ошибок
-// Изучить этот API
 bool rw_init(ReadWriteLock *dest) {
   if (dest == NULL) {
     lock_erno = LOCK_ERNO_INVALID_ARGUMENT;

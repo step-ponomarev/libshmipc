@@ -56,4 +56,6 @@ dkms.conf
 
 test_runner.dSYM
 .clangd
-
+build
+.cache
+compile_commands.json

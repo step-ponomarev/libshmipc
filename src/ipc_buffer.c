@@ -1,18 +1,15 @@
 #include "ipc_buffer.h"
-#include "ipc_status.h"
 #include "ipc_utils.h"
 #include <stdatomic.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/resource.h>
-#include <unistd.h>
+
+// TODO: Optimize memory barier using
 
 #define IPC_DATA_ALIGN 8
 
 typedef uint8_t Flag;
-// TODO:optimize tail cashing when moving head
 static const Flag FLAG_NOT_READY = 0;
 static const Flag FLAG_READY = 1;
 static const Flag FLAG_WRAP_AROUND = 2;
@@ -44,14 +41,13 @@ inline uint64_t ipc_allign_size(uint64_t size) {
 }
 
 IpcBuffer *ipc_buffer_create(uint8_t *mem, const uint64_t size) {
-  if (mem == NULL) {
-    fprintf(stderr, "ipc_buffer_create: argument is null\n");
+  if (mem == NULL || size <= sizeof(IpcBufferHeader) ||
+      size - sizeof(IpcBufferHeader) < 2) {
     return NULL;
   }
 
   IpcBuffer *buffer = malloc(sizeof(IpcBuffer));
   if (buffer == NULL) {
-    perror("ipc_buffer_create: allocation is failed\n");
     return NULL;
   }
 
@@ -68,13 +64,11 @@ IpcBuffer *ipc_buffer_create(uint8_t *mem, const uint64_t size) {
 
 IpcBuffer *ipc_buffer_attach(uint8_t *mem) {
   if (mem == NULL) {
-    fprintf(stderr, "ipc_buffer_attach: argument is null\n");
     return NULL;
   }
 
   IpcBuffer *buffer = malloc(sizeof(IpcBuffer));
   if (buffer == NULL) {
-    perror("ipc_buffer_attach: allocation is failed\n");
     return NULL;
   }
 
@@ -84,10 +78,8 @@ IpcBuffer *ipc_buffer_attach(uint8_t *mem) {
   return buffer;
 }
 
-// TODO: need fix bugs read/write
 IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
   if (buffer == NULL || data == NULL) {
-    fprintf(stderr, "ipc_write: arguments is null\n");
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
@@ -95,7 +87,6 @@ IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
   uint64_t full_entry_size =
       ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
   if (full_entry_size > buffer_size || size == 0) {
-    fprintf(stderr, "ipc_write: too large entry\n");
     return IPC_ERR_INVALID_SIZE;
   }
 
@@ -148,53 +139,39 @@ IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
 
 IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
   if (buffer == NULL || dest == NULL) {
-    fprintf(stderr, "ipc_read: arguments cannot be null\n");
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
   const uint64_t buffer_size = buffer->header->data_size;
+  const uint64_t dest_size = dest->size;
   uint64_t head;
   uint64_t full_entry_size;
 
-  IpcEntry entry;
-  entry.payload = NULL;
   do {
     head = atomic_load(&buffer->header->head);
 
     EntryHeader *header;
     if ((header = _fetch_entry_header(buffer, head)) == NULL) {
-      free(entry.payload);
+      dest->size = 0;
       return IPC_EMPTY;
     }
 
-    if (entry.payload == NULL) {
-      entry.payload = malloc(header->payload_size);
-    } else if (entry.size != header->payload_size) {
-      free(entry.payload);
-      entry.payload = malloc(header->payload_size);
-    }
-
-    if (entry.payload == NULL) {
-      perror("ipc_read: allocation is failed\n");
-      return IPC_ERR_ALLOCATION;
-    }
-
     full_entry_size = header->entry_size;
-    entry.size = header->payload_size;
+    dest->size = header->payload_size;
+    if (dest_size < dest->size) {
+      return IPC_ERR_TOO_SMALL;
+    }
 
     uint8_t *payload = ((uint8_t *)header) + sizeof(EntryHeader);
-    memcpy(entry.payload, payload, entry.size);
+    memcpy(dest->payload, payload, header->payload_size);
   } while (!atomic_compare_exchange_strong(&buffer->header->head, &head,
                                            head + full_entry_size));
-
-  memcpy(dest, &entry, sizeof(entry));
 
   return IPC_OK;
 }
 
 IpcStatus ipc_delete(IpcBuffer *buffer) {
   if (buffer == NULL) {
-    fprintf(stderr, "ipc_read: arguments cannot be null\n");
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
@@ -215,7 +192,6 @@ IpcStatus ipc_delete(IpcBuffer *buffer) {
 
 IpcStatus ipc_peek(IpcBuffer *buffer, IpcEntry *dest) {
   if (buffer == NULL || dest == NULL) {
-    fprintf(stderr, "ipc_peek_unsafe: aruments cannot be NULL\n");
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
