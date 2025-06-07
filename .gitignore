@@ -53,3 +53,9 @@ dkms.conf
 
 .DS_Store
 /**/.DS_Store
+
+test_runner.dSYM
+.clangd
+build
+.cache
+compile_commands.json
