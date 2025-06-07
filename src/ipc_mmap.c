@@ -125,7 +125,7 @@ int _open_shm(const char *name, const uint64_t size) {
     return -1;
   }
 
-  fd = shm_open(name, O_RDWR);
+  fd = shm_open(name, O_RDWR, OPEN_MODE);
   if (fd < 0) {
     return -1;
   }
