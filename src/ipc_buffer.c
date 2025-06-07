@@ -81,9 +81,6 @@ IpcBuffer *ipc_buffer_attach(uint8_t *mem) {
   buffer->header = (IpcBufferHeader *)mem;
   buffer->data = mem + sizeof(IpcBufferHeader);
 
-  printf("Attched head: %lld tail: %lld, data_size: %lld\n",
-         buffer->header->head, buffer->header->tail, buffer->header->data_size);
-
   return buffer;
 }
 
@@ -126,7 +123,7 @@ IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
   } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
                                            tail + full_entry_size));
 
-  uint64_t offset;
+  uint64_t offset = relative_tail;
   if (space_to_wrap < full_entry_size) {
     _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + offset);
     atomic_store(atomic_flag, FLAG_WRAP_AROUND);
@@ -146,10 +143,6 @@ IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
   header->seq = tail;
   atomic_store(&header->flag, FLAG_READY);
 
-  printf("Write entry size: %lld, full entry size: %lld, offset: %lld, tail: "
-         "%lld\n",
-         size, full_entry_size, offset, tail);
-
   return IPC_OK;
 }
 
@@ -168,10 +161,8 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
   do {
     head = atomic_load(&buffer->header->head);
 
-    EntryHeader *header; // if wrap around -no header
-    if ((buffer->header->tail == head &&
-         atomic_load(&buffer->header->tail) == head) ||
-        (header = _fetch_entry_header(buffer, head)) == NULL) {
+    EntryHeader *header;
+    if ((header = _fetch_entry_header(buffer, head)) == NULL) {
       free(entry.payload);
       return IPC_EMPTY;
     }
@@ -196,10 +187,6 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
   } while (!atomic_compare_exchange_strong(&buffer->header->head, &head,
                                            head + full_entry_size));
 
-  printf("Readentry size: %lld, full entry size: %lld, head: "
-         "%lld\n",
-         entry.size, full_entry_size, head);
-
   memcpy(dest, &entry, sizeof(entry));
 
   return IPC_OK;
@@ -214,10 +201,9 @@ IpcStatus ipc_delete(IpcBuffer *buffer) {
   uint64_t head;
   EntryHeader *header;
   do {
-    uint64_t tail = atomic_load(&buffer->header->tail);
     head = atomic_load(&buffer->header->head);
 
-    if (tail == head || (header = _fetch_entry_header(buffer, head)) == NULL) {
+    if ((header = _fetch_entry_header(buffer, head)) == NULL) {
       return IPC_EMPTY;
     }
 
@@ -233,26 +219,26 @@ IpcStatus ipc_peek(IpcBuffer *buffer, IpcEntry *dest) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  const uint64_t tail = atomic_load(&buffer->header->tail);
   const uint64_t head = atomic_load(&buffer->header->head);
   EntryHeader *header;
-  if (tail == head || (header = _fetch_entry_header(buffer, head)) == NULL) {
+  if ((header = _fetch_entry_header(buffer, head)) == NULL) {
     return IPC_EMPTY;
   }
 
   dest->size = header->payload_size;
-  dest->payload =
-      (RELATIVE(head, buffer->header->data_size) + header->entry_size >
-       buffer->header->data_size)
-          ? buffer->data
-          : (uint8_t *)header + sizeof(EntryHeader);
+  dest->payload = ((uint8_t *)header) + sizeof(EntryHeader);
 
   return IPC_OK;
 }
 
-EntryHeader *_fetch_entry_header(const IpcBuffer *buffer, const uint64_t addr) {
+EntryHeader *_fetch_entry_header(const IpcBuffer *buffer, const uint64_t head) {
+  if (head == buffer->header->tail &&
+      head == atomic_load(&buffer->header->tail)) {
+    return NULL;
+  }
+
   const uint64_t buffer_size = buffer->header->data_size;
-  const uint64_t relative_head = RELATIVE(addr, buffer_size);
+  const uint64_t relative_head = RELATIVE(head, buffer_size);
 
   const _Atomic Flag *atomic_flag =
       (_Atomic Flag *)(buffer->data + relative_head);
@@ -269,7 +255,7 @@ EntryHeader *_fetch_entry_header(const IpcBuffer *buffer, const uint64_t addr) {
     header = (EntryHeader *)(buffer->data + relative_head);
   }
 
-  if (addr != header->seq) {
+  if (head != header->seq) {
     return NULL;
   }
 
@@ -277,10 +263,10 @@ EntryHeader *_fetch_entry_header(const IpcBuffer *buffer, const uint64_t addr) {
 }
 
 inline uint64_t _find_max_power_of_2(const uint64_t max) {
-  uint64_t rounder = 1;
-  while (rounder < max) {
-    rounder <<= 1;
+  uint64_t res = 1;
+  while (res < max) {
+    res <<= 1;
   }
 
-  return rounder == max ? max : rounder >> 1;
+  return res == max ? max : (res >> 1);
 }
