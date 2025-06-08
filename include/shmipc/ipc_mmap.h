@@ -4,7 +4,12 @@
 #include "ipc_status.h"
 #include <stdint.h>
 
-typedef struct IpcMemorySegment IpcMemorySegment;
+// TODO: incapsulate
+typedef struct IpcMemorySegment {
+  char *name;
+  uint64_t size;
+  uint8_t *memory;
+} IpcMemorySegment;
 
 IpcMemorySegment *ipc_mmap(const char *, const uint64_t);
 IpcStatus ipc_unmap(IpcMemorySegment *);

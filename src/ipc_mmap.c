@@ -10,12 +10,6 @@
 // TODO: Fix it, use groups and owner
 #define OPEN_MODE 0666
 
-struct IpcMemorySegment {
-  char *name;
-  uint64_t size;
-  uint8_t *memory;
-};
-
 int _open_shm(const char *, const uint64_t);
 IpcStatus _unmap(void *, const uint64_t);
 IpcStatus _unlink(const char *);
