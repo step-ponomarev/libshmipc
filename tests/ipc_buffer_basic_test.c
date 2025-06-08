@@ -1,7 +1,7 @@
-#include "ipc_buffer.h"
-#include "ipc_status.h"
 #include "test_runner.h"
 #include <assert.h>
+#include <shmipc/ipc_buffer.h>
+#include <shmipc/ipc_status.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
