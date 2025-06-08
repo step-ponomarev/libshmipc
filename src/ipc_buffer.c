@@ -1,6 +1,6 @@
-#include "ipc_buffer.h"
-#include "ipc_status.h"
-#include "ipc_utils.h"
+#include <shmipc/ipc_buffer.h>
+#include <shmipc/ipc_status.h>
+#include <shmipc/ipc_utils.h>
 #include <stdatomic.h>
 #include <stdint.h>
 #include <stdlib.h>
