@@ -1,7 +1,6 @@
 #include "test_runner.h"
 #include <assert.h>
 #include <shmipc/ipc_buffer.h>
-#include <shmipc/ipc_status.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -32,11 +31,11 @@ void test_sigle_entry() {
   IpcBuffer *buffer = ipc_buffer_create(mem, 128);
 
   const int eval = 12;
-  assert(ipc_write(buffer, &eval, sizeof(eval)) == IPC_OK);
+  assert(ipc_buffer_write(buffer, &eval, sizeof(eval)) == IPC_OK);
 
   IpcEntry entry = {.payload = malloc(sizeof(eval)), .size = sizeof(eval)};
 
-  assert(ipc_read(buffer, &entry) == IPC_OK);
+  assert(ipc_buffer_read(buffer, &entry).status == IPC_OK);
   assert(entry.size == sizeof(eval));
 
   int res;
@@ -53,14 +52,14 @@ void test_fill_buffer() {
   IpcBuffer *buffer = ipc_buffer_create(mem, 128);
 
   size_t added_count = 0;
-  while (ipc_write(buffer, &added_count, sizeof(size_t)) == IPC_OK &&
+  while (ipc_buffer_write(buffer, &added_count, sizeof(size_t)) == IPC_OK &&
          (++added_count))
     ;
 
   size_t *ptr = malloc(sizeof(size_t));
   IpcEntry entry = {.payload = ptr, .size = sizeof(size_t)};
   for (size_t i = 0; i < added_count; i++) {
-    assert(ipc_read(buffer, &entry) == IPC_OK);
+    assert(ipc_buffer_read(buffer, &entry).status == IPC_OK);
     assert(entry.size == sizeof(size_t));
 
     size_t res;
@@ -69,7 +68,7 @@ void test_fill_buffer() {
     assert(res == i);
   }
 
-  assert(ipc_read(buffer, &entry) == IPC_EMPTY);
+  assert(ipc_buffer_read(buffer, &entry).status == IPC_EMPTY);
 
   free(ptr);
   free(buffer);
@@ -80,11 +79,11 @@ void test_add_to_full_buffer() {
   IpcBuffer *buffer = ipc_buffer_create(mem, 128);
 
   size_t added_count = 0;
-  while (ipc_write(buffer, &added_count, sizeof(size_t)) == IPC_OK &&
+  while (ipc_buffer_write(buffer, &added_count, sizeof(size_t)) == IPC_OK &&
          (++added_count))
     ;
 
-  assert(ipc_write(buffer, &added_count, sizeof(size_t)) ==
+  assert(ipc_buffer_write(buffer, &added_count, sizeof(size_t)) ==
          IPC_NO_SPACE_CONTIGUOUS);
 
   free(buffer);
@@ -95,24 +94,24 @@ void test_wrap_buffer() {
   IpcBuffer *buffer = ipc_buffer_create(mem, 128);
 
   size_t added_count = 0;
-  while (ipc_write(buffer, &added_count, sizeof(size_t)) == IPC_OK &&
+  while (ipc_buffer_write(buffer, &added_count, sizeof(size_t)) == IPC_OK &&
          (++added_count))
     ;
 
-  assert(ipc_write(buffer, &added_count, sizeof(size_t)) ==
+  assert(ipc_buffer_write(buffer, &added_count, sizeof(size_t)) ==
          IPC_NO_SPACE_CONTIGUOUS);
 
   size_t *ptr = malloc(sizeof(size_t));
-  assert(ipc_delete(buffer) == IPC_OK);
+  assert(ipc_buffer_skip_force(buffer) == IPC_OK);
 
   const size_t last_val = 666;
-  assert(ipc_write(buffer, &last_val, sizeof(last_val)) == IPC_OK);
+  assert(ipc_buffer_write(buffer, &last_val, sizeof(last_val)) == IPC_OK);
 
   IpcEntry entry = {.payload = malloc(sizeof(size_t)), .size = sizeof(size_t)};
 
   size_t prev;
 
-  while (ipc_read(buffer, &entry) == IPC_OK) {
+  while (ipc_buffer_read(buffer, &entry).status == IPC_OK) {
     assert(entry.size == sizeof(size_t));
     memcpy(&prev, entry.payload, entry.size);
   }
@@ -127,10 +126,11 @@ void test_peek() {
   IpcBuffer *buffer = ipc_buffer_create(mem, 128);
 
   const int expected_val = 12;
-  assert(ipc_write(buffer, &expected_val, sizeof(expected_val)) == IPC_OK);
+  assert(ipc_buffer_write(buffer, &expected_val, sizeof(expected_val)) ==
+         IPC_OK);
 
   IpcEntry entry;
-  assert(ipc_peek(buffer, &entry) == IPC_OK);
+  assert(ipc_buffer_peek(buffer, &entry).status == IPC_OK);
   assert(entry.size == sizeof(expected_val));
 
   int val;
@@ -140,13 +140,13 @@ void test_peek() {
   entry.payload = malloc(sizeof(expected_val));
   entry.size = sizeof(expected_val);
 
-  assert(ipc_read(buffer, &entry) == IPC_OK);
+  assert(ipc_buffer_read(buffer, &entry).status == IPC_OK);
   memcpy(&val, entry.payload, sizeof(expected_val));
   assert(expected_val == val);
 
   free(entry.payload);
 
-  assert(ipc_peek(buffer, &entry) == IPC_EMPTY);
+  assert(ipc_buffer_peek(buffer, &entry).status == IPC_EMPTY);
 
   free(buffer);
 }
@@ -156,12 +156,13 @@ void test_delete() {
   IpcBuffer *buffer = ipc_buffer_create(mem, 128);
 
   const int expected_val = 12;
-  assert(ipc_write(buffer, &expected_val, sizeof(expected_val)) == IPC_OK);
+  assert(ipc_buffer_write(buffer, &expected_val, sizeof(expected_val)) ==
+         IPC_OK);
 
   IpcEntry entry;
-  assert(ipc_peek(buffer, &entry) == IPC_OK);
-  assert(ipc_delete(buffer) == IPC_OK);
-  assert(ipc_peek(buffer, &entry) == IPC_EMPTY);
+  assert(ipc_buffer_peek(buffer, &entry).status == IPC_OK);
+  assert(ipc_buffer_skip_force(buffer) == IPC_OK);
+  assert(ipc_buffer_peek(buffer, &entry).status == IPC_EMPTY);
 
   free(buffer);
 }
@@ -171,19 +172,19 @@ void test_peek_consistency() {
   IpcBuffer *buffer = ipc_buffer_create(mem, 256);
 
   int v1 = 1, v2 = 2;
-  assert(ipc_write(buffer, &v1, sizeof(v1)) == IPC_OK);
-  assert(ipc_write(buffer, &v2, sizeof(v2)) == IPC_OK);
+  assert(ipc_buffer_write(buffer, &v1, sizeof(v1)) == IPC_OK);
+  assert(ipc_buffer_write(buffer, &v2, sizeof(v2)) == IPC_OK);
 
   IpcEntry entry;
-  assert(ipc_peek(buffer, &entry) == IPC_OK);
+  assert(ipc_buffer_peek(buffer, &entry).status == IPC_OK);
 
   int seen;
   memcpy(&seen, entry.payload, sizeof(seen));
   assert(seen == v1);
 
-  assert(ipc_delete(buffer) == IPC_OK);
+  assert(ipc_buffer_skip_force(buffer) == IPC_OK);
 
-  assert(ipc_peek(buffer, &entry) == IPC_OK);
+  assert(ipc_buffer_peek(buffer, &entry).status == IPC_OK);
   memcpy(&seen, entry.payload, sizeof(seen));
   assert(seen == v2);
 
@@ -195,12 +196,12 @@ void test_read_too_small() {
   IpcBuffer *buffer = ipc_buffer_create(mem, 128);
 
   int val = 42;
-  assert(ipc_write(buffer, &val, sizeof(val)) == IPC_OK);
+  assert(ipc_buffer_write(buffer, &val, sizeof(val)) == IPC_OK);
 
   IpcEntry entry = {.payload = malloc(sizeof(val) - 1),
                     .size = sizeof(val) - 1};
 
-  assert(ipc_read(buffer, &entry) == IPC_ERR_TOO_SMALL);
+  assert(ipc_buffer_read(buffer, &entry).status == IPC_ERR_TOO_SMALL);
 
   free(entry.payload);
   free(buffer);
@@ -212,17 +213,17 @@ void test_reserve_commit_read_read() {
 
   const int expected_val = 12;
   int *data;
-  assert(ipc_reserve_entry(buffer, sizeof(expected_val), ((uint8_t **)&data)) ==
-         IPC_OK);
+  assert(ipc_buffer_reserve_entry(buffer, sizeof(expected_val),
+                                  ((void **)&data)) == IPC_OK);
 
   IpcEntry entry = {.payload = malloc(sizeof(expected_val)),
                     .size = sizeof(expected_val)};
 
-  assert(ipc_read(buffer, &entry) == IPC_NOT_READY);
+  assert(ipc_buffer_read(buffer, &entry).status == IPC_NOT_READY);
 
   *data = expected_val;
-  assert(ipc_commit_entry(buffer, (uint8_t *)data) == IPC_OK);
-  assert(ipc_read(buffer, &entry) == IPC_OK);
+  assert(ipc_buffer_commit_entry(buffer, (uint8_t *)data) == IPC_OK);
+  assert(ipc_buffer_read(buffer, &entry).status == IPC_OK);
   assert(entry.size == sizeof(expected_val));
 
   int res;
@@ -239,15 +240,16 @@ void test_multiple_reserve_commit_read() {
 
   for (int i = 0; i < 10; ++i) {
     int *ptr;
-    assert(ipc_reserve_entry(buffer, sizeof(int), (uint8_t **)&ptr) == IPC_OK);
+    assert(ipc_buffer_reserve_entry(buffer, sizeof(int), (void **)&ptr) ==
+           IPC_OK);
     *ptr = i;
-    assert(ipc_commit_entry(buffer, (uint8_t *)ptr) == IPC_OK);
+    assert(ipc_buffer_commit_entry(buffer, (uint8_t *)ptr) == IPC_OK);
   }
 
   int *buf = malloc(sizeof(int));
   IpcEntry entry = {.payload = buf, .size = sizeof(int)};
   for (int i = 0; i < 10; ++i) {
-    assert(ipc_read(buffer, &entry) == IPC_OK);
+    assert(ipc_buffer_read(buffer, &entry).status == IPC_OK);
     assert(*buf == i);
   }
 

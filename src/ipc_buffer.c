@@ -1,7 +1,8 @@
+#include "ipc_utils.h"
+#include "shmipc/ipc_common.h"
 #include <shmipc/ipc_buffer.h>
-#include <shmipc/ipc_status.h>
-#include <shmipc/ipc_utils.h>
 #include <stdatomic.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +15,7 @@ typedef uint8_t Flag;
 static const Flag FLAG_NOT_READY = 0;
 static const Flag FLAG_READY = 1;
 static const Flag FLAG_WRAP_AROUND = 2;
+static const Flag FLAG_LOCKED = 3;
 
 typedef struct IpcBufferHeader {
   _Atomic uint64_t head;
@@ -34,15 +36,17 @@ typedef struct EntryHeader {
 } EntryHeader;
 
 uint64_t _find_max_power_of_2(const uint64_t);
-void _free_safe(void *);
-IpcStatus _fetch_entry_header(const IpcBuffer *, const uint64_t,
-                              EntryHeader **);
+IpcStatus _read_entry_header(const IpcBuffer *, const uint64_t, EntryHeader **);
+IpcTransactionalStatus _transactional_status(const uint64_t, const IpcStatus);
+Flag _read_flag(const void *);
+void _set_flag(void *, const Flag);
+IpcStatus _ipc_buffer_skip(IpcBuffer *, const IpcTransactionId, const bool);
 
 inline uint64_t ipc_allign_size(uint64_t size) {
   return size + sizeof(IpcBufferHeader);
 }
 
-IpcBuffer *ipc_buffer_create(uint8_t *mem, const uint64_t size) {
+IpcBuffer *ipc_buffer_create(void *mem, const uint64_t size) {
   if (mem == NULL || size <= sizeof(IpcBufferHeader) ||
       size - sizeof(IpcBufferHeader) < 2) {
     return NULL;
@@ -54,7 +58,7 @@ IpcBuffer *ipc_buffer_create(uint8_t *mem, const uint64_t size) {
   }
 
   buffer->header = (IpcBufferHeader *)mem;
-  buffer->data = mem + sizeof(IpcBufferHeader);
+  buffer->data = ((uint8_t *)mem) + sizeof(IpcBufferHeader);
 
   atomic_init(&buffer->header->data_size,
               _find_max_power_of_2(size - sizeof(IpcBufferHeader)));
@@ -64,7 +68,7 @@ IpcBuffer *ipc_buffer_create(uint8_t *mem, const uint64_t size) {
   return buffer;
 }
 
-IpcBuffer *ipc_buffer_attach(uint8_t *mem) {
+IpcBuffer *ipc_buffer_attach(void *mem) {
   if (mem == NULL) {
     return NULL;
   }
@@ -75,31 +79,32 @@ IpcBuffer *ipc_buffer_attach(uint8_t *mem) {
   }
 
   buffer->header = (IpcBufferHeader *)mem;
-  buffer->data = mem + sizeof(IpcBufferHeader);
+  buffer->data = ((uint8_t *)mem) + sizeof(IpcBufferHeader);
 
   return buffer;
 }
 
-IpcStatus ipc_write(IpcBuffer *buffer, const void *data, const uint64_t size) {
+IpcStatus ipc_buffer_write(IpcBuffer *buffer, const void *data,
+                           const uint64_t size) {
   if (buffer == NULL || data == NULL || size == 0) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  uint8_t *payload;
-  IpcStatus status = ipc_reserve_entry(buffer, size, &payload);
+  void *payload;
+  IpcStatus status = ipc_buffer_reserve_entry(buffer, size, &payload);
   if (status != IPC_OK) {
     return status;
   }
 
   memcpy(payload, data, size);
-  status = ipc_commit_entry(buffer, payload);
+  status = ipc_buffer_commit_entry(buffer, payload);
 
   return status;
 }
 
-IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
+IpcTransactionalStatus ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
   if (buffer == NULL || dest == NULL) {
-    return IPC_ERR_INVALID_ARGUMENT;
+    return _transactional_status(0, IPC_ERR_INVALID_ARGUMENT);
   }
 
   const uint64_t buffer_size = buffer->header->data_size;
@@ -111,15 +116,15 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
     head = atomic_load(&buffer->header->head);
 
     EntryHeader *header;
-    const IpcStatus status = _fetch_entry_header(buffer, head, &header);
+    const IpcStatus status = _read_entry_header(buffer, head, &header);
     if (status != IPC_OK) {
-      return status;
+      return _transactional_status(head, status);
     }
 
     full_entry_size = header->entry_size;
     dest->size = header->payload_size;
     if (dest_size < dest->size) {
-      return IPC_ERR_TOO_SMALL;
+      return _transactional_status(head, IPC_ERR_TOO_SMALL);
     }
 
     uint8_t *payload = ((uint8_t *)header) + sizeof(EntryHeader);
@@ -127,49 +132,38 @@ IpcStatus ipc_read(IpcBuffer *buffer, IpcEntry *dest) {
   } while (!atomic_compare_exchange_strong(&buffer->header->head, &head,
                                            head + full_entry_size));
 
-  return IPC_OK;
+  return _transactional_status(head, IPC_OK);
 }
 
-IpcStatus ipc_delete(IpcBuffer *buffer) {
-  if (buffer == NULL) {
-    return IPC_ERR_INVALID_ARGUMENT;
-  }
-
-  uint64_t head;
-  EntryHeader *header;
-  do {
-    head = atomic_load(&buffer->header->head);
-    if (_fetch_entry_header(buffer, head, &header) == IPC_EMPTY) {
-      return IPC_EMPTY;
-    }
-
-  } while (!atomic_compare_exchange_strong(&buffer->header->head, &head,
-                                           head + header->entry_size));
-
-  return IPC_OK;
-}
-
-IpcStatus ipc_peek(IpcBuffer *buffer, IpcEntry *dest) {
+IpcTransactionalStatus ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
   if (buffer == NULL || dest == NULL) {
-    return IPC_ERR_INVALID_ARGUMENT;
+    return _transactional_status(0, IPC_ERR_INVALID_ARGUMENT);
   }
 
   const uint64_t head = atomic_load(&buffer->header->head);
 
   EntryHeader *header;
-  const IpcStatus status = _fetch_entry_header(buffer, head, &header);
+  const IpcStatus status = _read_entry_header(buffer, head, &header);
   if (status != IPC_OK) {
-    return status;
+    return _transactional_status(head, status);
   }
 
   dest->size = header->payload_size;
-  dest->payload = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
+  dest->payload = (uint8_t *)header + sizeof(EntryHeader);
 
-  return IPC_OK;
+  return _transactional_status(head, IPC_OK);
 }
 
-IpcStatus ipc_reserve_entry(IpcBuffer *buffer, const uint64_t size,
-                            uint8_t **dest) {
+IpcStatus ipc_buffer_skip(IpcBuffer *buffer, const IpcTransactionId id) {
+  return _ipc_buffer_skip(buffer, id, false);
+}
+
+IpcStatus ipc_buffer_skip_force(IpcBuffer *buffer) {
+  return _ipc_buffer_skip(buffer, 0, true);
+}
+
+IpcStatus ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
+                                   void **dest) {
   if (buffer == NULL || size == 0) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
@@ -207,18 +201,17 @@ IpcStatus ipc_reserve_entry(IpcBuffer *buffer, const uint64_t size,
 
   uint64_t offset = relative_tail;
   if (space_to_wrap < full_entry_size) {
-    _Atomic Flag *atomic_flag = (_Atomic Flag *)(buffer->data + offset);
-    atomic_store_explicit(atomic_flag, FLAG_WRAP_AROUND, memory_order_release);
+    _set_flag(buffer->data + offset, FLAG_WRAP_AROUND);
     offset = 0;
   } else {
     offset = relative_tail;
   }
 
   EntryHeader *header = (EntryHeader *)(buffer->data + offset);
-  atomic_store_explicit(&header->flag, FLAG_NOT_READY, memory_order_release);
+  _set_flag((uint8_t *)&header->flag, FLAG_NOT_READY);
   header->entry_size = full_entry_size;
 
-  *dest = ((uint8_t *)header) + sizeof(EntryHeader);
+  *dest = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
 
   header->payload_size = size;
   header->seq = tail;
@@ -226,19 +219,59 @@ IpcStatus ipc_reserve_entry(IpcBuffer *buffer, const uint64_t size,
   return IPC_OK;
 }
 
-IpcStatus ipc_commit_entry(IpcBuffer *buffer, const uint8_t *payload) {
+IpcStatus ipc_buffer_commit_entry(IpcBuffer *buffer, const void *payload) {
   if (buffer == NULL || payload == NULL) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  EntryHeader *header = (EntryHeader *)(payload - sizeof(EntryHeader));
-  atomic_store_explicit(&header->flag, FLAG_READY, memory_order_release);
+  EntryHeader *header =
+      (EntryHeader *)(((uint8_t *)payload) - sizeof(EntryHeader));
+  _set_flag((uint8_t *)&header->flag, FLAG_READY);
 
   return IPC_OK;
 }
 
-IpcStatus _fetch_entry_header(const IpcBuffer *buffer, const uint64_t head,
-                              EntryHeader **dest) {
+IpcStatus _ipc_buffer_skip(IpcBuffer *buffer, const IpcTransactionId id,
+                           const bool force) {
+  if (buffer == NULL) {
+    return IPC_ERR_INVALID_ARGUMENT;
+  }
+
+  uint64_t head;
+  EntryHeader *header;
+  Flag flag;
+  do {
+    head = atomic_load(&buffer->header->head);
+    if (!force && head != id) {
+      return IPC_TRANSACTION_MISS_MATCHED;
+    }
+
+    const IpcStatus status = _read_entry_header(buffer, head, &header);
+    if (status == IPC_EMPTY) {
+      return IPC_EMPTY;
+    }
+
+    if (force && status == IPC_LOCKED) {
+      break;
+    }
+
+    if (status == IPC_LOCKED) {
+      return status;
+    }
+
+    flag = _read_flag((uint8_t *)header);
+  } while (!atomic_compare_exchange_strong(
+      &header->flag, &flag,
+      FLAG_LOCKED)); // race condition with producer NOT_READY -> READY case
+
+  return atomic_compare_exchange_strong(&buffer->header->head, &head,
+                                        head + header->entry_size)
+             ? IPC_OK
+             : IPC_ERR;
+}
+
+IpcStatus _read_entry_header(const IpcBuffer *buffer, const uint64_t head,
+                             EntryHeader **dest) {
   if (head == buffer->header->tail &&
       head == atomic_load(&buffer->header->tail)) {
     return IPC_EMPTY;
@@ -247,13 +280,7 @@ IpcStatus _fetch_entry_header(const IpcBuffer *buffer, const uint64_t head,
   const uint64_t buffer_size = buffer->header->data_size;
   const uint64_t relative_head = RELATIVE(head, buffer_size);
 
-  const _Atomic Flag *atomic_flag =
-      (_Atomic Flag *)(buffer->data + relative_head);
-  const Flag flag = atomic_load_explicit(atomic_flag, memory_order_acquire);
-  if (flag == FLAG_NOT_READY) {
-    return IPC_NOT_READY;
-  }
-
+  const Flag flag = _read_flag(buffer->data + relative_head);
   EntryHeader *header;
   if (flag == FLAG_WRAP_AROUND) {
     header = (EntryHeader *)buffer->data;
@@ -262,6 +289,14 @@ IpcStatus _fetch_entry_header(const IpcBuffer *buffer, const uint64_t head,
   }
 
   *dest = header;
+
+  if (flag == FLAG_NOT_READY) {
+    return IPC_NOT_READY;
+  }
+
+  if (flag == FLAG_LOCKED) {
+    return IPC_LOCKED;
+  }
 
   return head != header->seq ? IPC_CORRUPTED : IPC_OK;
 }
@@ -273,4 +308,19 @@ inline uint64_t _find_max_power_of_2(const uint64_t max) {
   }
 
   return res == max ? max : (res >> 1);
+}
+
+inline IpcTransactionalStatus _transactional_status(const uint64_t id,
+                                                    const IpcStatus status) {
+  return (IpcTransactionalStatus){.id = id, .status = status};
+}
+
+inline Flag _read_flag(const void *addr) {
+  const _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
+  return atomic_load_explicit(atomic_flag, memory_order_acquire);
+}
+
+inline void _set_flag(void *addr, const Flag flag) {
+  _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
+  atomic_store_explicit(atomic_flag, flag, memory_order_release);
 }
