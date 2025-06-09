@@ -16,7 +16,8 @@ IpcTransactionalStatus ipc_buffer_peek(IpcBuffer *, IpcEntry *);
 IpcStatus ipc_buffer_skip(IpcBuffer *, const IpcTransactionId);
 IpcStatus ipc_buffer_skip_force(IpcBuffer *);
 
-IpcStatus ipc_buffer_reserve_entry(IpcBuffer *, const uint64_t, void **);
-IpcStatus ipc_buffer_commit_entry(IpcBuffer *, const void *);
+IpcTransactionalStatus ipc_buffer_reserve_entry(IpcBuffer *, const uint64_t,
+                                                void **);
+IpcStatus ipc_buffer_commit_entry(IpcBuffer *, const IpcTransactionId);
 
 #endif

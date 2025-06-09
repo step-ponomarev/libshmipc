@@ -1,3 +1,4 @@
+#include "shmipc/ipc_common.h"
 #include "test_runner.h"
 #include <assert.h>
 #include <shmipc/ipc_buffer.h>
@@ -213,8 +214,10 @@ void test_reserve_commit_read_read() {
 
   const int expected_val = 12;
   int *data;
-  assert(ipc_buffer_reserve_entry(buffer, sizeof(expected_val),
-                                  ((void **)&data)) == IPC_OK);
+
+  const IpcTransactionalStatus ts =
+      ipc_buffer_reserve_entry(buffer, sizeof(expected_val), ((void **)&data));
+  assert(ts.status == IPC_OK);
 
   IpcEntry entry = {.payload = malloc(sizeof(expected_val)),
                     .size = sizeof(expected_val)};
@@ -222,7 +225,7 @@ void test_reserve_commit_read_read() {
   assert(ipc_buffer_read(buffer, &entry).status == IPC_NOT_READY);
 
   *data = expected_val;
-  assert(ipc_buffer_commit_entry(buffer, (uint8_t *)data) == IPC_OK);
+  assert(ipc_buffer_commit_entry(buffer, ts.id) == IPC_OK);
   assert(ipc_buffer_read(buffer, &entry).status == IPC_OK);
   assert(entry.size == sizeof(expected_val));
 
@@ -240,10 +243,12 @@ void test_multiple_reserve_commit_read() {
 
   for (int i = 0; i < 10; ++i) {
     int *ptr;
-    assert(ipc_buffer_reserve_entry(buffer, sizeof(int), (void **)&ptr) ==
-           IPC_OK);
+    const IpcTransactionalStatus ts =
+        ipc_buffer_reserve_entry(buffer, sizeof(int), ((void **)&ptr));
+
+    assert(ts.status == IPC_OK);
     *ptr = i;
-    assert(ipc_buffer_commit_entry(buffer, (uint8_t *)ptr) == IPC_OK);
+    assert(ipc_buffer_commit_entry(buffer, ts.id) == IPC_OK);
   }
 
   int *buf = malloc(sizeof(int));
@@ -256,6 +261,9 @@ void test_multiple_reserve_commit_read() {
   free(buf);
   free(buffer);
 }
+
+// TODO: Check add in full buffer status code
+//       Skip with incorrect transactional ID
 
 int main() {
   run_test("create too small buffer", &test_create_too_small_buffer);

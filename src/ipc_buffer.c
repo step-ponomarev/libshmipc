@@ -91,15 +91,13 @@ IpcStatus ipc_buffer_write(IpcBuffer *buffer, const void *data,
   }
 
   void *payload;
-  IpcStatus status = ipc_buffer_reserve_entry(buffer, size, &payload);
-  if (status != IPC_OK) {
-    return status;
+  IpcTransactionalStatus ts = ipc_buffer_reserve_entry(buffer, size, &payload);
+  if (ts.status != IPC_OK) {
+    return ts.status;
   }
 
   memcpy(payload, data, size);
-  status = ipc_buffer_commit_entry(buffer, payload);
-
-  return status;
+  return ipc_buffer_commit_entry(buffer, ts.id);
 }
 
 IpcTransactionalStatus ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
@@ -162,17 +160,17 @@ IpcStatus ipc_buffer_skip_force(IpcBuffer *buffer) {
   return _ipc_buffer_skip(buffer, 0, true);
 }
 
-IpcStatus ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
-                                   void **dest) {
+IpcTransactionalStatus
+ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size, void **dest) {
   if (buffer == NULL || size == 0) {
-    return IPC_ERR_INVALID_ARGUMENT;
+    return _transactional_status(0, IPC_ERR_INVALID_ARGUMENT);
   }
 
   const uint64_t buffer_size = buffer->header->data_size;
   uint64_t full_entry_size =
       ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
   if (full_entry_size > buffer_size) {
-    return IPC_ERR_INVALID_SIZE;
+    return _transactional_status(0, IPC_ERR_INVALID_SIZE);
   }
 
   uint64_t tail;
@@ -192,19 +190,19 @@ IpcStatus ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
     if (free_space < full_entry_size) {
       free_space = buffer_size - (tail - atomic_load(&buffer->header->head));
       if (free_space < full_entry_size) {
-        return IPC_NO_SPACE_CONTIGUOUS;
+        return _transactional_status(tail, IPC_NO_SPACE_CONTIGUOUS);
       }
     }
 
   } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
                                            tail + full_entry_size));
 
+  bool wrapped = false;
   uint64_t offset = relative_tail;
   if (space_to_wrap < full_entry_size) {
     _set_flag(buffer->data + offset, FLAG_WRAP_AROUND);
     offset = 0;
-  } else {
-    offset = relative_tail;
+    wrapped = true;
   }
 
   EntryHeader *header = (EntryHeader *)(buffer->data + offset);
@@ -216,16 +214,17 @@ IpcStatus ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
   header->payload_size = size;
   header->seq = tail;
 
-  return IPC_OK;
+  return _transactional_status(wrapped ? tail + space_to_wrap : tail, IPC_OK);
 }
 
-IpcStatus ipc_buffer_commit_entry(IpcBuffer *buffer, const void *payload) {
-  if (buffer == NULL || payload == NULL) {
+IpcStatus ipc_buffer_commit_entry(IpcBuffer *buffer,
+                                  const IpcTransactionId id) {
+  if (buffer == NULL) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  EntryHeader *header =
-      (EntryHeader *)(((uint8_t *)payload) - sizeof(EntryHeader));
+  const uint64_t offset = RELATIVE(id, buffer->header->data_size);
+  EntryHeader *header = (EntryHeader *)(buffer->data + offset);
   _set_flag((uint8_t *)&header->flag, FLAG_READY);
 
   return IPC_OK;
