@@ -20,10 +20,10 @@ typedef enum {
 
 typedef uint64_t IpcTransactionId;
 
-typedef struct IpcTransactionalStatus {
+typedef struct IpcTransaction {
   const IpcTransactionId id;
   const IpcStatus status;
-} IpcTransactionalStatus;
+} IpcTransaction;
 
 typedef struct IpcEntry {
   uint64_t size;

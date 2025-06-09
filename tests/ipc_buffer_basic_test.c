@@ -215,9 +215,9 @@ void test_reserve_commit_read_read() {
   const int expected_val = 12;
   int *data;
 
-  const IpcTransactionalStatus ts =
+  const IpcTransaction tx =
       ipc_buffer_reserve_entry(buffer, sizeof(expected_val), ((void **)&data));
-  assert(ts.status == IPC_OK);
+  assert(tx.status == IPC_OK);
 
   IpcEntry entry = {.payload = malloc(sizeof(expected_val)),
                     .size = sizeof(expected_val)};
@@ -225,7 +225,7 @@ void test_reserve_commit_read_read() {
   assert(ipc_buffer_read(buffer, &entry).status == IPC_NOT_READY);
 
   *data = expected_val;
-  assert(ipc_buffer_commit_entry(buffer, ts.id) == IPC_OK);
+  assert(ipc_buffer_commit_entry(buffer, tx.id) == IPC_OK);
   assert(ipc_buffer_read(buffer, &entry).status == IPC_OK);
   assert(entry.size == sizeof(expected_val));
 
@@ -243,12 +243,12 @@ void test_multiple_reserve_commit_read() {
 
   for (int i = 0; i < 10; ++i) {
     int *ptr;
-    const IpcTransactionalStatus ts =
+    const IpcTransaction tx =
         ipc_buffer_reserve_entry(buffer, sizeof(int), ((void **)&ptr));
 
-    assert(ts.status == IPC_OK);
+    assert(tx.status == IPC_OK);
     *ptr = i;
-    assert(ipc_buffer_commit_entry(buffer, ts.id) == IPC_OK);
+    assert(ipc_buffer_commit_entry(buffer, tx.id) == IPC_OK);
   }
 
   int *buf = malloc(sizeof(int));

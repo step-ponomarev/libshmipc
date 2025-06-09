@@ -37,7 +37,7 @@ typedef struct EntryHeader {
 
 uint64_t _find_max_power_of_2(const uint64_t);
 IpcStatus _read_entry_header(const IpcBuffer *, const uint64_t, EntryHeader **);
-IpcTransactionalStatus _transactional_status(const uint64_t, const IpcStatus);
+IpcTransaction _transaction(const uint64_t, const IpcStatus);
 Flag _read_flag(const void *);
 void _set_flag(void *, const Flag);
 IpcStatus _ipc_buffer_skip(IpcBuffer *, const IpcTransactionId, const bool);
@@ -91,18 +91,18 @@ IpcStatus ipc_buffer_write(IpcBuffer *buffer, const void *data,
   }
 
   void *payload;
-  IpcTransactionalStatus ts = ipc_buffer_reserve_entry(buffer, size, &payload);
-  if (ts.status != IPC_OK) {
-    return ts.status;
+  IpcTransaction tx = ipc_buffer_reserve_entry(buffer, size, &payload);
+  if (tx.status != IPC_OK) {
+    return tx.status;
   }
 
   memcpy(payload, data, size);
-  return ipc_buffer_commit_entry(buffer, ts.id);
+  return ipc_buffer_commit_entry(buffer, tx.id);
 }
 
-IpcTransactionalStatus ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
+IpcTransaction ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
   if (buffer == NULL || dest == NULL) {
-    return _transactional_status(0, IPC_ERR_INVALID_ARGUMENT);
+    return _transaction(0, IPC_ERR_INVALID_ARGUMENT);
   }
 
   const uint64_t buffer_size = buffer->header->data_size;
@@ -116,13 +116,13 @@ IpcTransactionalStatus ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
     EntryHeader *header;
     const IpcStatus status = _read_entry_header(buffer, head, &header);
     if (status != IPC_OK) {
-      return _transactional_status(head, status);
+      return _transaction(head, status);
     }
 
     full_entry_size = header->entry_size;
     dest->size = header->payload_size;
     if (dest_size < dest->size) {
-      return _transactional_status(head, IPC_ERR_TOO_SMALL);
+      return _transaction(head, IPC_ERR_TOO_SMALL);
     }
 
     uint8_t *payload = ((uint8_t *)header) + sizeof(EntryHeader);
@@ -130,12 +130,12 @@ IpcTransactionalStatus ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
   } while (!atomic_compare_exchange_strong(&buffer->header->head, &head,
                                            head + full_entry_size));
 
-  return _transactional_status(head, IPC_OK);
+  return _transaction(head, IPC_OK);
 }
 
-IpcTransactionalStatus ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
+IpcTransaction ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
   if (buffer == NULL || dest == NULL) {
-    return _transactional_status(0, IPC_ERR_INVALID_ARGUMENT);
+    return _transaction(0, IPC_ERR_INVALID_ARGUMENT);
   }
 
   const uint64_t head = atomic_load(&buffer->header->head);
@@ -143,13 +143,13 @@ IpcTransactionalStatus ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
   EntryHeader *header;
   const IpcStatus status = _read_entry_header(buffer, head, &header);
   if (status != IPC_OK) {
-    return _transactional_status(head, status);
+    return _transaction(head, status);
   }
 
   dest->size = header->payload_size;
   dest->payload = (uint8_t *)header + sizeof(EntryHeader);
 
-  return _transactional_status(head, IPC_OK);
+  return _transaction(head, IPC_OK);
 }
 
 IpcStatus ipc_buffer_skip(IpcBuffer *buffer, const IpcTransactionId id) {
@@ -160,17 +160,17 @@ IpcStatus ipc_buffer_skip_force(IpcBuffer *buffer) {
   return _ipc_buffer_skip(buffer, 0, true);
 }
 
-IpcTransactionalStatus
-ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size, void **dest) {
+IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
+                                        void **dest) {
   if (buffer == NULL || size == 0) {
-    return _transactional_status(0, IPC_ERR_INVALID_ARGUMENT);
+    return _transaction(0, IPC_ERR_INVALID_ARGUMENT);
   }
 
   const uint64_t buffer_size = buffer->header->data_size;
   uint64_t full_entry_size =
       ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
   if (full_entry_size > buffer_size) {
-    return _transactional_status(0, IPC_ERR_INVALID_SIZE);
+    return _transaction(0, IPC_ERR_INVALID_SIZE);
   }
 
   uint64_t tail;
@@ -190,7 +190,7 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size, void **dest) {
     if (free_space < full_entry_size) {
       free_space = buffer_size - (tail - atomic_load(&buffer->header->head));
       if (free_space < full_entry_size) {
-        return _transactional_status(tail, IPC_NO_SPACE_CONTIGUOUS);
+        return _transaction(tail, IPC_NO_SPACE_CONTIGUOUS);
       }
     }
 
@@ -214,7 +214,7 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size, void **dest) {
   header->payload_size = size;
   header->seq = tail;
 
-  return _transactional_status(wrapped ? tail + space_to_wrap : tail, IPC_OK);
+  return _transaction(wrapped ? tail + space_to_wrap : tail, IPC_OK);
 }
 
 IpcStatus ipc_buffer_commit_entry(IpcBuffer *buffer,
@@ -309,9 +309,8 @@ inline uint64_t _find_max_power_of_2(const uint64_t max) {
   return res == max ? max : (res >> 1);
 }
 
-inline IpcTransactionalStatus _transactional_status(const uint64_t id,
-                                                    const IpcStatus status) {
-  return (IpcTransactionalStatus){.id = id, .status = status};
+inline IpcTransaction _transaction(const uint64_t id, const IpcStatus status) {
+  return (IpcTransaction){.id = id, .status = status};
 }
 
 inline Flag _read_flag(const void *addr) {
