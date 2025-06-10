@@ -225,7 +225,7 @@ void test_reserve_commit_read_read() {
   assert(ipc_buffer_read(buffer, &entry).status == IPC_NOT_READY);
 
   *data = expected_val;
-  assert(ipc_buffer_commit_entry(buffer, tx.id) == IPC_OK);
+  assert(ipc_buffer_commit_entry(buffer, tx.entry_id) == IPC_OK);
   assert(ipc_buffer_read(buffer, &entry).status == IPC_OK);
   assert(entry.size == sizeof(expected_val));
 
@@ -248,7 +248,7 @@ void test_multiple_reserve_commit_read() {
 
     assert(tx.status == IPC_OK);
     *ptr = i;
-    assert(ipc_buffer_commit_entry(buffer, tx.id) == IPC_OK);
+    assert(ipc_buffer_commit_entry(buffer, tx.entry_id) == IPC_OK);
   }
 
   int *buf = malloc(sizeof(int));

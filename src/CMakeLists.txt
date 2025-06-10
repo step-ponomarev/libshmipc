@@ -1,4 +1,4 @@
-set(SOURCES ipc_buffer.c ipc_mmap.c)
+set(SOURCES ipc_buffer.c ipc_utils.c ipc_mmap.c)
 
 set(OUTPUT_NAME shmipc)
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)

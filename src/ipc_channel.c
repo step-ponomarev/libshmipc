@@ -1,16 +1,27 @@
+#include "ipc_utils.h"
 #include "shmipc/ipc_buffer.h"
+#include "shmipc/ipc_common.h"
 #include <_time.h>
 #include <shmipc/ipc_buffer.h>
 #include <shmipc/ipc_channel.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
+
+#define NOT_READY_RETRY_LIMIT 1 << 6
+#define START_WAIT_NS 2
 
 struct IpcChannel {
   IpcBuffer *buffer;
 };
 
-IpcChannel *ipc_channel_create(uint8_t *mem, const uint64_t size) {
+bool _is_error_status(const IpcStatus);
+bool _is_retry_status(const IpcStatus);
+bool _sleep_and_expand_delay(struct timespec);
+
+IpcChannel *ipc_channel_create(void *mem, const uint64_t size) {
   if (mem == NULL || size == 0) {
     return NULL;
   }
@@ -29,7 +40,7 @@ IpcChannel *ipc_channel_create(uint8_t *mem, const uint64_t size) {
   return channel;
 }
 
-IpcChannel *ipc_channel_connect(uint8_t *mem) {
+IpcChannel *ipc_channel_connect(void *mem) {
   if (mem == NULL) {
     return NULL;
   }
@@ -60,7 +71,7 @@ IpcStatus ipc_channel_destroy(IpcChannel *channel) {
 }
 
 // запись никогда не блокирует
-IpcStatus ipc_channel_write(IpcChannel *channel, const uint8_t *data,
+IpcStatus ipc_channel_write(IpcChannel *channel, const void *data,
                             const uint64_t size) {
   if (channel == NULL || data == NULL || size == 0) {
     return IPC_ERR_INVALID_ARGUMENT;
@@ -75,33 +86,112 @@ IpcStatus ipc_channel_write(IpcChannel *channel, const uint8_t *data,
 
 #define MAX_NANOS_MS 10000000
 // блокируещее чтение
-IpcStatus ipc_channel_read(IpcChannel *channel, IpcEntry *entry) {
-  if (channel == NULL || entry == NULL) {
-    return IPC_ERR_INVALID_ARGUMENT;
+// if loong read and curropted should return to client
+IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest) {
+  if (channel == NULL || dest == NULL) {
+    return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
   }
 
   if (channel->buffer == NULL) {
-    return IPC_ERR;
+    return ipc_create_transaction(0, IPC_ERR);
   }
 
-  uint64_t delay_ns = 2;
-  IpcStatus status;
-  do {
-    status = ipc_buffer_read(channel->buffer, entry);
-    // TODO: если долго NOT_READY, то нужно это трекать
-    if (status == IPC_NOT_READY || status == IPC_EMPTY) {
-      struct timespec delay = {.tv_sec = 0, .tv_nsec = delay_ns};
-      nanosleep(&delay, NULL);
+  struct timespec delay = {.tv_sec = 0, .tv_nsec = START_WAIT_NS};
 
-      if (delay_ns < MAX_NANOS_MS) {
-        delay_ns *= 2;
-        delay_ns = delay_ns > MAX_NANOS_MS ? MAX_NANOS_MS : delay_ns;
+  IpcTransaction curr_tx;
+  IpcTransaction prev_tx;
+  size_t round_trips = 0;
+
+  IpcEntry entry = {.payload = NULL, .size = 0};
+  do {
+    IpcEntry tmp_entry;
+    curr_tx = ipc_buffer_peek(channel->buffer, &tmp_entry);
+    if (_is_error_status(curr_tx.status)) {
+      free(entry.payload);
+      return curr_tx;
+    }
+
+    if (prev_tx.entry_id == curr_tx.entry_id &&
+        curr_tx.status == IPC_NOT_READY) {
+      round_trips++;
+    } else {
+      round_trips = 0;
+    }
+    prev_tx = curr_tx;
+
+    if (round_trips == NOT_READY_RETRY_LIMIT) { // TODO: Hardcoded round trips?
+                                                // // need be more flexible
+      free(entry.payload);
+      return ipc_create_transaction(curr_tx.entry_id, IPC_REACHED_RETRY_LIMIT);
+    }
+
+    if (_is_retry_status(curr_tx.status)) {
+      if (!_sleep_and_expand_delay(delay)) {
+        free(entry.payload);
+        return ipc_create_transaction(0, IPC_ERR);
       }
       continue;
     }
 
-  } while (status != IPC_OK);
+    if (_is_error_status(curr_tx.status)) {
+      free(entry.payload);
+      return curr_tx;
+    }
 
-  return status;
+    if (entry.payload == NULL) {
+      entry.payload = malloc(tmp_entry.size);
+    } else if (entry.size < tmp_entry.size) {
+      entry.payload = realloc(entry.payload, tmp_entry.size);
+    }
+
+    if (tmp_entry.payload == NULL) {
+      return ipc_create_transaction(curr_tx.entry_id, IPC_ERR_ALLOCATION);
+    }
+
+    curr_tx = ipc_buffer_read(channel->buffer, &tmp_entry);
+    if (curr_tx.status == IPC_ERR_TOO_SMALL) {
+      continue;
+    }
+
+    if (!_is_error_status(curr_tx.status)) {
+      free(entry.payload);
+      return curr_tx;
+    }
+  } while (curr_tx.status != IPC_OK);
+
+  IpcEntry *res_allocated = malloc(sizeof(IpcEntry));
+  if (res_allocated == NULL) {
+    free(entry.payload);
+    return ipc_create_transaction(0, IPC_ERR_ALLOCATION);
+  }
+
+  dest->payload = entry.payload;
+  dest->size = entry.size;
+
+  return curr_tx;
 }
 // IpcStatus ipc_channel_read_with_timeout(IpcChannel *, IpcEntry *, time_t);
+//
+
+inline bool _is_error_status(const IpcStatus status) {
+  return !_is_retry_status(status) && status != IPC_OK;
+}
+
+inline bool _is_retry_status(const IpcStatus status) {
+  return status == IPC_NOT_READY || status == IPC_EMPTY;
+}
+
+inline bool _sleep_and_expand_delay(struct timespec delay) {
+  if (nanosleep(&delay, NULL) != 0) {
+    return false;
+  }
+
+  if (delay.tv_nsec < MAX_NANOS_MS) {
+    delay.tv_nsec *= START_WAIT_NS;
+    if (delay.tv_nsec > MAX_NANOS_MS) {
+      delay.tv_nsec = MAX_NANOS_MS;
+    }
+  }
+
+  return true;
+}

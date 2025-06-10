@@ -20,7 +20,7 @@ IpcStatus ipc_channel_destroy(IpcChannel *);
 IpcStatus ipc_channel_write(IpcChannel *, const void *, const uint64_t);
 
 // блокируещее чтение
-IpcStatus ipc_channel_read(IpcChannel *, IpcEntry *);
+IpcTransaction ipc_channel_read(IpcChannel *, IpcEntry *);
 IpcStatus ipc_channel_read_with_timeout(IpcChannel *, IpcEntry *, time_t);
 
 #endif

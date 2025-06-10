@@ -11,6 +11,7 @@ typedef enum {
   IPC_CORRUPTED = 4,
   IPC_LOCKED = 5,
   IPC_TRANSACTION_MISS_MATCHED = 6,
+  IPC_REACHED_RETRY_LIMIT = 7,
   IPC_ERR_INVALID_SIZE = -1,
   IPC_ERR_ALLOCATION = -2,
   IPC_ERR_INVALID_ARGUMENT = -3,
@@ -18,11 +19,11 @@ typedef enum {
   IPC_ERR = -5
 } IpcStatus;
 
-typedef uint64_t IpcTransactionId;
+typedef uint64_t IpcEntryId;
 
 typedef struct IpcTransaction {
-  const IpcTransactionId id;
-  const IpcStatus status;
+  IpcEntryId entry_id;
+  IpcStatus status;
 } IpcTransaction;
 
 typedef struct IpcEntry {

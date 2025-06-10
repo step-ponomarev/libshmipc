@@ -13,10 +13,10 @@ IpcBuffer *ipc_buffer_attach(void *);
 IpcStatus ipc_buffer_write(IpcBuffer *, const void *, const uint64_t);
 IpcTransaction ipc_buffer_read(IpcBuffer *, IpcEntry *);
 IpcTransaction ipc_buffer_peek(IpcBuffer *, IpcEntry *);
-IpcStatus ipc_buffer_skip(IpcBuffer *, const IpcTransactionId);
+IpcStatus ipc_buffer_skip(IpcBuffer *, const IpcEntryId);
 IpcStatus ipc_buffer_skip_force(IpcBuffer *);
 
 IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *, const uint64_t, void **);
-IpcStatus ipc_buffer_commit_entry(IpcBuffer *, const IpcTransactionId);
+IpcStatus ipc_buffer_commit_entry(IpcBuffer *, const IpcEntryId);
 
 #endif
