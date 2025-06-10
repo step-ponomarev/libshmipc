@@ -41,7 +41,7 @@ Flag _read_flag(const void *);
 void _set_flag(void *, const Flag);
 IpcStatus _ipc_buffer_skip(IpcBuffer *, const IpcEntryId, const bool);
 
-inline uint64_t ipc_allign_size(uint64_t size) {
+inline uint64_t ipc_buffer_allign_size(uint64_t size) {
   return size + sizeof(IpcBufferHeader);
 }
 

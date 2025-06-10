@@ -6,7 +6,7 @@
 
 typedef struct IpcBuffer IpcBuffer;
 
-uint64_t ipc_allign_size(uint64_t);
+uint64_t ipc_buffer_allign_size(uint64_t);
 IpcBuffer *ipc_buffer_create(void *, const uint64_t);
 IpcBuffer *ipc_buffer_attach(void *);
 
