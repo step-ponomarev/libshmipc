@@ -1,7 +1,8 @@
 #ifndef IPC_CHANNEL_H
 #define IPC_CHANNEL_H
 
-#include "ipc_common.h"
+#include <shmipc/ipc_common.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
 
@@ -25,6 +26,10 @@ IpcStatus ipc_channel_write(IpcChannel *, const void *, const uint64_t);
 
 // блокируещее чтение
 IpcTransaction ipc_channel_read(IpcChannel *, IpcEntry *);
-IpcStatus ipc_channel_read_with_timeout(IpcChannel *, IpcEntry *, time_t);
+IpcTransaction ipc_channel_try_read(IpcChannel *, IpcEntry *);
+IpcTransaction ipc_channel_read_with_timeout(IpcChannel *, IpcEntry *,
+                                             struct timespec);
+
+IpcStatus ipc_channel_skip(IpcChannel *, IpcEntryId, bool);
 
 #endif

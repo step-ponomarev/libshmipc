@@ -1,14 +1,11 @@
 #include "ipc_utils.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_common.h"
-#include <shmipc/ipc_buffer.h>
 #include <shmipc/ipc_channel.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/syslimits.h>
-#include <time.h>
 
 #define WAIT_EXPAND_FACTOR 2
 
@@ -19,8 +16,10 @@ struct IpcChannel {
 
 bool _is_error_status(const IpcStatus);
 bool _is_retry_status(const IpcStatus);
-bool _sleep_and_expand_delay(struct timespec, const long);
+bool _sleep_and_expand_delay(struct timespec *, const long);
 bool _is_valid_config(const IpcChannelConfiguration);
+
+IpcTransaction _try_read(IpcChannel *, IpcEntry *);
 
 inline uint64_t ipc_channel_allign_size(uint64_t size) {
   return ipc_buffer_allign_size(size);
@@ -79,7 +78,6 @@ IpcStatus ipc_channel_destroy(IpcChannel *channel) {
   return IPC_OK;
 }
 
-// запись никогда не блокирует
 IpcStatus ipc_channel_write(IpcChannel *channel, const void *data,
                             const uint64_t size) {
   if (channel == NULL || data == NULL || size == 0) {
@@ -93,8 +91,6 @@ IpcStatus ipc_channel_write(IpcChannel *channel, const void *data,
   return ipc_buffer_write(channel->buffer, data, size);
 }
 
-// блокируещее чтение
-// if loong read and curropted should return to client
 IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest) {
   if (channel == NULL || dest == NULL) {
     return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
@@ -134,40 +130,19 @@ IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest) {
     }
 
     if (_is_retry_status(curr_tx.status)) {
-      if (!_sleep_and_expand_delay(delay, channel->config.max_sleep_ns)) {
+      if (!_sleep_and_expand_delay(&delay, channel->config.max_sleep_ns)) {
         free(read_entry.payload);
         return ipc_create_transaction(0, IPC_ERR);
       }
       continue;
     }
 
-    if (read_entry.payload == NULL) {
-      read_entry.payload = malloc(peek_entry.size);
-      read_entry.size = peek_entry.size;
-    } else if (read_entry.size < peek_entry.size) {
-      void *new_buf = realloc(read_entry.payload, peek_entry.size);
-      if (new_buf == NULL) {
-        free(read_entry.payload);
-        return ipc_create_transaction(curr_tx.entry_id, IPC_ERR_ALLOCATION);
-      }
-
-      read_entry.payload = new_buf;
-      read_entry.size = peek_entry.size;
-    }
-
-    if (read_entry.payload == NULL) {
-      return ipc_create_transaction(curr_tx.entry_id, IPC_ERR_ALLOCATION);
-    }
-
-    curr_tx = ipc_buffer_read(channel->buffer, &read_entry);
-    if (curr_tx.status == IPC_ERR_TOO_SMALL) {
-      continue;
-    }
-
+    curr_tx = _try_read(channel, &read_entry);
     if (_is_error_status(curr_tx.status)) {
       free(read_entry.payload);
       return curr_tx;
     }
+
   } while (curr_tx.status != IPC_OK);
 
   dest->payload = read_entry.payload;
@@ -175,8 +150,82 @@ IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest) {
 
   return curr_tx;
 }
-// IpcStatus ipc_channel_read_with_timeout(IpcChannel *, IpcEntry *, time_t);
-//
+
+IpcTransaction ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest) {
+  if (channel == NULL || dest == NULL) {
+    return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
+  }
+
+  if (channel->buffer == NULL) {
+    return ipc_create_transaction(0, IPC_ERR);
+  }
+
+  IpcEntry read_entry = {.payload = NULL, .size = 0};
+  const IpcTransaction tx = _try_read(channel, &read_entry);
+  if (tx.status != IPC_OK) {
+    free(read_entry.payload);
+    return tx;
+  }
+
+  dest->payload = read_entry.payload;
+  dest->size = read_entry.size;
+
+  return tx;
+}
+
+IpcTransaction _try_read(IpcChannel *channel, IpcEntry *read_entry) {
+  if (channel == NULL || read_entry == NULL) {
+    return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
+  }
+
+  if (channel->buffer == NULL) {
+    return ipc_create_transaction(0, IPC_ERR);
+  }
+
+  IpcTransaction curr_tx;
+  do {
+    IpcEntry peek_entry;
+    curr_tx = ipc_buffer_peek(channel->buffer, &peek_entry);
+    if (_is_error_status(curr_tx.status)) {
+      return curr_tx;
+    }
+
+    if (curr_tx.status != IPC_OK) {
+      return curr_tx;
+    }
+
+    if (read_entry->payload == NULL) {
+      read_entry->payload = malloc(peek_entry.size);
+      if (read_entry->payload == NULL) {
+        return ipc_create_transaction(curr_tx.entry_id, IPC_ERR_ALLOCATION);
+      }
+      read_entry->size = peek_entry.size;
+    } else if (read_entry->size < peek_entry.size) {
+      void *new_buf = realloc(read_entry->payload, peek_entry.size);
+      if (new_buf == NULL) {
+        return ipc_create_transaction(curr_tx.entry_id, IPC_ERR_ALLOCATION);
+      }
+
+      read_entry->payload = new_buf;
+      read_entry->size = peek_entry.size;
+    }
+
+    curr_tx = ipc_buffer_read(channel->buffer, read_entry);
+    if (curr_tx.status == IPC_ERR_TOO_SMALL) {
+      continue;
+    }
+
+    if (curr_tx.status != IPC_OK) {
+      return curr_tx;
+    }
+  } while (curr_tx.status != IPC_OK);
+
+  return curr_tx;
+}
+
+IpcTransaction ipc_channel_read_with_timeout(IpcChannel *channel,
+                                             IpcEntry *dest,
+                                             struct timespec timeout) {}
 
 inline bool _is_error_status(const IpcStatus status) {
   return !_is_retry_status(status) && status != IPC_OK;
@@ -186,16 +235,16 @@ inline bool _is_retry_status(const IpcStatus status) {
   return status == IPC_NOT_READY || status == IPC_EMPTY;
 }
 
-inline bool _sleep_and_expand_delay(struct timespec delay,
+inline bool _sleep_and_expand_delay(struct timespec *delay,
                                     const long max_sleep_ns) {
-  if (nanosleep(&delay, NULL) != 0) {
+  if (nanosleep(delay, NULL) != 0) {
     return false;
   }
 
-  if (delay.tv_nsec < max_sleep_ns) {
-    delay.tv_nsec *= WAIT_EXPAND_FACTOR;
-    if (delay.tv_nsec > max_sleep_ns) {
-      delay.tv_nsec = max_sleep_ns;
+  if (delay->tv_nsec < max_sleep_ns) {
+    delay->tv_nsec *= WAIT_EXPAND_FACTOR;
+    if (delay->tv_nsec > max_sleep_ns) {
+      delay->tv_nsec = max_sleep_ns;
     }
   }
 
