@@ -31,5 +31,3 @@ install(TARGETS shm_ipc_static shm_ipc_shared
 # Обязательно слэш на конце!
 install(DIRECTORY ${INCLUDE_DIR}/ DESTINATION include)
 
-
-

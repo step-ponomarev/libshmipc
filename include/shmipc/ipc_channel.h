@@ -26,10 +26,14 @@ IpcStatus ipc_channel_write(IpcChannel *, const void *, const uint64_t);
 
 // блокируещее чтение
 IpcTransaction ipc_channel_read(IpcChannel *, IpcEntry *);
-IpcTransaction ipc_channel_try_read(IpcChannel *, IpcEntry *);
-IpcTransaction ipc_channel_read_with_timeout(IpcChannel *, IpcEntry *,
-                                             struct timespec);
 
-IpcStatus ipc_channel_skip(IpcChannel *, IpcEntryId, bool);
+// Чтение с таймаутом
+IpcTransaction ipc_channel_read_with_timeout(IpcChannel *, IpcEntry *,
+                                             const struct timespec *);
+
+IpcTransaction ipc_channel_try_read(IpcChannel *, IpcEntry *);
+
+IpcTransaction ipc_channel_skip(IpcChannel *, const IpcEntryId);
+IpcTransaction ipc_channel_skip_force(IpcChannel *);
 
 #endif

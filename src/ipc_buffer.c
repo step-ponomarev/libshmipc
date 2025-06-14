@@ -39,7 +39,6 @@ uint64_t _find_max_power_of_2(const uint64_t);
 IpcStatus _read_entry_header(const IpcBuffer *, const uint64_t, EntryHeader **);
 Flag _read_flag(const void *);
 void _set_flag(void *, const Flag);
-IpcStatus _ipc_buffer_skip(IpcBuffer *, const IpcEntryId, const bool);
 
 inline uint64_t ipc_buffer_allign_size(uint64_t size) {
   return size + sizeof(IpcBufferHeader);
@@ -151,12 +150,61 @@ IpcTransaction ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
   return ipc_create_transaction(head, IPC_OK);
 }
 
-IpcStatus ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
-  return _ipc_buffer_skip(buffer, id, false);
+IpcTransaction ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
+  if (buffer == NULL) {
+    return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
+  }
+
+  uint64_t head;
+  EntryHeader *header;
+  Flag flag;
+  do {
+    head = atomic_load(&buffer->header->head);
+    if (head != id) {
+      return ipc_create_transaction(head, IPC_TRANSACTION_MISS_MATCHED);
+    }
+
+    const IpcStatus status = _read_entry_header(buffer, head, &header);
+    if (status == IPC_EMPTY) {
+      return ipc_create_transaction(head, IPC_EMPTY);
+    }
+
+    if (status == IPC_LOCKED) {
+      return ipc_create_transaction(head, status);
+    }
+
+    flag = _read_flag((uint8_t *)header);
+  } while (!atomic_compare_exchange_strong(
+      &header->flag, &flag,
+      FLAG_LOCKED)); // race condition with producer NOT_READY -> READY case
+
+  const IpcStatus status =
+      atomic_compare_exchange_strong(&buffer->header->head, &head,
+                                     head + header->entry_size)
+          ? IPC_OK
+          : IPC_ALREADY_SKIPED;
+
+  return ipc_create_transaction(head, status);
 }
 
-IpcStatus ipc_buffer_skip_force(IpcBuffer *buffer) {
-  return _ipc_buffer_skip(buffer, 0, true);
+IpcTransaction ipc_buffer_skip_force(IpcBuffer *buffer) {
+  if (buffer == NULL) {
+    return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
+  }
+
+  uint64_t head = atomic_load(&buffer->header->head);
+  EntryHeader *header;
+  IpcStatus status = _read_entry_header(buffer, head, &header);
+  if (status == IPC_EMPTY) {
+    return ipc_create_transaction(head, IPC_EMPTY);
+  }
+
+  status = atomic_compare_exchange_strong(&buffer->header->head, &head,
+                                          head + header->entry_size)
+               ? IPC_OK
+               : IPC_ALREADY_SKIPED;
+
+  return ipc_create_transaction(head, status);
 }
 
 IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
@@ -226,45 +274,6 @@ IpcStatus ipc_buffer_commit_entry(IpcBuffer *buffer, const IpcEntryId id) {
   _set_flag((uint8_t *)&header->flag, FLAG_READY);
 
   return IPC_OK;
-}
-
-IpcStatus _ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id,
-                           const bool force) {
-  if (buffer == NULL) {
-    return IPC_ERR_INVALID_ARGUMENT;
-  }
-
-  uint64_t head;
-  EntryHeader *header;
-  Flag flag;
-  do {
-    head = atomic_load(&buffer->header->head);
-    if (!force && head != id) {
-      return IPC_TRANSACTION_MISS_MATCHED;
-    }
-
-    const IpcStatus status = _read_entry_header(buffer, head, &header);
-    if (status == IPC_EMPTY) {
-      return IPC_EMPTY;
-    }
-
-    if (force && status == IPC_LOCKED) {
-      break;
-    }
-
-    if (status == IPC_LOCKED) {
-      return status;
-    }
-
-    flag = _read_flag((uint8_t *)header);
-  } while (!atomic_compare_exchange_strong(
-      &header->flag, &flag,
-      FLAG_LOCKED)); // race condition with producer NOT_READY -> READY case
-
-  return atomic_compare_exchange_strong(&buffer->header->head, &head,
-                                        head + header->entry_size)
-             ? IPC_OK
-             : IPC_ERR;
 }
 
 IpcStatus _read_entry_header(const IpcBuffer *buffer, const uint64_t head,

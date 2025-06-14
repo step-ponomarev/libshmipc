@@ -1,11 +1,15 @@
 #include "ipc_utils.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_common.h"
+#include <_time.h>
 #include <shmipc/ipc_channel.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/_types/_u_int32_t.h>
+#include <sys/signal.h>
 #include <sys/syslimits.h>
+#include <time.h>
 
 #define WAIT_EXPAND_FACTOR 2
 
@@ -14,10 +18,12 @@ struct IpcChannel {
   IpcChannelConfiguration config;
 };
 
+IpcTransaction _channel_read(IpcChannel *, IpcEntry *, const struct timespec *);
 bool _is_error_status(const IpcStatus);
 bool _is_retry_status(const IpcStatus);
 bool _sleep_and_expand_delay(struct timespec *, const long);
 bool _is_valid_config(const IpcChannelConfiguration);
+bool _is_timeout_valid(const struct timespec *);
 
 IpcTransaction _try_read(IpcChannel *, IpcEntry *);
 
@@ -91,12 +97,74 @@ IpcStatus ipc_channel_write(IpcChannel *channel, const void *data,
   return ipc_buffer_write(channel->buffer, data, size);
 }
 
-IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest) {
+IpcTransaction ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest) {
   if (channel == NULL || dest == NULL) {
     return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
   }
 
   if (channel->buffer == NULL) {
+    return ipc_create_transaction(0, IPC_ERR);
+  }
+
+  IpcEntry read_entry = {.payload = NULL, .size = 0};
+  const IpcTransaction tx = _try_read(channel, &read_entry);
+  if (tx.status != IPC_OK) {
+    free(read_entry.payload);
+    return tx;
+  }
+
+  dest->payload = read_entry.payload;
+  dest->size = read_entry.size;
+
+  return tx;
+}
+
+IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest) {
+  return _channel_read(channel, dest, NULL);
+}
+
+IpcTransaction ipc_channel_read_with_timeout(IpcChannel *channel,
+                                             IpcEntry *dest,
+                                             const struct timespec *timeout) {
+  return _channel_read(channel, dest, timeout);
+}
+
+IpcTransaction ipc_channel_skip(IpcChannel *channel, const IpcEntryId id) {
+  if (channel == NULL) {
+    return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
+  }
+
+  if (channel->buffer == NULL) {
+    return ipc_create_transaction(0, IPC_ERR);
+  }
+
+  return ipc_buffer_skip(channel->buffer, id);
+}
+
+IpcTransaction ipc_channel_skip_force(IpcChannel *channel) {
+  if (channel == NULL) {
+    return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
+  }
+
+  if (channel->buffer == NULL) {
+    return ipc_create_transaction(0, IPC_ERR);
+  }
+
+  return ipc_buffer_skip_force(channel->buffer);
+}
+
+IpcTransaction _channel_read(IpcChannel *channel, IpcEntry *dest,
+                             const struct timespec *timeout) {
+  if (channel == NULL || dest == NULL || !_is_timeout_valid(timeout)) {
+    return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
+  }
+
+  if (channel->buffer == NULL) {
+    return ipc_create_transaction(0, IPC_ERR);
+  }
+
+  struct timespec start_time; // check curr time
+  if (timeout != NULL && (clock_gettime(CLOCK_MONOTONIC, &start_time) != 0)) {
     return ipc_create_transaction(0, IPC_ERR);
   }
 
@@ -109,6 +177,23 @@ IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest) {
 
   IpcEntry read_entry = {.payload = NULL, .size = 0};
   do {
+    if (timeout != NULL) {
+      struct timespec curr_time;
+      if (clock_gettime(CLOCK_MONOTONIC, &start_time) != 0) {
+        free(read_entry.payload);
+        return ipc_create_transaction(0, IPC_ERR);
+      }
+
+      const u_int32_t secs_passed = curr_time.tv_sec - start_time.tv_sec;
+      if (secs_passed >= timeout->tv_sec) {
+        if (secs_passed > timeout->tv_sec ||
+            curr_time.tv_nsec - start_time.tv_nsec >= timeout->tv_nsec) {
+          free(read_entry.payload);
+          return ipc_create_transaction(0, IPC_TIMEOUT);
+        }
+      }
+    }
+
     IpcEntry peek_entry;
     curr_tx = ipc_buffer_peek(channel->buffer, &peek_entry);
     if (_is_error_status(curr_tx.status)) {
@@ -116,8 +201,7 @@ IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest) {
       return curr_tx;
     }
 
-    if (prev_tx.entry_id == curr_tx.entry_id &&
-        curr_tx.status == IPC_NOT_READY) {
+    if (prev_tx.entry_id == curr_tx.entry_id) {
       round_trips++;
     } else {
       round_trips = 0;
@@ -142,35 +226,12 @@ IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest) {
       free(read_entry.payload);
       return curr_tx;
     }
-
   } while (curr_tx.status != IPC_OK);
 
   dest->payload = read_entry.payload;
   dest->size = read_entry.size;
 
   return curr_tx;
-}
-
-IpcTransaction ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest) {
-  if (channel == NULL || dest == NULL) {
-    return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
-  }
-
-  if (channel->buffer == NULL) {
-    return ipc_create_transaction(0, IPC_ERR);
-  }
-
-  IpcEntry read_entry = {.payload = NULL, .size = 0};
-  const IpcTransaction tx = _try_read(channel, &read_entry);
-  if (tx.status != IPC_OK) {
-    free(read_entry.payload);
-    return tx;
-  }
-
-  dest->payload = read_entry.payload;
-  dest->size = read_entry.size;
-
-  return tx;
 }
 
 IpcTransaction _try_read(IpcChannel *channel, IpcEntry *read_entry) {
@@ -223,16 +284,12 @@ IpcTransaction _try_read(IpcChannel *channel, IpcEntry *read_entry) {
   return curr_tx;
 }
 
-IpcTransaction ipc_channel_read_with_timeout(IpcChannel *channel,
-                                             IpcEntry *dest,
-                                             struct timespec timeout) {}
-
 inline bool _is_error_status(const IpcStatus status) {
   return !_is_retry_status(status) && status != IPC_OK;
 }
 
 inline bool _is_retry_status(const IpcStatus status) {
-  return status == IPC_NOT_READY || status == IPC_EMPTY;
+  return status == IPC_NOT_READY || status == IPC_EMPTY || status == IPC_LOCKED;
 }
 
 inline bool _sleep_and_expand_delay(struct timespec *delay,
@@ -254,4 +311,8 @@ inline bool _sleep_and_expand_delay(struct timespec *delay,
 inline bool _is_valid_config(const IpcChannelConfiguration config) {
   return config.start_sleep_ns > 0 && config.max_round_trips > 0 &&
          config.max_sleep_ns > 0;
+}
+
+inline bool _is_timeout_valid(const struct timespec *timeout) {
+  return timeout == NULL || (timeout->tv_nsec >= 0 && timeout->tv_sec >= 0);
 }
