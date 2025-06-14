@@ -1,6 +1,10 @@
 #ifndef IPC_BUFF_H
 #define IPC_BUFF_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipc_common.h"
 #include <stdint.h>
 
@@ -18,5 +22,9 @@ IpcTransaction ipc_buffer_skip_force(IpcBuffer *);
 
 IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *, const uint64_t, void **);
 IpcStatus ipc_buffer_commit_entry(IpcBuffer *, const IpcEntryId);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

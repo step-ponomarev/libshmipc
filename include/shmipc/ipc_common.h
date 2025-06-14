@@ -1,6 +1,10 @@
 #ifndef IPC_COMMON_H
 #define IPC_COMMON_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 typedef enum {
@@ -32,5 +36,9 @@ typedef struct IpcEntry {
   uint64_t size;
   void *payload;
 } IpcEntry;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

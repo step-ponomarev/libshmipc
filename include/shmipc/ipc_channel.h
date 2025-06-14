@@ -1,6 +1,10 @@
 #ifndef IPC_CHANNEL_H
 #define IPC_CHANNEL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <shmipc/ipc_common.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -34,5 +38,9 @@ IpcTransaction ipc_channel_try_read(IpcChannel *, IpcEntry *);
 
 IpcTransaction ipc_channel_skip(IpcChannel *, const IpcEntryId);
 IpcTransaction ipc_channel_skip_force(IpcChannel *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
