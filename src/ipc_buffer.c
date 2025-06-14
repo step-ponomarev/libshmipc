@@ -1,4 +1,5 @@
 #include "ipc_utils.h"
+#include <_stdlib.h>
 #include <shmipc/ipc_buffer.h>
 #include <shmipc/ipc_common.h>
 #include <stdatomic.h>
@@ -209,7 +210,7 @@ IpcTransaction ipc_buffer_skip_force(IpcBuffer *buffer) {
 
 IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
                                         void **dest) {
-  if (buffer == NULL || size == 0) {
+  if (buffer == NULL || size == 0 || dest == NULL) {
     return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
   }
 
@@ -223,12 +224,14 @@ IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
   uint64_t tail;
   uint64_t relative_tail;
   uint64_t space_to_wrap;
+  bool wrapped = false;
   do {
     tail = atomic_load(&buffer->header->tail);
     relative_tail = RELATIVE(tail, buffer_size);
     // to move header on start
     space_to_wrap = buffer_size - relative_tail;
-    if (space_to_wrap < full_entry_size) {
+    wrapped = space_to_wrap < full_entry_size;
+    if (wrapped) {
       full_entry_size =
           ALIGN_UP(space_to_wrap + sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
     }
@@ -244,12 +247,10 @@ IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
   } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
                                            tail + full_entry_size));
 
-  bool wrapped = false;
   uint64_t offset = relative_tail;
-  if (space_to_wrap < full_entry_size) {
+  if (wrapped) {
     _set_flag(buffer->data + offset, FLAG_WRAP_AROUND);
     offset = 0;
-    wrapped = true;
   }
 
   EntryHeader *header = (EntryHeader *)(buffer->data + offset);

@@ -1,7 +1,7 @@
+#include "ipc_mmap.h"
 #include "ipc_utils.h"
 #include <errno.h>
 #include <fcntl.h>
-#include <shmipc/ipc_mmap.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>

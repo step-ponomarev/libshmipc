@@ -1,7 +1,7 @@
 #ifndef IPC_MMAP_H
 #define IPC_MMAP_H
 
-#include "ipc_common.h"
+#include <shmipc/ipc_common.h>
 #include <stdint.h>
 
 // TODO: incapsulate

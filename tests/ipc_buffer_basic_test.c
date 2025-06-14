@@ -103,7 +103,7 @@ void test_wrap_buffer() {
          IPC_NO_SPACE_CONTIGUOUS);
 
   size_t *ptr = malloc(sizeof(size_t));
-  assert(ipc_buffer_skip_force(buffer) == IPC_OK);
+  assert(ipc_buffer_skip_force(buffer).status == IPC_OK);
 
   const size_t last_val = 666;
   assert(ipc_buffer_write(buffer, &last_val, sizeof(last_val)) == IPC_OK);
@@ -162,7 +162,7 @@ void test_delete() {
 
   IpcEntry entry;
   assert(ipc_buffer_peek(buffer, &entry).status == IPC_OK);
-  assert(ipc_buffer_skip_force(buffer) == IPC_OK);
+  assert(ipc_buffer_skip_force(buffer).status == IPC_OK);
   assert(ipc_buffer_peek(buffer, &entry).status == IPC_EMPTY);
 
   free(buffer);
@@ -183,7 +183,7 @@ void test_peek_consistency() {
   memcpy(&seen, entry.payload, sizeof(seen));
   assert(seen == v1);
 
-  assert(ipc_buffer_skip_force(buffer) == IPC_OK);
+  assert(ipc_buffer_skip_force(buffer).status == IPC_OK);
 
   assert(ipc_buffer_peek(buffer, &entry).status == IPC_OK);
   memcpy(&seen, entry.payload, sizeof(seen));
