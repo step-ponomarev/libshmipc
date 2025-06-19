@@ -12,3 +12,8 @@ add_executable(ipc_buffer_concurrency_test ipc_buffer_concurrency_test.cpp)
 target_link_libraries(ipc_buffer_concurrency_test  shm_ipc_static ipc_test)
 add_test(NAME concurrent_ipc_buffer_tests COMMAND ipc_buffer_concurrency_test)
 
+add_executable(ipc_channel_basic_test ipc_channel_basic_test.c) 
+target_link_libraries(ipc_channel_basic_test shm_ipc_static ipc_test)
+add_test(NAME basic_ipc_channel_tests COMMAND ipc_channel_basic_test)
+
+

@@ -152,7 +152,7 @@ void test_peek() {
   free(buffer);
 }
 
-void test_delete() {
+void test_skip() {
   uint8_t mem[128];
   IpcBuffer *buffer = ipc_buffer_create(mem, 128);
 
@@ -272,7 +272,7 @@ int main() {
   run_test("peek entry", &test_peek);
   run_test("peek consistency", &test_peek_consistency);
   run_test("read too small", &test_read_too_small);
-  run_test("delete entry", &test_delete);
+  run_test("skip entry", &test_skip);
   run_test("fill buffer", &test_fill_buffer);
   run_test("add to full buffer", &test_add_to_full_buffer);
   run_test("wrap buffer", &test_wrap_buffer);

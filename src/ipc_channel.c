@@ -293,7 +293,8 @@ inline bool _is_error_status(const IpcStatus status) {
 }
 
 inline bool _is_retry_status(const IpcStatus status) {
-  return status == IPC_NOT_READY || status == IPC_EMPTY || status == IPC_LOCKED;
+  return status == IPC_NOT_READY || status == IPC_EMPTY ||
+         status == IPC_LOCKED || status == IPC_CORRUPTED;
 }
 
 inline bool _sleep_and_expand_delay(struct timespec *delay,
