@@ -1,5 +1,4 @@
 #include "ipc_utils.h"
-#include <_stdlib.h>
 #include <shmipc/ipc_buffer.h>
 #include <shmipc/ipc_common.h>
 #include <stdatomic.h>
@@ -236,14 +235,11 @@ IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
           ALIGN_UP(space_to_wrap + sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
     }
 
-    uint64_t free_space = buffer_size - (tail - buffer->header->head);
+    uint64_t head = atomic_load(&buffer->header->head);
+    uint64_t free_space = buffer_size - (tail - head);
     if (free_space < full_entry_size) {
-      free_space = buffer_size - (tail - atomic_load(&buffer->header->head));
-      if (free_space < full_entry_size) {
-        return ipc_create_transaction(tail, IPC_NO_SPACE_CONTIGUOUS);
-      }
+      return ipc_create_transaction(tail, IPC_NO_SPACE_CONTIGUOUS);
     }
-
   } while (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
                                            tail + full_entry_size));
 
@@ -254,15 +250,13 @@ IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
   }
 
   EntryHeader *header = (EntryHeader *)(buffer->data + offset);
-  _set_flag((uint8_t *)&header->flag, FLAG_NOT_READY);
+
   header->entry_size = full_entry_size;
-
   *dest = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
-
   header->payload_size = size;
-  header->seq = tail;
+  _set_flag((uint8_t *)&header->flag, FLAG_NOT_READY);
 
-  return ipc_create_transaction(wrapped ? tail + space_to_wrap : tail, IPC_OK);
+  return ipc_create_transaction(tail, IPC_OK);
 }
 
 IpcStatus ipc_buffer_commit_entry(IpcBuffer *buffer, const IpcEntryId id) {
@@ -270,8 +264,13 @@ IpcStatus ipc_buffer_commit_entry(IpcBuffer *buffer, const IpcEntryId id) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  const uint64_t offset = RELATIVE(id, buffer->header->data_size);
-  EntryHeader *header = (EntryHeader *)(buffer->data + offset);
+  EntryHeader *header = (EntryHeader *)(buffer->data);
+  const IpcStatus status = _read_entry_header(buffer, id, &header);
+  if (status != IPC_NOT_READY && status != IPC_CORRUPTED) {
+    // invalid state, entry commited or, flag is incorrect
+    return IPC_ERR;
+  }
+  header->seq = id;
   _set_flag((uint8_t *)&header->flag, FLAG_READY);
 
   return IPC_OK;
@@ -279,8 +278,7 @@ IpcStatus ipc_buffer_commit_entry(IpcBuffer *buffer, const IpcEntryId id) {
 
 IpcStatus _read_entry_header(const IpcBuffer *buffer, const uint64_t head,
                              EntryHeader **dest) {
-  if (head == buffer->header->tail &&
-      head == atomic_load(&buffer->header->tail)) {
+  if (head == atomic_load(&buffer->header->tail)) {
     return IPC_EMPTY;
   }
 
