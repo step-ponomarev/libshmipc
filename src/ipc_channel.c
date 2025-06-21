@@ -7,10 +7,8 @@
 #include <stdlib.h>
 #include <sys/signal.h>
 #include <sys/syslimits.h>
-#include <time.h>
 
 #define WAIT_EXPAND_FACTOR 2
-#define SEC_TO_NANOS 1000000000ULL
 
 struct IpcChannel {
   IpcBuffer *buffer;
@@ -24,7 +22,6 @@ bool _is_retry_status(const IpcStatus);
 bool _sleep_and_expand_delay(struct timespec *, const long);
 bool _is_valid_config(const IpcChannelConfiguration);
 bool _is_timeout_valid(const struct timespec *);
-uint64_t _to_nanos(const struct timespec *);
 
 inline uint64_t ipc_channel_allign_size(uint64_t size) {
   return ipc_buffer_allign_size(size);
@@ -170,8 +167,8 @@ IpcTransaction _read(IpcChannel *channel, IpcEntry *dest,
       return ipc_create_transaction(0, IPC_ERR);
     }
 
-    start_ns = _to_nanos(&start_time);
-    timeout_ns = _to_nanos(timeout);
+    start_ns = ipc_timespec_to_nanos(&start_time);
+    timeout_ns = ipc_timespec_to_nanos(timeout);
   }
 
   struct timespec delay = {.tv_sec = 0,
@@ -190,7 +187,7 @@ IpcTransaction _read(IpcChannel *channel, IpcEntry *dest,
         return ipc_create_transaction(0, IPC_ERR);
       }
 
-      const uint64_t curr_ns = _to_nanos(&curr_time);
+      const uint64_t curr_ns = ipc_timespec_to_nanos(&curr_time);
       if (curr_ns - start_ns >= timeout_ns) {
         free(read_entry.payload);
         return ipc_create_transaction(0, IPC_TIMEOUT);
@@ -313,13 +310,10 @@ inline bool _sleep_and_expand_delay(struct timespec *delay,
   return true;
 }
 
-inline uint64_t _to_nanos(const struct timespec *secs) {
-  return secs->tv_sec * SEC_TO_NANOS + secs->tv_nsec;
-}
-
 inline bool _is_valid_config(const IpcChannelConfiguration config) {
   return config.start_sleep_ns > 0 && config.max_round_trips > 0 &&
-         config.max_sleep_ns > 0;
+         config.max_sleep_ns > 0 &&
+         config.max_sleep_ns >= config.start_sleep_ns;
 }
 
 inline bool _is_timeout_valid(const struct timespec *timeout) {

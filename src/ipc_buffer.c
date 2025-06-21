@@ -217,7 +217,7 @@ IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
   uint64_t full_entry_size =
       ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
   if (full_entry_size > buffer_size) {
-    return ipc_create_transaction(0, IPC_ERR_INVALID_SIZE);
+    return ipc_create_transaction(0, IPC_ERR_ENTRY_TOO_LARGE);
   }
 
   uint64_t tail;
@@ -293,6 +293,7 @@ IpcStatus _read_entry_header(const IpcBuffer *buffer, const uint64_t head,
     header = (EntryHeader *)(buffer->data + relative_head);
   }
 
+  // always set dest if not empty
   *dest = header;
 
   if (flag == FLAG_NOT_READY) {

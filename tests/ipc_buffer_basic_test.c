@@ -57,6 +57,9 @@ void test_fill_buffer() {
          (++added_count))
     ;
 
+  assert(ipc_buffer_write(buffer, &added_count, sizeof(size_t)) ==
+         IPC_NO_SPACE_CONTIGUOUS);
+
   size_t *ptr = malloc(sizeof(size_t));
   IpcEntry entry = {.payload = ptr, .size = sizeof(size_t)};
   for (size_t i = 0; i < added_count; i++) {
@@ -161,9 +164,60 @@ void test_skip() {
          IPC_OK);
 
   IpcEntry entry;
+
+  const IpcTransaction tx = ipc_buffer_peek(buffer, &entry);
+  assert(tx.status == IPC_OK);
+  assert(ipc_buffer_skip(buffer, tx.entry_id).status == IPC_OK);
+  assert(ipc_buffer_peek(buffer, &entry).status == IPC_EMPTY);
+
+  free(buffer);
+}
+
+void test_skip_forced() {
+  uint8_t mem[128];
+  IpcBuffer *buffer = ipc_buffer_create(mem, 128);
+
+  const int expected_val = 12;
+  assert(ipc_buffer_write(buffer, &expected_val, sizeof(expected_val)) ==
+         IPC_OK);
+
+  IpcEntry entry;
   assert(ipc_buffer_peek(buffer, &entry).status == IPC_OK);
   assert(ipc_buffer_skip_force(buffer).status == IPC_OK);
   assert(ipc_buffer_peek(buffer, &entry).status == IPC_EMPTY);
+
+  free(buffer);
+}
+
+void test_skip_with_incorrect_id() {
+  uint8_t mem[128];
+  IpcBuffer *buffer = ipc_buffer_create(mem, 128);
+
+  const int expected_val = 12;
+  assert(ipc_buffer_write(buffer, &expected_val, sizeof(expected_val)) ==
+         IPC_OK);
+
+  IpcEntry entry;
+
+  const IpcTransaction tx = ipc_buffer_peek(buffer, &entry);
+  assert(tx.status == IPC_OK);
+  assert(ipc_buffer_skip(buffer, (tx.entry_id << 1) - 1).status ==
+         IPC_TRANSACTION_MISS_MATCHED);
+
+  IpcEntry entry2;
+  const IpcTransaction tx2 = ipc_buffer_peek(buffer, &entry2);
+  assert(tx2.status == IPC_OK);
+  assert(tx.entry_id == tx2.entry_id);
+
+  assert(entry.size == entry2.size);
+
+  int val1;
+  memcpy(&val1, entry.payload, entry.size);
+
+  int val2;
+  memcpy(&val2, entry2.payload, entry2.size);
+
+  assert(val1 == val2);
 
   free(buffer);
 }
@@ -262,9 +316,6 @@ void test_multiple_reserve_commit_read() {
   free(buffer);
 }
 
-// TODO: Check add in full buffer status code
-//       Skip with incorrect transactional ID
-
 int main() {
   run_test("create too small buffer", &test_create_too_small_buffer);
   run_test("size allign funciton", &test_size_allign_funcion);
@@ -273,6 +324,8 @@ int main() {
   run_test("peek consistency", &test_peek_consistency);
   run_test("read too small", &test_read_too_small);
   run_test("skip entry", &test_skip);
+  run_test("skip force entry", &test_skip_forced);
+  run_test("skip with incorrect id", &test_skip_with_incorrect_id);
   run_test("fill buffer", &test_fill_buffer);
   run_test("add to full buffer", &test_add_to_full_buffer);
   run_test("wrap buffer", &test_wrap_buffer);
