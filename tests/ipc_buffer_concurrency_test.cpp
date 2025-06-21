@@ -38,7 +38,9 @@ void produce(IpcBuffer *buf, const size_t from, const size_t to) {
 
 void consume(IpcBuffer *buf, const size_t expected,
              std::shared_ptr<concurrent_set<size_t>> dest) {
-  IpcEntry e = {.size = sizeof(size_t), .payload = malloc(sizeof(size_t))};
+  IpcEntry e = {.size = sizeof(size_t)};
+  e.payload = malloc(sizeof(size_t));
+
   while (true) {
     if (dest->size() == expected) {
       break;
