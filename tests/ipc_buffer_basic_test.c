@@ -173,6 +173,26 @@ void test_skip() {
   free(buffer);
 }
 
+void test_double_skip() {
+  uint8_t mem[128];
+  IpcBuffer *buffer = ipc_buffer_create(mem, 128);
+
+  const int expected_val = 12;
+  assert(ipc_buffer_write(buffer, &expected_val, sizeof(expected_val)) ==
+         IPC_OK);
+
+  IpcEntry entry;
+
+  const IpcTransaction tx = ipc_buffer_peek(buffer, &entry);
+  assert(tx.status == IPC_OK);
+  assert(ipc_buffer_skip(buffer, tx.entry_id).status == IPC_OK);
+  assert(ipc_buffer_skip(buffer, tx.entry_id).status ==
+         IPC_TRANSACTION_MISS_MATCHED);
+  assert(ipc_buffer_peek(buffer, &entry).status == IPC_EMPTY);
+
+  free(buffer);
+}
+
 void test_skip_forced() {
   uint8_t mem[128];
   IpcBuffer *buffer = ipc_buffer_create(mem, 128);
@@ -262,7 +282,7 @@ void test_read_too_small() {
   free(buffer);
 }
 
-void test_reserve_commit_read_read() {
+void test_reserve_commit_read() {
   uint8_t mem[128];
   IpcBuffer *buffer = ipc_buffer_create(mem, 128);
 
@@ -280,6 +300,36 @@ void test_reserve_commit_read_read() {
 
   *data = expected_val;
   assert(ipc_buffer_commit_entry(buffer, tx.entry_id) == IPC_OK);
+  assert(ipc_buffer_read(buffer, &entry).status == IPC_OK);
+  assert(entry.size == sizeof(expected_val));
+
+  int res;
+  memcpy(&res, entry.payload, entry.size);
+  assert(res == expected_val);
+
+  free(entry.payload);
+  free(buffer);
+}
+
+void test_reserve_double_commit() {
+  uint8_t mem[128];
+  IpcBuffer *buffer = ipc_buffer_create(mem, 128);
+
+  const int expected_val = 12;
+  int *data;
+
+  const IpcTransaction tx =
+      ipc_buffer_reserve_entry(buffer, sizeof(expected_val), ((void **)&data));
+  assert(tx.status == IPC_OK);
+
+  IpcEntry entry = {.payload = malloc(sizeof(expected_val)),
+                    .size = sizeof(expected_val)};
+
+  assert(ipc_buffer_read(buffer, &entry).status == IPC_NOT_READY);
+
+  *data = expected_val;
+  assert(ipc_buffer_commit_entry(buffer, tx.entry_id) == IPC_OK);
+  assert(ipc_buffer_commit_entry(buffer, tx.entry_id) == IPC_ERR);
   assert(ipc_buffer_read(buffer, &entry).status == IPC_OK);
   assert(entry.size == sizeof(expected_val));
 
@@ -324,12 +374,14 @@ int main() {
   run_test("peek consistency", &test_peek_consistency);
   run_test("read too small", &test_read_too_small);
   run_test("skip entry", &test_skip);
+  run_test("double skip entry", &test_double_skip);
   run_test("skip force entry", &test_skip_forced);
   run_test("skip with incorrect id", &test_skip_with_incorrect_id);
   run_test("fill buffer", &test_fill_buffer);
   run_test("add to full buffer", &test_add_to_full_buffer);
   run_test("wrap buffer", &test_wrap_buffer);
-  run_test("reserve commit read", &test_reserve_commit_read_read);
+  run_test("reserve commit read", &test_reserve_commit_read);
+  run_test("double commit", &test_reserve_double_commit);
   run_test("multiple reserve commit", &test_multiple_reserve_commit_read);
 
   return 0;

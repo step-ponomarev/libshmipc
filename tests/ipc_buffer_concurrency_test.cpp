@@ -171,6 +171,47 @@ void test_delayed_multiple_writer_multiple_reader() {
   free(buf);
 }
 
+void test_race_between_skip_and_read() {
+  const uint64_t size = ipc_buffer_allign_size(128);
+  uint8_t mem[size];
+  IpcBuffer *buf = ipc_buffer_create(mem, size);
+
+  const size_t val = 42;
+  assert(ipc_buffer_write(buf, &val, sizeof(val)) == IPC_OK);
+
+  IpcEntry entry;
+  IpcTransaction tx = ipc_buffer_peek(buf, &entry);
+  assert(tx.status == IPC_OK);
+
+  std::atomic<bool> skip_done = false;
+  std::atomic<bool> read_done = false;
+
+  std::thread t1([&] {
+    IpcTransaction result = ipc_buffer_skip(buf, tx.entry_id);
+    skip_done = true;
+    assert(result.status == IPC_OK || result.status == IPC_ALREADY_SKIPED);
+  });
+
+  std::thread t2([&] {
+    IpcEntry e = {.payload = malloc(sizeof(size_t)), .size = sizeof(size_t)};
+    IpcTransaction result = ipc_buffer_read(buf, &e);
+    read_done = true;
+    if (result.status == IPC_OK) {
+      size_t v;
+      memcpy(&v, e.payload, e.size);
+      assert(v == val);
+    } else {
+      assert(result.status == IPC_ALREADY_SKIPED || result.status == IPC_EMPTY);
+    }
+    free(e.payload);
+  });
+
+  t1.join();
+  t2.join();
+  assert(skip_done && read_done);
+  free(buf);
+}
+
 int main() {
   run_test("single writer & single reader", &test_single_writer_single_reader);
   run_test("multiple writer & single reader",
@@ -179,6 +220,7 @@ int main() {
            &test_multiple_writer_multiple_reader);
   run_test("multiple delayed writer & multiple reader",
            &test_delayed_multiple_writer_multiple_reader);
+  run_test("race between skip and read", &test_race_between_skip_and_read);
 
   return 0;
 }

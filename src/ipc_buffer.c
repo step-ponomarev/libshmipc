@@ -131,7 +131,7 @@ IpcTransaction ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
   return ipc_create_transaction(head, IPC_OK);
 }
 
-IpcTransaction ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
+IpcTransaction ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
   if (buffer == NULL || dest == NULL) {
     return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
   }

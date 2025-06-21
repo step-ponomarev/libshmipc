@@ -125,6 +125,18 @@ IpcTransaction ipc_channel_read_with_timeout(IpcChannel *channel,
   return _read(channel, dest, timeout);
 }
 
+IpcTransaction ipc_channel_peek(const IpcChannel *channel, IpcEntry *dest) {
+  if (channel == NULL || dest == NULL) {
+    return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
+  }
+
+  if (channel->buffer == NULL) {
+    return ipc_create_transaction(0, IPC_ERR);
+  }
+
+  return ipc_buffer_peek(channel->buffer, dest);
+}
+
 IpcTransaction ipc_channel_skip(IpcChannel *channel, const IpcEntryId id) {
   if (channel == NULL) {
     return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
@@ -264,7 +276,6 @@ IpcTransaction _try_read(IpcChannel *channel, IpcEntry *read_entry) {
     } else if (read_entry->size < peek_entry.size) {
       void *new_buf = realloc(read_entry->payload, peek_entry.size);
       if (new_buf == NULL) {
-        free(read_entry->payload);
         return ipc_create_transaction(curr_tx.entry_id, IPC_ERR_ALLOCATION);
       }
 

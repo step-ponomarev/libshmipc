@@ -36,6 +36,8 @@ IpcTransaction ipc_channel_read_with_timeout(IpcChannel *, IpcEntry *,
                                              const struct timespec *);
 IpcTransaction ipc_channel_try_read(IpcChannel *, IpcEntry *);
 
+IpcTransaction ipc_channel_peek(const IpcChannel *, IpcEntry *);
+
 IpcTransaction ipc_channel_skip(IpcChannel *, const IpcEntryId);
 IpcTransaction ipc_channel_skip_force(IpcChannel *);
 

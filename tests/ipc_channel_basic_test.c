@@ -1,7 +1,6 @@
 #include "../src/ipc_utils.h"
 #include "shmipc/ipc_buffer.h"
 #include "test_runner.h"
-#include <_time.h>
 #include <assert.h>
 #include <shmipc/ipc_channel.h>
 #include <shmipc/ipc_common.h>
@@ -67,18 +66,66 @@ void test_write_read() {
   const uint64_t size = ipc_channel_allign_size(128);
   uint8_t mem[size];
 
+  IpcChannel *producer = ipc_channel_create(mem, size, DEFAULT_CONFIG);
+  assert(producer != NULL);
+
+  const int val = 43;
+  assert(ipc_channel_write(producer, &val, sizeof(val)) == IPC_OK);
+
+  IpcChannel *consumer = ipc_channel_connect(mem, DEFAULT_CONFIG);
+  assert(consumer != NULL);
+
+  IpcEntry entry;
+  assert(ipc_channel_read(consumer, &entry).status == IPC_OK);
+
+  int res;
+  memcpy(&res, entry.payload, sizeof(res));
+  assert(res == val);
+
+  ipc_channel_destroy(producer);
+  ipc_channel_destroy(consumer);
+}
+
+void test_destroy_null() {
+  assert(ipc_channel_destroy(NULL) == IPC_ERR_INVALID_ARGUMENT);
+}
+
+void test_peek() {
+  const uint64_t size = ipc_channel_allign_size(128);
+  uint8_t mem[size];
+
   IpcChannel *channel = ipc_channel_create(mem, size, DEFAULT_CONFIG);
 
   const int expected = 42;
   assert(ipc_channel_write(channel, &expected, sizeof(expected)) == IPC_OK);
 
   IpcEntry entry;
-  assert(ipc_channel_read(channel, &entry).status == IPC_OK);
+  IpcTransaction tx = ipc_channel_peek(channel, &entry);
+  assert(tx.status == IPC_OK);
+  assert(entry.size == sizeof(expected));
 
-  int res;
-  memcpy(&res, entry.payload, entry.size);
+  int peeked;
+  memcpy(&peeked, entry.payload, sizeof(expected));
+  assert(peeked == expected);
 
-  assert(expected == res);
+  IpcEntry entry2;
+  IpcTransaction tx2 = ipc_channel_read(channel, &entry2);
+  assert(tx2.status == IPC_OK);
+  int read_val;
+  memcpy(&read_val, entry2.payload, sizeof(read_val));
+  assert(read_val == expected);
+
+  ipc_channel_destroy(channel);
+}
+
+void test_peek_empty() {
+  const uint64_t size = ipc_channel_allign_size(128);
+  uint8_t mem[size];
+  IpcChannel *channel = ipc_channel_create(mem, size, DEFAULT_CONFIG);
+
+  IpcEntry entry;
+  IpcTransaction tx = ipc_channel_peek(channel, &entry);
+  assert(tx.status == IPC_EMPTY);
 
   ipc_channel_destroy(channel);
 }
@@ -179,6 +226,22 @@ void test_skip_corrupted_entry() {
   free(buf);
 }
 
+void test_skip_force() {
+  const uint64_t size = ipc_channel_allign_size(128);
+  uint8_t mem[size];
+  IpcChannel *channel = ipc_channel_create(mem, size, DEFAULT_CONFIG);
+
+  const int val = 42;
+  assert(ipc_channel_write(channel, &val, sizeof(val)) == IPC_OK);
+
+  IpcEntry entry;
+  assert(ipc_channel_peek(channel, &entry).status == IPC_OK);
+  assert(ipc_channel_skip_force(channel).status == IPC_OK);
+  assert(ipc_channel_peek(channel, &entry).status == IPC_EMPTY);
+
+  ipc_channel_destroy(channel);
+}
+
 void test_read_timeout() {
   const uint64_t size = ipc_channel_allign_size(128);
   uint8_t mem[size];
@@ -205,12 +268,16 @@ void test_read_timeout() {
 
 int main() {
   run_test("write read", &test_write_read);
+  run_test("write peek", &test_peek);
+  run_test("peek empty", &test_peek_empty);
   run_test("invalid config", &test_invalid_config);
   run_test("write try read", &test_write_try_read);
+  run_test("destroy null", &test_destroy_null);
   run_test("try read empty", &test_try_read_empty);
   run_test("write too large entry", &test_write_too_large_entry);
   run_test("read retry limit exceeded", &test_read_retry_limit_reacehed);
   run_test("skip corrupted entry", &test_skip_corrupted_entry);
+  run_test("skip force", &test_skip_force);
   run_test("read timeout", &test_read_timeout);
 
   return 0;

@@ -133,7 +133,7 @@ IpcTransaction ipc_buffer_read(IpcBuffer *, IpcEntry *);
  * in place and unmodified in the buffer. The caller must not alter or free the
  * memory.
  */
-IpcTransaction ipc_buffer_peek(IpcBuffer *, IpcEntry *);
+IpcTransaction ipc_buffer_peek(const IpcBuffer *, IpcEntry *);
 
 /**
  * @brief Skips the next entry in the IPC buffer without reading its contents.
