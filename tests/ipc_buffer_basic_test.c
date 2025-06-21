@@ -14,17 +14,7 @@ void test_create_too_small_buffer() {
 
 void test_size_allign_funcion() {
   uint8_t mem[128];
-
-  IpcBuffer *buffer = ipc_buffer_create(mem, ipc_buffer_allign_size(0));
-  assert(buffer == NULL);
-
-  buffer = ipc_buffer_create(mem, ipc_buffer_allign_size(1));
-  assert(buffer == NULL);
-
-  buffer = ipc_buffer_create(mem, ipc_buffer_allign_size(2));
-  assert(buffer != NULL);
-
-  free(buffer);
+  assert(ipc_buffer_create(mem, ipc_buffer_allign_size(0)) != NULL);
 }
 
 void test_sigle_entry() {

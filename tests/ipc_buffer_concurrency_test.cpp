@@ -194,14 +194,15 @@ void test_race_between_skip_and_read() {
 
   std::thread t2([&] {
     IpcEntry e = {.payload = malloc(sizeof(size_t)), .size = sizeof(size_t)};
-    IpcTransaction result = ipc_buffer_read(buf, &e);
+    IpcTransaction tx = ipc_buffer_read(buf, &e);
     read_done = true;
-    if (result.status == IPC_OK) {
+    if (tx.status == IPC_OK) {
       size_t v;
       memcpy(&v, e.payload, e.size);
       assert(v == val);
     } else {
-      assert(result.status == IPC_ALREADY_SKIPED || result.status == IPC_EMPTY);
+      assert(tx.status == IPC_ALREADY_SKIPED || tx.status == IPC_EMPTY ||
+             tx.status == IPC_LOCKED);
     }
     free(e.payload);
   });

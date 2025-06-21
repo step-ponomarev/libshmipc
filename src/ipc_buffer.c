@@ -41,7 +41,7 @@ Flag _read_flag(const void *);
 void _set_flag(void *, const Flag);
 
 inline uint64_t ipc_buffer_allign_size(uint64_t size) {
-  return size + sizeof(IpcBufferHeader);
+  return (size < 2 ? 2 : size) + sizeof(IpcBufferHeader);
 }
 
 IpcBuffer *ipc_buffer_create(void *mem, const uint64_t size) {

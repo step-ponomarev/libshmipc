@@ -24,7 +24,7 @@ void produce(IpcChannel *channel, const size_t from, const size_t to) {
 
 void consume(IpcChannel *channel, const size_t expected,
              std::shared_ptr<concurrent_set<size_t>> dest) {
-  IpcEntry e = {.size = sizeof(size_t), .payload = malloc(sizeof(size_t))};
+  IpcEntry e;
   while (true) {
     if (dest->size() == expected) {
       break;
@@ -42,9 +42,9 @@ void consume(IpcChannel *channel, const size_t expected,
     size_t res;
     memcpy(&res, e.payload, e.size);
     dest->insert(res);
-  }
 
-  free(e.payload);
+    free(e.payload);
+  }
 }
 
 void test_single_writer_single_reader() {
@@ -150,14 +150,14 @@ void test_race_between_skip_and_read() {
 
   std::thread t2([&] {
     IpcEntry e = {.payload = malloc(sizeof(size_t)), .size = sizeof(size_t)};
-    IpcTransaction result = ipc_channel_read(channel, &e);
+    IpcTransaction tx = ipc_channel_try_read(channel, &e);
     read_done = true;
-    if (result.status == IPC_OK) {
+    if (tx.status == IPC_OK) {
       size_t v;
       memcpy(&v, e.payload, e.size);
       assert(v == val);
     } else {
-      assert(result.status == IPC_REACHED_RETRY_LIMIT);
+      assert(tx.status == IPC_EMPTY || tx.status == IPC_LOCKED);
     }
     free(e.payload);
   });

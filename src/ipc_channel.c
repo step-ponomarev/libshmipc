@@ -192,6 +192,13 @@ IpcTransaction _read(IpcChannel *channel, IpcEntry *dest,
 
   IpcEntry read_entry = {.payload = NULL, .size = 0};
   do {
+    IpcEntry peek_entry;
+    curr_tx = ipc_buffer_peek(channel->buffer, &peek_entry);
+    if (_is_error_status(curr_tx.status)) {
+      free(read_entry.payload);
+      return curr_tx;
+    }
+
     if (timeout != NULL) {
       struct timespec curr_time;
       if (clock_gettime(CLOCK_MONOTONIC, &curr_time) != 0) {
@@ -202,25 +209,20 @@ IpcTransaction _read(IpcChannel *channel, IpcEntry *dest,
       const uint64_t curr_ns = ipc_timespec_to_nanos(&curr_time);
       if (curr_ns - start_ns >= timeout_ns) {
         free(read_entry.payload);
-        return ipc_create_transaction(0, IPC_TIMEOUT);
+        return ipc_create_transaction(curr_tx.entry_id, IPC_TIMEOUT);
       }
     }
 
-    IpcEntry peek_entry;
-    curr_tx = ipc_buffer_peek(channel->buffer, &peek_entry);
-    if (_is_error_status(curr_tx.status)) {
-      free(read_entry.payload);
-      return curr_tx;
+    if (timeout == NULL) {
+      if (prev_tx.entry_id == curr_tx.entry_id && curr_tx.status != IPC_OK) {
+        round_trips++;
+      } else {
+        round_trips = 0;
+      }
+      prev_tx = curr_tx;
     }
 
-    if (prev_tx.entry_id == curr_tx.entry_id && curr_tx.status != IPC_OK) {
-      round_trips++;
-    } else {
-      round_trips = 0;
-    }
-    prev_tx = curr_tx;
-
-    if (round_trips == channel->config.max_round_trips) {
+    if (timeout == NULL && round_trips == channel->config.max_round_trips) {
       free(read_entry.payload);
       return ipc_create_transaction(curr_tx.entry_id, IPC_REACHED_RETRY_LIMIT);
     }

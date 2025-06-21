@@ -266,6 +266,61 @@ void test_read_timeout() {
   ipc_channel_destroy(channel);
 }
 
+void test_channel_read_before_commit_via_channel() {
+  const uint64_t size = ipc_channel_allign_size(128);
+  uint8_t mem[size];
+  IpcChannel *channel = ipc_channel_create(mem, size, DEFAULT_CONFIG);
+  IpcBuffer *buf = ipc_buffer_attach(mem);
+
+  const int expected = 42;
+
+  void *dest;
+  IpcTransaction tx_res = ipc_buffer_reserve_entry(buf, sizeof(int), &dest);
+  assert(tx_res.status == IPC_OK);
+  *((int *)dest) = expected;
+
+  IpcEntry entry;
+  IpcTransaction tx_read = ipc_channel_read(channel, &entry);
+  assert(tx_read.status == IPC_REACHED_RETRY_LIMIT);
+
+  assert(ipc_buffer_commit_entry(buf, tx_res.entry_id) == IPC_OK);
+
+  tx_read = ipc_channel_read(channel, &entry);
+  assert(tx_read.status == IPC_OK);
+
+  int v;
+  memcpy(&v, entry.payload, sizeof(v));
+  assert(v == expected);
+
+  free(entry.payload);
+  ipc_channel_destroy(channel);
+  free(buf);
+}
+
+void test_channel_double_commit() {
+  const uint64_t size = ipc_channel_allign_size(128);
+  uint8_t mem[size];
+  IpcChannel *channel = ipc_channel_create(mem, size, DEFAULT_CONFIG);
+  IpcBuffer *buf = ipc_buffer_attach(mem);
+
+  void *dest;
+  IpcTransaction tx = ipc_buffer_reserve_entry(buf, sizeof(int), &dest);
+  assert(tx.status == IPC_OK);
+  *(int *)dest = 42;
+  assert(ipc_buffer_commit_entry(buf, tx.entry_id) == IPC_OK);
+  assert(ipc_buffer_commit_entry(buf, tx.entry_id) == IPC_ERR);
+
+  IpcEntry entry;
+  IpcTransaction read1 = ipc_channel_read(channel, &entry);
+  assert(read1.status == IPC_OK);
+  IpcTransaction read2 = ipc_channel_try_read(channel, &entry);
+  assert(read2.status == IPC_EMPTY);
+
+  free(entry.payload);
+  ipc_channel_destroy(channel);
+  free(buf);
+}
+
 int main() {
   run_test("write read", &test_write_read);
   run_test("write peek", &test_peek);
@@ -279,6 +334,8 @@ int main() {
   run_test("skip corrupted entry", &test_skip_corrupted_entry);
   run_test("skip force", &test_skip_force);
   run_test("read timeout", &test_read_timeout);
+  run_test("read before commit", &test_channel_read_before_commit_via_channel);
+  run_test("channel read after double commmit", &test_channel_double_commit);
 
   return 0;
 }
