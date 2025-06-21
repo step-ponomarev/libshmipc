@@ -95,7 +95,6 @@ void test_wrap_buffer() {
   assert(ipc_buffer_write(buffer, &added_count, sizeof(size_t)) ==
          IPC_NO_SPACE_CONTIGUOUS);
 
-  size_t *ptr = malloc(sizeof(size_t));
   assert(ipc_buffer_skip_force(buffer).status == IPC_OK);
 
   const size_t last_val = 666;

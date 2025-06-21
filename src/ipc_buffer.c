@@ -103,7 +103,6 @@ IpcTransaction ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
     return ipc_create_transaction(0, IPC_ERR_INVALID_ARGUMENT);
   }
 
-  const uint64_t buffer_size = buffer->header->data_size;
   const uint64_t dest_size = dest->size;
   uint64_t head;
   uint64_t full_entry_size;
