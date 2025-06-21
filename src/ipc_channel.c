@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/signal.h>
-#include <sys/syslimits.h>
 
 #define WAIT_EXPAND_FACTOR 2
 
