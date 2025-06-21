@@ -4,6 +4,7 @@
 #include "test_runner.h"
 #include <assert.h>
 #include <cstdint>
+#include <memory>
 #include <stddef.h>
 #include <string.h>
 #include <thread>
