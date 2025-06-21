@@ -3,6 +3,7 @@
 #include "shmipc/ipc_common.h"
 #include "test_runner.h"
 #include <assert.h>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <stddef.h>
@@ -38,7 +39,7 @@ void produce(IpcBuffer *buf, const size_t from, const size_t to) {
 
 void consume(IpcBuffer *buf, const size_t expected,
              std::shared_ptr<concurrent_set<size_t>> dest) {
-  IpcEntry e = {.size = sizeof(size_t)};
+  IpcEntry e = {.size = sizeof(size_t), .payload = NULL};
   e.payload = malloc(sizeof(size_t));
 
   while (true) {
