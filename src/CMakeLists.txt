@@ -1,7 +1,4 @@
-set(SOURCES
-  ipc_buffer.c
-  ipc_mmap.c
-)
+set(SOURCES ipc_buffer.c ipc_channel.c ipc_utils.c)
 
 set(OUTPUT_NAME shmipc)
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
@@ -33,6 +30,4 @@ install(TARGETS shm_ipc_static shm_ipc_shared
 
 # Обязательно слэш на конце!
 install(DIRECTORY ${INCLUDE_DIR}/ DESTINATION include)
-
-
 
