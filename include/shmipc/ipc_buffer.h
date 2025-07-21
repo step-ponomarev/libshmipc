@@ -20,7 +20,7 @@ typedef struct IpcBuffer IpcBuffer;
  * @param size The desired size of the usable data area, in bytes.
  * @return The total size in bytes, including internal metadata.
  */
-uint64_t ipc_buffer_allign_size(uint64_t);
+uint64_t ipc_buffer_allign_size(uint64_t size);
 
 /**
  * @brief Initializes an IPC buffer within a pre-allocated memory region.
@@ -37,7 +37,7 @@ uint64_t ipc_buffer_allign_size(uint64_t);
  * @note To calculate the correct memory size, it is recommended to use
  * `ipc_buffer_allign_size()`.
  */
-IpcBuffer *ipc_buffer_create(void *, const uint64_t);
+IpcBuffer *ipc_buffer_create(void *mem, const uint64_t size);
 
 /**
  * @brief Attaches to an existing IPC buffer in shared memory.
@@ -53,7 +53,7 @@ IpcBuffer *ipc_buffer_create(void *, const uint64_t);
  * @note This function does not validate the contents of the memory block.
  * It assumes the memory has been properly initialized by `ipc_buffer_create`.
  */
-IpcBuffer *ipc_buffer_attach(void *);
+IpcBuffer *ipc_buffer_attach(void *mem);
 
 /**
  * @brief Writes a payload to the IPC buffer.
@@ -74,7 +74,8 @@ IpcBuffer *ipc_buffer_attach(void *);
  * @note The write is treated as an atomic operation: data is either fully
  * written and published, or not written at all.
  */
-IpcStatus ipc_buffer_write(IpcBuffer *, const void *, const uint64_t);
+IpcStatus ipc_buffer_write(IpcBuffer *buffer, const void *data,
+                           const uint64_t size);
 
 /**
  * @brief Reads the next available entry from the IPC buffer.
@@ -105,7 +106,7 @@ IpcStatus ipc_buffer_write(IpcBuffer *, const void *, const uint64_t);
  * @warning The caller must ensure that `dest->payload` points to valid memory
  * capable of holding at least `dest->size` bytes.
  */
-IpcTransaction ipc_buffer_read(IpcBuffer *, IpcEntry *);
+IpcTransaction ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest);
 
 /**
  * @brief Inspects the next available entry in the IPC buffer without consuming
@@ -133,7 +134,7 @@ IpcTransaction ipc_buffer_read(IpcBuffer *, IpcEntry *);
  * in place and unmodified in the buffer. The caller must not alter or free the
  * memory.
  */
-IpcTransaction ipc_buffer_peek(const IpcBuffer *, IpcEntry *);
+IpcTransaction ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest);
 
 /**
  * @brief Skips the next entry in the IPC buffer without reading its contents.
@@ -162,7 +163,7 @@ IpcTransaction ipc_buffer_peek(const IpcBuffer *, IpcEntry *);
  * changing it from `NOT_READY` to `READY`). In such cases, skipping ensures the
  * entry is locked and not consumed.
  */
-IpcTransaction ipc_buffer_skip(IpcBuffer *, const IpcEntryId);
+IpcTransaction ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id);
 
 /**
  * @brief Forcefully skips the next entry in the IPC buffer.
@@ -188,7 +189,7 @@ IpcTransaction ipc_buffer_skip(IpcBuffer *, const IpcEntryId);
  * entries. Use with caution in production systems. Prefer `ipc_buffer_skip`
  * when possible.
  */
-IpcTransaction ipc_buffer_skip_force(IpcBuffer *);
+IpcTransaction ipc_buffer_skip_force(IpcBuffer *buffer);
 
 /**
  * @brief Reserves space for a new entry in the IPC buffer.
@@ -218,7 +219,8 @@ IpcTransaction ipc_buffer_skip_force(IpcBuffer *);
  * to make it visible to consumers. Failing to commit may result in lost space
  * or inconsistent buffer state.
  */
-IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *, const uint64_t, void **);
+IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer, const uint64_t size,
+                                        void **dest);
 
 /**
  * @brief Marks a previously reserved entry as ready for consumption.
@@ -240,7 +242,7 @@ IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *, const uint64_t, void **);
  * properly reserved results in undefined behavior and possible data corruption.
  */
 
-IpcStatus ipc_buffer_commit_entry(IpcBuffer *, const IpcEntryId);
+IpcStatus ipc_buffer_commit_entry(IpcBuffer *buffer, const IpcEntryId id);
 
 #ifdef __cplusplus
 }

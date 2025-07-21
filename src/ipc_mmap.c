@@ -1,22 +1,24 @@
-#include "ipc_mmap.h"
 #include "ipc_utils.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <shmipc/ipc_mmap.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
-// TODO: Fix it, use groups and owner
-#define OPEN_MODE 0666
+#define OPEN_MODE S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP
 
 int _open_shm(const char *, const uint64_t);
 IpcStatus _unmap(void *, const uint64_t);
 IpcStatus _unlink(const char *);
 char *_copy(const char *);
 
-IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size) {
-  if (name == NULL || size == 0) {
+IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size,
+                           IpcMmapError *err) {
+  if (name == NULL || size == 0 || err == NULL) {
     return NULL;
   }
 
@@ -24,6 +26,7 @@ IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size) {
   const uint64_t aligned_size = ALIGN_UP(size, page_size);
   const int fd = _open_shm(name, aligned_size);
   if (fd < 0) {
+    *err = fd;
     return NULL;
   }
 
@@ -32,6 +35,7 @@ IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size) {
 
   if (mem == MAP_FAILED) {
     close(fd);
+    *err = SYSTEM_ERR;
     return NULL;
   }
 
@@ -40,6 +44,7 @@ IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size) {
   IpcMemorySegment *res = malloc(sizeof(IpcMemorySegment));
   if (res == NULL) {
     _unmap(mem, aligned_size);
+    *err = SYSTEM_ERR;
     return NULL;
   }
 
@@ -47,6 +52,7 @@ IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size) {
   if (name_copy == NULL) {
     _unmap(mem, aligned_size);
     free(res);
+    *err = SYSTEM_ERR;
     return NULL;
   }
 
@@ -73,20 +79,14 @@ IpcStatus ipc_unmap(IpcMemorySegment *segment) {
   return status;
 }
 
-IpcStatus ipc_unlink(const IpcMemorySegment *segment) {
+IpcStatus ipc_unlink(IpcMemorySegment *segment) {
   if (segment == NULL) {
     return IPC_ERR_INVALID_ARGUMENT;
   }
 
-  return _unlink(segment->name);
-}
+  _unlink(segment->name);
 
-IpcStatus ipc_reset(const char *name) {
-  if (name == NULL) {
-    return IPC_ERR_INVALID_ARGUMENT;
-  }
-
-  return _unlink(name);
+  return ipc_unmap(segment);
 }
 
 IpcStatus _unmap(void *memory, const uint64_t size) {
@@ -116,12 +116,23 @@ int _open_shm(const char *name, const uint64_t size) {
   }
 
   if (errno != EEXIST) {
-    return -1;
+    return SYSTEM_ERR;
   }
 
   fd = shm_open(name, O_RDWR, OPEN_MODE);
   if (fd < 0) {
-    return -1;
+    return SYSTEM_ERR;
+  }
+
+  struct stat st;
+  if (fstat(fd, &st) != 0) {
+    close(fd);
+    return SYSTEM_ERR;
+  }
+
+  if ((uint64_t)st.st_size != size) {
+    close(fd);
+    return INVALID_SIZE;
   }
 
   return fd;
