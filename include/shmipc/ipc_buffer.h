@@ -6,7 +6,6 @@ extern "C" {
 #endif
 
 #include "ipc_common.h"
-#include <stdint.h>
 
 typedef struct IpcBuffer IpcBuffer;
 
