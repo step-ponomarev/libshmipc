@@ -37,7 +37,7 @@ void test_min_segment_size() {
 }
 
 int main() {
-  run_test("test different segment sizes", &test_different_segment_sizes);
   run_test("test min segment size", &test_min_segment_size);
+  run_test("test different segment sizes", &test_different_segment_sizes);
   return 0;
 }
