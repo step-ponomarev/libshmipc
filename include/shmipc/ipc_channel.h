@@ -30,7 +30,7 @@ typedef struct IpcChannelConfiguration {
  *
  * @note Use this function to allocate memory for `ipc_channel_create`.
  */
-uint64_t ipc_channel_allign_size(uint64_t);
+uint64_t ipc_channel_allign_size(uint64_t size);
 
 /**
  * @brief Initializes a new IPC channel on the given memory region.
@@ -49,8 +49,8 @@ uint64_t ipc_channel_allign_size(uint64_t);
  *       It does not take ownership of the memory pointed to by `mem`.
  *       Use `ipc_channel_destroy()` to deallocate the channel structure.
  */
-IpcChannel *ipc_channel_create(void *, const uint64_t,
-                               const IpcChannelConfiguration);
+IpcChannel *ipc_channel_create(void *mem, const uint64_t size,
+                               const IpcChannelConfiguration config);
 
 /**
  * @brief Connects to an existing IPC channel using a shared memory region.
@@ -69,7 +69,8 @@ IpcChannel *ipc_channel_create(void *, const uint64_t,
  * @note The returned `IpcChannel *` must be released using
  * `ipc_channel_destroy` to free associated resources.
  */
-IpcChannel *ipc_channel_connect(void *, const IpcChannelConfiguration);
+IpcChannel *ipc_channel_connect(void *mem,
+                                const IpcChannelConfiguration config);
 
 /**
  * @brief Destroys an IPC channel and releases associated resources.
@@ -87,7 +88,7 @@ IpcChannel *ipc_channel_connect(void *, const IpcChannelConfiguration);
  * @note It is the caller’s responsibility to ensure no other threads are
  *       using the channel when this function is called.
  */
-IpcStatus ipc_channel_destroy(IpcChannel *);
+IpcStatus ipc_channel_destroy(IpcChannel *channel);
 
 /**
  * @brief Writes a payload into the IPC channel.
@@ -110,7 +111,8 @@ IpcStatus ipc_channel_destroy(IpcChannel *);
  * @note This function does not block; it returns immediately even if the buffer
  *       is full or unprepared.
  */
-IpcStatus ipc_channel_write(IpcChannel *, const void *, const uint64_t);
+IpcStatus ipc_channel_write(IpcChannel *channel, const void *data,
+                            const uint64_t size);
 
 /**
  * @brief Blocking read from the IPC channel.
@@ -138,7 +140,7 @@ IpcStatus ipc_channel_write(IpcChannel *, const void *, const uint64_t);
  * @note If called via `ipc_channel_read_with_timeout`, it will timeout after
  * the specified duration, returning `IPC_TIMEOUT`.
  */
-IpcTransaction ipc_channel_read(IpcChannel *, IpcEntry *);
+IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest);
 
 /**
  * @brief Reads the next available entry from the IPC channel with a timeout.
@@ -169,8 +171,9 @@ IpcTransaction ipc_channel_read(IpcChannel *, IpcEntry *);
  *       identifier of the last observed entry. You may inspect the state of
  * this entry using `ipc_channel_peek()` to diagnose the cause of the stall.
  */
-IpcTransaction ipc_channel_read_with_timeout(IpcChannel *, IpcEntry *,
-                                             const struct timespec *);
+IpcTransaction ipc_channel_read_with_timeout(IpcChannel *channel,
+                                             IpcEntry *dest,
+                                             const struct timespec *timeout);
 
 /**
  * @brief Attempts a non-blocking read from the IPC channel.
@@ -197,7 +200,7 @@ IpcTransaction ipc_channel_read_with_timeout(IpcChannel *, IpcEntry *,
  * @note The function guarantees that `dest` is not modified unless the read
  * succeeds.
  */
-IpcTransaction ipc_channel_try_read(IpcChannel *, IpcEntry *);
+IpcTransaction ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest);
 
 /**
  * @brief Peeks at the next available entry in the IPC channel without consuming
@@ -222,7 +225,7 @@ IpcTransaction ipc_channel_try_read(IpcChannel *, IpcEntry *);
  * @note The payload returned remains owned by the channel. Do not modify or
  * free it. For persistent access, copy the contents into a user-managed buffer.
  */
-IpcTransaction ipc_channel_peek(const IpcChannel *, IpcEntry *);
+IpcTransaction ipc_channel_peek(const IpcChannel *channel, IpcEntry *dest);
 
 /**
  * @brief Skips the specified entry in the IPC channel by its ID.
@@ -245,7 +248,7 @@ IpcTransaction ipc_channel_peek(const IpcChannel *, IpcEntry *);
  * @note Skipping is useful for handling corrupted or unprocessable entries in a
  * robust IPC setup.
  */
-IpcTransaction ipc_channel_skip(IpcChannel *, const IpcEntryId);
+IpcTransaction ipc_channel_skip(IpcChannel *channel, const IpcEntryId id);
 
 /**
  * @brief Forcibly skips the current entry in the IPC channel.
@@ -267,7 +270,7 @@ IpcTransaction ipc_channel_skip(IpcChannel *, const IpcEntryId);
  *       as it performs consistency checks before skipping. The force
  *       variant should be reserved for error recovery scenarios.
  */
-IpcTransaction ipc_channel_skip_force(IpcChannel *);
+IpcTransaction ipc_channel_skip_force(IpcChannel *channel);
 
 #ifdef __cplusplus
 }

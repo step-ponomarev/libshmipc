@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <thread>
+#include <vector>
 
 static const IpcChannelConfiguration DEFAULT_CONFIG = {
     .max_round_trips = 1024, .start_sleep_ns = 1000, .max_sleep_ns = 100000};
@@ -52,8 +53,8 @@ void test_single_writer_single_reader() {
   const uint64_t size = ipc_channel_allign_size(128);
   const size_t count = 200000;
 
-  uint8_t mem[size];
-  IpcChannel *channel = ipc_channel_create(mem, size, DEFAULT_CONFIG);
+  std::vector<uint8_t> mem(size);
+  IpcChannel *channel = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
 
@@ -75,8 +76,8 @@ void test_multiple_writer_single_reader() {
   const uint64_t size = ipc_channel_allign_size(128);
   const size_t total = 300000;
 
-  uint8_t mem[size];
-  IpcChannel *channel = ipc_channel_create(mem, size, DEFAULT_CONFIG);
+  std::vector<uint8_t> mem(size);
+  IpcChannel *channel = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
   std::thread p1(produce, channel, 0, 100000);
@@ -101,8 +102,8 @@ void test_multiple_writer_multiple_reader() {
   const uint64_t size = ipc_channel_allign_size(128);
   const size_t total = 300000;
 
-  uint8_t mem[size];
-  IpcChannel *channel = ipc_channel_create(mem, size, DEFAULT_CONFIG);
+  std::vector<uint8_t> mem(size);
+  IpcChannel *channel = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
   std::thread p1(produce, channel, 0, 100000);
@@ -130,8 +131,8 @@ void test_multiple_writer_multiple_reader() {
 
 void test_race_between_skip_and_read() {
   const uint64_t size = ipc_channel_allign_size(128);
-  uint8_t mem[size];
-  IpcChannel *channel = ipc_channel_create(mem, size, DEFAULT_CONFIG);
+  std::vector<uint8_t> mem(size);
+  IpcChannel *channel = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
 
   const size_t val = 42;
   assert(ipc_channel_write(channel, &val, sizeof(val)) == IPC_OK);

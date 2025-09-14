@@ -20,3 +20,7 @@ add_executable(ipc_channel_concurrent_test ipc_channel_concurrency_test.cpp)
 target_link_libraries(ipc_channel_concurrent_test shm_ipc_static ipc_test)
 add_test(NAME concurrent_ipc_channel_tests COMMAND ipc_channel_concurrent_test)
 
+add_executable(ipc_mmap_test ipc_mmap_test.c)
+target_link_libraries(ipc_mmap_test shm_ipc_static ipc_test)
+add_test(NAME mmap_ipc_tests COMMAND ipc_mmap_test)
+
