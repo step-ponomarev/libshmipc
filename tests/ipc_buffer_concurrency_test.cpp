@@ -67,8 +67,8 @@ void test_single_writer_single_reader() {
   const uint64_t size = ipc_buffer_allign_size(128);
   const size_t count = 200000;
 
-  uint8_t mem[size];
-  IpcBuffer *buf = ipc_buffer_create(mem, size);
+  std::vector<uint8_t> mem(size);
+  IpcBuffer *buf = ipc_buffer_create(mem.data(), size);
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
 
@@ -90,8 +90,8 @@ void test_multiple_writer_single_reader() {
   const uint64_t size = ipc_buffer_allign_size(128);
   const size_t total = 300000;
 
-  uint8_t mem[size];
-  IpcBuffer *buf = ipc_buffer_create(mem, size);
+  std::vector<uint8_t> mem(size);
+  IpcBuffer *buf = ipc_buffer_create(mem.data(), size);
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
   std::thread p1(produce, buf, 0, 100000);
@@ -116,8 +116,8 @@ void test_multiple_writer_multiple_reader() {
   const uint64_t size = ipc_buffer_allign_size(128);
   const size_t total = 300000;
 
-  uint8_t mem[size];
-  IpcBuffer *buf = ipc_buffer_create(mem, size);
+  std::vector<uint8_t> mem(size);
+  IpcBuffer *buf = ipc_buffer_create(mem.data(), size);
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
   std::thread p1(produce, buf, 0, 100000);
@@ -147,8 +147,8 @@ void test_delayed_multiple_writer_multiple_reader() {
   const uint64_t size = ipc_buffer_allign_size(128);
   const size_t total = 3000;
 
-  uint8_t mem[size];
-  IpcBuffer *buf = ipc_buffer_create(mem, size);
+  std::vector<uint8_t> mem(size);
+  IpcBuffer *buf = ipc_buffer_create(mem.data(), size);
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
   std::thread p1(delayed_produce, buf, 0, 1000);
@@ -176,8 +176,8 @@ void test_delayed_multiple_writer_multiple_reader() {
 
 void test_race_between_skip_and_read() {
   const uint64_t size = ipc_buffer_allign_size(128);
-  uint8_t mem[size];
-  IpcBuffer *buf = ipc_buffer_create(mem, size);
+  std::vector<uint8_t> mem(size);
+  IpcBuffer *buf = ipc_buffer_create(mem.data(), size);
 
   const size_t val = 42;
   assert(ipc_buffer_write(buf, &val, sizeof(val)) == IPC_OK);
