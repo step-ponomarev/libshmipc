@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <thread>
+#include <vector>
 
 static const IpcChannelConfiguration DEFAULT_CONFIG = {
     .max_round_trips = 1024, .start_sleep_ns = 1000, .max_sleep_ns = 100000};

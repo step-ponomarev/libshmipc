@@ -26,7 +26,7 @@ IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size,
   const uint64_t aligned_size = ALIGN_UP(size, page_size);
   const int fd = _open_shm(name, aligned_size);
   if (fd < 0) {
-    *err = SYSTEM_ERR;
+    *err = fd;
     return NULL;
   }
 

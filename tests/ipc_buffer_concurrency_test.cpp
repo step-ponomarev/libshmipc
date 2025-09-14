@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <thread>
+#include <vector>
 
 void delayed_produce(IpcBuffer *buf, const size_t from, const size_t to) {
   for (size_t i = from; i < to;) {
