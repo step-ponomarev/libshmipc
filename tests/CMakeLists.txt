@@ -1,24 +1,39 @@
-# Тесты завязаны на C и C++
 enable_language(CXX)
-
-# Если нужны потоки:
 find_package(Threads REQUIRED)
 
-# Общая статическая либка с хелперами тестов
-add_library(ipc_test STATIC test_runner.c)
-target_enable_warnings(ipc_test)
+set(SHMIPC_PUBLIC_INCLUDE_DIR   "${CMAKE_SOURCE_DIR}/include")
+set(SHMIPC_INTERNAL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src")   # приватные .h из src/
 
-# Функция линковки теста с библиотекой и потоками
+function(target_relax_test_warnings tgt)
+  target_compile_options(${tgt} PRIVATE -w)
+ 
+  target_compile_options(${tgt} PRIVATE
+    $<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>
+  )
+endfunction()
+
+add_library(ipc_test STATIC test_runner.c)
+target_include_directories(ipc_test PRIVATE
+  ${SHMIPC_PUBLIC_INCLUDE_DIR}
+  ${SHMIPC_INTERNAL_INCLUDE_DIR}
+)
+target_relax_test_warnings(ipc_test)
+
 function(add_shmipc_test name)
   add_executable(${name} ${ARGN})
-  target_enable_warnings(${name})
 
-  # Линкуем с той сборкой, что доступна (shared предпочтительнее)
-  if (TARGET shmipc_shared)
-    target_link_libraries(${name} PRIVATE shmipc_shared ipc_test Threads::Threads)
-  else()
-    target_link_libraries(${name} PRIVATE shmipc_static ipc_test Threads::Threads)
-  endif()
+  target_include_directories(${name} PRIVATE
+    ${SHMIPC_PUBLIC_INCLUDE_DIR}
+    ${SHMIPC_INTERNAL_INCLUDE_DIR}
+  )
+
+  target_relax_test_warnings(${name})
+
+  target_link_libraries(${name} PRIVATE
+    shmipc_static
+    ipc_test
+    Threads::Threads
+  )
 
   add_test(NAME ${name} COMMAND ${name})
 endfunction()

@@ -1,12 +1,10 @@
-#ifndef IPC_UTILS_H
-#define IPC_UTILS_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#pragma once
 
 #include <shmipc/ipc_common.h>
+#include <shmipc/ipc_export.h>
 #include <time.h>
+
+SHMIPC_BEGIN_DECLS
 
 #define ALIGN_UP(s, align) (((s) + ((align) - 1)) & ~((align) - 1))
 #define RELATIVE(a, max) ((a) & (max - 1))
@@ -14,8 +12,4 @@ extern "C" {
 IpcTransaction ipc_create_transaction(const uint64_t, const IpcStatus);
 uint64_t ipc_timespec_to_nanos(const struct timespec *);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+SHMIPC_END_DECLS
