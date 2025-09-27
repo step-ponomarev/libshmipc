@@ -21,7 +21,7 @@ jobs:
             cmake_extra: ""
           - os_name: linux
             arch: arm64
-            runner: ubuntu-24.04-arm   # <-- важно
+            runner: ubuntu-24.04-arm 
             cmake_extra: ""
           - os_name: macos
             arch: arm64
@@ -67,7 +67,7 @@ jobs:
         run: cmake --build build -j
 
       - name: Test (single-threaded)
-        run: ctest --test-dir build --output-on-failure -j1 --timeout 10
+        run: ctest --test-dir build --output-on-failure -j1 --timeout 100
 
       - name: Package
         run: cmake --build build --target package

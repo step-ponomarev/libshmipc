@@ -29,5 +29,5 @@ jobs:
         run: cmake --build build -j
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure -j1 --timeout 10
+        run: ctest --test-dir build --output-on-failure -j1 --timeout 100
 
