@@ -54,10 +54,16 @@ jobs:
             -DSHMIPC_BUILD_TESTS=ON \
             ${{ matrix.cmake_extra }}
 
-      - name: Extract version
+      - name: Extract version from CMakeLists.txt
         id: ver
+        shell: bash
         run: |
-          ver=$(cmake -L -N build | awk -F= '/^shmipc_VERSION:/{print $2}')
+          ver=$(awk '
+          /project[[:space:]]*\(/ { inproj=1 }
+          inproj && match($0, /VERSION[[:space:]]+([0-9.]+)/, m) { print m[1]; exit }
+          inproj && /\)/ { inproj=0 }
+          ' CMakeLists.txt)
+          [[ -n "$ver" ]] || { echo "Failed to parse version" >&2; exit 1; }
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Build
