@@ -1,8 +1,0 @@
-@PACKAGE_INIT@
-
-include(CMakeFindDependencyMacro)
-
-# Экспортированные таргеты
-include("${CMAKE_CURRENT_LIST_DIR}/ShmipcTargets.cmake")
-
-check_required_components(shmipc)
