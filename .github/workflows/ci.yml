@@ -1,31 +1,64 @@
-name: "CI: Build 4 targets, Test, Release on main"
+name: "CI: quick tests on every push/PR + full builds on main"
 
 on:
-  pull_request:
-    branches: [ main ]
   push:
-    branches: [ '**' ]
+    branches: ['**']
+  pull_request:
+    branches: ['**']
 
-jobs:
-  build:
-    name: Build & Test (${{ matrix.os_name }} ${{ matrix.arch }})
+jobs: 
+  test:
+    name: Test 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSHMIPC_BUILD_STATIC=ON \
+            -DSHMIPC_BUILD_SHARED=ON \
+            -DSHMIPC_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j1 --timeout 120
+
+  # ---------- FULL BUILD MATRIX (only on push to main) ----------
+  build-matrix:
+    name: Build matrix (${{ matrix.os_name }} ${{ matrix.arch }})
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Linux x86_64
           - os_name: linux
             arch: x86_64
             runner: ubuntu-latest
             cmake_extra: ""
+          # Linux arm64 
           - os_name: linux
             arch: arm64
-            runner: ubuntu-24.04-arm64   # при необходимости поправь на доступный лейбл
+            runner: ubuntu-latest
             cmake_extra: ""
+          # macOS arm64 (Apple Silicon)
           - os_name: macos
             arch: arm64
             runner: macos-latest
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=arm64"
+          # macOS x86_64 (Intel)
           - os_name: macos
             arch: x86_64
             runner: macos-13
@@ -37,13 +70,13 @@ jobs:
         with:
           fetch-tags: true
 
-      - name: Install deps (Linux)
+      - name: Deps (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build cmake
 
-      - name: Install deps (macOS)
+      - name: Deps (macOS)
         if: runner.os == 'macOS'
         run: |
           brew install ninja cmake
@@ -66,10 +99,10 @@ jobs:
       - name: Build
         run: cmake --build build -j
 
-      - name: Test
-        run: ctest --test-dir build --output-on-failure -j1
+      - name: Test (single-threaded)
+        run: ctest --test-dir build --output-on-failure -j1 --timeout 120
 
-      - name: Package (CPack)
+      - name: Package
         run: cmake --build build --target package
 
       - name: Upload artifacts
@@ -82,19 +115,19 @@ jobs:
 
   release:
     name: Release
-    needs: build
-    runs-on: ubuntu-latest
+    needs: build-matrix
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-tags: true
 
-      - name: Extract version (again)
+      - name: Extract version
         id: ver
         run: |
-          ver=$(awk '/^project\(/ {for(i=1;i<=NF;i++) if($i=="VERSION") {print $(i+1); exit}}' CMakeLists.txt)
+          ver=$(awk '/^project\\(/ {for(i=1;i<=NF;i++) if($i=="VERSION") {print $(i+1); exit}}' CMakeLists.txt)
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Download all artifacts
@@ -111,4 +144,3 @@ jobs:
           files: dist_artifacts/**/*.{tar.gz,sha256}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
