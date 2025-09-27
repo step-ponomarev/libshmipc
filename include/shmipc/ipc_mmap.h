@@ -1,11 +1,9 @@
-#ifndef IPC_MMAP_H
-#define IPC_MMAP_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#pragma once
 
 #include <shmipc/ipc_common.h>
+#include <shmipc/ipc_export.h>
+
+SHMIPC_BEGIN_DECLS
 
 typedef enum { SYSTEM_ERR = -1, INVALID_SIZE = -2 } IpcMmapError;
 typedef struct IpcMemorySegment {
@@ -35,8 +33,8 @@ typedef struct IpcMemorySegment {
  * @note On error, the value pointed to by `err` is set to the appropriate error
  * code.
  */
-IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size,
-                           IpcMmapError *err);
+SHMIPC_API IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size,
+                                      IpcMmapError *err);
 
 /**
  * @brief Unmaps and releases a shared memory segment.
@@ -53,7 +51,7 @@ IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size,
  * @note Does not remove the shared memory object itself; use `ipc_unlink` to
  * unlink the underlying segment.
  */
-IpcStatus ipc_unmap(IpcMemorySegment *segment);
+SHMIPC_API IpcStatus ipc_unmap(IpcMemorySegment *segment);
 
 /**
  * @brief Unlinks and unmaps a shared memory segment.
@@ -71,10 +69,6 @@ IpcStatus ipc_unmap(IpcMemorySegment *segment);
  * @note This operation is irreversible; the shared memory object will be
  * deleted once all processes have closed it.
  */
-IpcStatus ipc_unlink(IpcMemorySegment *segment);
+SHMIPC_API IpcStatus ipc_unlink(IpcMemorySegment *segment);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+SHMIPC_END_DECLS

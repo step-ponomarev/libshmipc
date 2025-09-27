@@ -4,8 +4,7 @@ set -e
 cd "$(dirname "$0")/.."
 rm -rf build
 
-cmake -S . -B build -DCMAKE_INSTALL_PREFIX=dist
-cmake --build build
-cmake --install build
-
-ctest --test-dir build --output-on-failure
+CC=$(brew --prefix)/bin/gcc-15 CXX=/usr/bin/clang++ \
+  cmake -S . -B build
+cmake --build build -j
+ctest --test-dir build --timeout 10

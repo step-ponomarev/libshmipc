@@ -1,11 +1,9 @@
-#ifndef IPC_COMMON_H
-#define IPC_COMMON_H
+#pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+#include <shmipc/ipc_export.h>
 #include <stdint.h>
+
+SHMIPC_BEGIN_DECLS
 
 /**
  * @note Values >= 0 indicate non-error statuses (e.g., empty, not ready),
@@ -59,8 +57,4 @@ typedef struct IpcEntry {
   uint64_t size;
 } IpcEntry;
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+SHMIPC_END_DECLS

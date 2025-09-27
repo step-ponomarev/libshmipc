@@ -1,0 +1,109 @@
+name: "Release builds"
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-matrix:
+    name: Build (${{ matrix.os_name }} ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os_name: linux
+            arch: x86_64
+            runner: ubuntu-latest
+            cmake_extra: ""
+          - os_name: linux
+            arch: arm64
+            runner: ubuntu-latest
+            cmake_extra: ""
+          - os_name: macos
+            arch: arm64
+            runner: macos-latest
+            cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=arm64"
+          - os_name: macos
+            arch: x86_64
+            runner: macos-13
+            cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: Deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake
+
+      - name: Deps (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install ninja cmake
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSHMIPC_BUILD_STATIC=ON \
+            -DSHMIPC_BUILD_SHARED=ON \
+            -DSHMIPC_BUILD_TESTS=ON \
+            ${{ matrix.cmake_extra }}
+
+      - name: Extract version
+        id: ver
+        run: |
+          ver=$(cmake -L -N build | awk -F= '/^shmipc_VERSION:/{print $2}')
+          echo "ver=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test (single-threaded)
+        run: ctest --test-dir build --output-on-failure -j1 --timeout 10
+
+      - name: Package
+        run: cmake --build build --target package
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shmipc-${{ steps.ver.outputs.ver }}-${{ matrix.os_name }}-${{ matrix.arch }}
+          path: |
+            build/*.tar.gz
+            build/*.sha256
+
+  release:
+    name: Release
+    needs: build-matrix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: Extract version
+        id: ver
+        run: |
+          ver=$(awk '/^project\\(/ {for(i=1;i<=NF;i++) if($i=="VERSION") {print $(i+1); exit}}' CMakeLists.txt)
+          echo "ver=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist_artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.ver }}
+          name: shmipc ${{ steps.ver.outputs.ver }}
+          prerelease: true
+          files: dist_artifacts/**/*.{tar.gz,sha256}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

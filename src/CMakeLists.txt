@@ -1,33 +1,64 @@
-set(SOURCES ipc_buffer.c ipc_channel.c ipc_utils.c ipc_mmap.c)
-
-set(OUTPUT_NAME shmipc)
-set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
-set(LIB_DEST ${CMAKE_BINARY_DIR}/lib)
-
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-
-add_library(shm_ipc_static STATIC ${SOURCES})
-set_target_properties(
-  shm_ipc_static PROPERTIES OUTPUT_NAME ${OUTPUT_NAME}
+set(SHMIPC_SOURCES
+  ipc_buffer.c
+  ipc_channel.c
+  ipc_utils.c
+  ipc_mmap.c
 )
 
-add_library(shm_ipc_shared SHARED ${SOURCES})
-set_target_properties(
-  shm_ipc_shared PROPERTIES OUTPUT_NAME ${OUTPUT_NAME} 
+set(SHMIPC_PUBLIC_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
+
+function(configure_library_common tgt)
+  target_include_directories(${tgt}
+    PUBLIC
+      $<BUILD_INTERFACE:${SHMIPC_PUBLIC_INCLUDE_DIR}>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  )
+
+  set_target_properties(${tgt} PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+  )
+ 
+  set_target_properties(${tgt} PROPERTIES
+    VERSION   ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+  )
+
+  target_enable_warnings(${tgt})
+  target_compile_options(${tgt} PRIVATE -O3)
+  target_compile_definitions(${tgt} PRIVATE NDEBUG)
+
+  target_fix_posix(${tgt})
+  set_property(TARGET ${tgt} PROPERTY POSITION_INDEPENDENT_CODE ON)
+endfunction()
+
+if (SHMIPC_BUILD_STATIC)
+  add_library(shmipc_static STATIC ${SHMIPC_SOURCES})
+  add_library(shmipc::static ALIAS shmipc_static)
+  configure_library_common(shmipc_static)
+endif()
+
+if (SHMIPC_BUILD_SHARED)
+  add_library(shmipc_shared SHARED ${SHMIPC_SOURCES})
+  add_library(shmipc::shared ALIAS shmipc_shared)
+  configure_library_common(shmipc_shared)
+endif()
+
+set(_install_targets)
+if (TARGET shmipc_static)
+  list(APPEND _install_targets shmipc_static)
+endif()
+if (TARGET shmipc_shared)
+  list(APPEND _install_targets shmipc_shared)
+endif()
+
+install(TARGETS ${_install_targets}
+  EXPORT shmipcTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-target_include_directories(shm_ipc_static PUBLIC ${INCLUDE_DIR})
-target_include_directories(shm_ipc_shared PUBLIC ${INCLUDE_DIR})
-
-# Установка: заголовки и библиотеки
-install(TARGETS shm_ipc_static shm_ipc_shared
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-)
-
-# Обязательно слэш на конце!
-install(DIRECTORY ${INCLUDE_DIR}/ DESTINATION include)
+install(DIRECTORY "${SHMIPC_PUBLIC_INCLUDE_DIR}/"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 

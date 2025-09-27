@@ -1,26 +1,47 @@
 enable_language(CXX)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(Threads REQUIRED)
+
+set(SHMIPC_PUBLIC_INCLUDE_DIR   "${CMAKE_SOURCE_DIR}/include")
+set(SHMIPC_INTERNAL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src")
+
+function(target_test_flags tgt)
+  target_compile_options(${tgt} PRIVATE -O0 -g -UNDEBUG) 
+  target_enable_warnings(${tgt})
+  target_compile_options(${tgt} PRIVATE
+    $<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>
+  )
+  target_fix_posix(${tgt})
+endfunction()
 
 add_library(ipc_test STATIC test_runner.c)
+target_include_directories(ipc_test PRIVATE
+  ${SHMIPC_PUBLIC_INCLUDE_DIR}
+  ${SHMIPC_INTERNAL_INCLUDE_DIR}
+)
+target_test_flags(ipc_test)
 
-add_executable(ipc_buffer_basic_test ipc_buffer_basic_test.c)
-target_link_libraries(ipc_buffer_basic_test shm_ipc_static ipc_test)
-add_test(NAME basic_ipc_buffer_tests COMMAND ipc_buffer_basic_test)
+function(add_shmipc_test name)
+  add_executable(${name} ${ARGN})
 
-add_executable(ipc_buffer_concurrency_test ipc_buffer_concurrency_test.cpp) 
-target_link_libraries(ipc_buffer_concurrency_test  shm_ipc_static ipc_test)
-add_test(NAME concurrent_ipc_buffer_tests COMMAND ipc_buffer_concurrency_test)
+  target_include_directories(${name} PRIVATE
+    ${SHMIPC_PUBLIC_INCLUDE_DIR}
+    ${SHMIPC_INTERNAL_INCLUDE_DIR}
+  )
 
-add_executable(ipc_channel_basic_test ipc_channel_basic_test.c) 
-target_link_libraries(ipc_channel_basic_test shm_ipc_static ipc_test)
-add_test(NAME basic_ipc_channel_tests COMMAND ipc_channel_basic_test)
+  target_test_flags(${name})
 
-add_executable(ipc_channel_concurrent_test ipc_channel_concurrency_test.cpp)
-target_link_libraries(ipc_channel_concurrent_test shm_ipc_static ipc_test)
-add_test(NAME concurrent_ipc_channel_tests COMMAND ipc_channel_concurrent_test)
+  target_link_libraries(${name} PRIVATE
+    shmipc_static
+    ipc_test
+    Threads::Threads
+  )
 
-add_executable(ipc_mmap_test ipc_mmap_test.c)
-target_link_libraries(ipc_mmap_test shm_ipc_static ipc_test)
-add_test(NAME mmap_ipc_tests COMMAND ipc_mmap_test)
+  add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+add_shmipc_test(ipc_buffer_basic_test         ipc_buffer_basic_test.c)
+add_shmipc_test(ipc_buffer_concurrency_test   ipc_buffer_concurrency_test.cpp)
+add_shmipc_test(ipc_channel_basic_test        ipc_channel_basic_test.c)
+add_shmipc_test(ipc_channel_concurrent_test   ipc_channel_concurrency_test.cpp)
+add_shmipc_test(ipc_mmap_test                 ipc_mmap_test.c)
 

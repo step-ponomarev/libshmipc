@@ -1,5 +1,4 @@
-#ifndef TEST_RUNNER_H
-#define TEST_RUNNER_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,6 +10,4 @@ void run_test(const char *, TestFunc);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

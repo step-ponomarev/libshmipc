@@ -2,6 +2,7 @@
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_common.h"
 #include <shmipc/ipc_channel.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -186,6 +187,7 @@ IpcTransaction _read(IpcChannel *channel, IpcEntry *dest,
 
   IpcTransaction curr_tx;
   IpcTransaction prev_tx;
+  bool prev_inited = false;
   size_t round_trips = 0;
 
   IpcEntry read_entry = {.payload = NULL, .size = 0};
@@ -209,20 +211,21 @@ IpcTransaction _read(IpcChannel *channel, IpcEntry *dest,
         free(read_entry.payload);
         return ipc_create_transaction(curr_tx.entry_id, IPC_TIMEOUT);
       }
-    }
-
-    if (timeout == NULL) {
-      if (prev_tx.entry_id == curr_tx.entry_id && curr_tx.status != IPC_OK) {
+    } else {
+      if (prev_inited && prev_tx.entry_id == curr_tx.entry_id &&
+          curr_tx.status != IPC_OK) {
         round_trips++;
       } else {
         round_trips = 0;
       }
       prev_tx = curr_tx;
-    }
+      prev_inited = true;
 
-    if (timeout == NULL && round_trips == channel->config.max_round_trips) {
-      free(read_entry.payload);
-      return ipc_create_transaction(curr_tx.entry_id, IPC_REACHED_RETRY_LIMIT);
+      if (round_trips == channel->config.max_round_trips) {
+        free(read_entry.payload);
+        return ipc_create_transaction(curr_tx.entry_id,
+                                      IPC_REACHED_RETRY_LIMIT);
+      }
     }
 
     if (_is_retry_status(curr_tx.status)) {
