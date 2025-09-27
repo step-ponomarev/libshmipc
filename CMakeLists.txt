@@ -9,7 +9,6 @@ project(shmipc
 option(SHMIPC_BUILD_STATIC     "Build static library"           ON)
 option(SHMIPC_BUILD_SHARED     "Build shared library"           ON)
 option(SHMIPC_BUILD_TESTS      "Build tests"                    ON)
-option(SHMIPC_ENABLE_WERROR    "Treat warnings as errors"       ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -24,16 +23,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # ---------- Policies / Nice defaults ----------
 function(target_enable_warnings tgt)
   target_compile_options(${tgt} PRIVATE -Wall -Wextra -Wpedantic)
-  if (SHMIPC_ENABLE_WERROR)
-    target_compile_options(${tgt} PRIVATE -Werror)
-  endif()
+  target_compile_options(${tgt} PRIVATE -Werror)
 endfunction()
 
 # ---------- Install dirs ----------
 include(GNUInstallDirs)
 
 # ---------- Testing toggle (CTest) ----------
-include(CTest) # создаёт опцию BUILD_TESTING
+include(CTest)
 if (NOT SHMIPC_BUILD_TESTS)
   set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 endif()

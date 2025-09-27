@@ -14,17 +14,19 @@ function(configure_library_common tgt)
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   )
 
-  if (BUILD_SHARED_LIBS OR SHMIPC_BUILD_SHARED)
-    set_target_properties(${tgt} PROPERTIES
-      C_VISIBILITY_PRESET hidden
-      VISIBILITY_INLINES_HIDDEN YES)
-  endif()
+  set_target_properties(${tgt} PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+  )
  
   set_target_properties(${tgt} PROPERTIES
     VERSION   ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR})
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+  )
 
   target_enable_warnings(${tgt})
+  target_compile_options(${tgt} PRIVATE -O3)
+  target_compile_definitions(${tgt} PRIVATE NDEBUG)
 
   set_property(TARGET ${tgt} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endfunction()
@@ -58,3 +60,4 @@ install(TARGETS ${_install_targets}
 
 install(DIRECTORY "${SHMIPC_PUBLIC_INCLUDE_DIR}/"
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
