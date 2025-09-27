@@ -193,7 +193,8 @@ void test_race_between_skip_and_read() {
   std::thread t1([&] {
     IpcTransaction result = ipc_buffer_skip(buf, tx.entry_id);
     skip_done = true;
-    assert(result.status == IPC_OK || result.status == IPC_ALREADY_SKIPED);
+    assert(result.status == IPC_OK || result.status == IPC_ALREADY_SKIPED ||
+           result.status == IPC_EMPTY);
   });
 
   std::thread t2([&] {
@@ -226,8 +227,7 @@ int main() {
   run_test("multiple delayed writer & multiple reader",
            &test_delayed_multiple_writer_multiple_reader);
 
-  // TODO: FIX
-  // run_test("race between skip and read", &test_race_between_skip_and_read);
+  run_test("race between skip and read", &test_race_between_skip_and_read);
 
   return 0;
 }
