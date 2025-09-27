@@ -237,7 +237,6 @@ SHMIPC_API IpcTransaction ipc_channel_peek(const IpcChannel *channel,
  * @param id Entry identifier returned from a previous peek operation.
  * @return IpcTransaction containing the result:
  *         - `IPC_OK`: Entry was successfully skipped.
- *         - `IPC_TRANSACTION_MISS_MATCHED`: The provided ID does not match the
  * current entry.
  *         - `IPC_ALREADY_SKIPED`: The entry has already been skipped by another
  * reader.

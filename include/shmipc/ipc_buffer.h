@@ -149,8 +149,6 @@ SHMIPC_API IpcTransaction ipc_buffer_peek(const IpcBuffer *buffer,
  *         - `IPC_EMPTY` if the buffer contains no unread entries.
  *         - `IPC_LOCKED` if the entry is currently locked and cannot be
  * skipped.
- *         - `IPC_TRANSACTION_MISS_MATCHED` if the provided ID does not match
- * the current entry.
  *         - `IPC_ALREADY_SKIPED` if another thread already skipped this entry.
  *
  * @note The caller must pass the exact entry ID previously obtained

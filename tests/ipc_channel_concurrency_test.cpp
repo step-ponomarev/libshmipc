@@ -129,7 +129,7 @@ void test_multiple_writer_multiple_reader() {
   free(channel);
 }
 
-void test_race_between_skip_and_read() {
+void _test_race_between_skip_and_read() {
   const uint64_t size = ipc_channel_allign_size(128);
   std::vector<uint8_t> mem(size);
   IpcChannel *channel = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
@@ -146,7 +146,7 @@ void test_race_between_skip_and_read() {
 
   std::thread t1([&] {
     IpcTransaction result = ipc_channel_skip(channel, tx.entry_id);
-    skip_done = true;
+    skip_done.store(true);
     assert(result.status == IPC_OK || result.status == IPC_ALREADY_SKIPED ||
            result.status == IPC_EMPTY);
   });
@@ -154,7 +154,7 @@ void test_race_between_skip_and_read() {
   std::thread t2([&] {
     IpcEntry e = {.payload = malloc(sizeof(size_t)), .size = sizeof(size_t)};
     IpcTransaction tx = ipc_channel_try_read(channel, &e);
-    read_done = true;
+    read_done.store(true);
     if (tx.status == IPC_OK) {
       size_t v;
       memcpy(&v, e.payload, e.size);
@@ -167,8 +167,14 @@ void test_race_between_skip_and_read() {
 
   t1.join();
   t2.join();
-  assert(skip_done && read_done);
+  assert(skip_done.load() && read_done.load());
   free(channel);
+}
+
+void test_race_between_skip_and_read() {
+  for (int i = 0; i < 1000; i++) {
+    _test_race_between_skip_and_read();
+  }
 }
 
 int main() {

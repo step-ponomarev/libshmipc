@@ -159,7 +159,7 @@ IpcTransaction ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
   do {
     head = atomic_load(&buffer->header->head);
     if (head != id) {
-      return ipc_create_transaction(head, IPC_TRANSACTION_MISS_MATCHED);
+      return ipc_create_transaction(head, IPC_ALREADY_SKIPED);
     }
 
     const IpcStatus status = _read_entry_header(buffer, head, &header);
