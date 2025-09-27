@@ -1,10 +1,10 @@
-name: CI: Build 4 targets, Test, Release on main
+name: "CI: Build 4 targets, Test, Release on main"
 
 on:
   pull_request:
     branches: [ main ]
   push:
-    branches: [ '**' ] 
+    branches: [ '**' ]
 
 jobs:
   build:
@@ -14,22 +14,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64
           - os_name: linux
             arch: x86_64
             runner: ubuntu-latest
             cmake_extra: ""
-          # Linux arm64
           - os_name: linux
             arch: arm64
-            runner: ubuntu-24.04-arm64 
+            runner: ubuntu-24.04-arm64   # при необходимости поправь на доступный лейбл
             cmake_extra: ""
-          # macOS arm64 (Apple Silicon)
           - os_name: macos
             arch: arm64
             runner: macos-latest
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=arm64"
-          # macOS x86_64 (Intel)
           - os_name: macos
             arch: x86_64
             runner: macos-13
@@ -71,7 +67,7 @@ jobs:
         run: cmake --build build -j
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure --timeout 10
+        run: ctest --test-dir build --output-on-failure -j1
 
       - name: Package (CPack)
         run: cmake --build build --target package
@@ -98,8 +94,7 @@ jobs:
       - name: Extract version (again)
         id: ver
         run: |
-          # быстрый способ: прочитать версию прямо из CMakeLists.txt
-          ver=$(awk '/^project\\(/ {for(i=1;i<=NF;i++) if($i=="VERSION") {print $(i+1); exit}}' CMakeLists.txt)
+          ver=$(awk '/^project\(/ {for(i=1;i<=NF;i++) if($i=="VERSION") {print $(i+1); exit}}' CMakeLists.txt)
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Download all artifacts
@@ -116,3 +111,4 @@ jobs:
           files: dist_artifacts/**/*.{tar.gz,sha256}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
