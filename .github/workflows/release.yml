@@ -54,16 +54,10 @@ jobs:
             -DSHMIPC_BUILD_TESTS=ON \
             ${{ matrix.cmake_extra }}
 
-      - name: Extract version from CMakeLists.txt
+      - name: Extract version
         id: ver
-        shell: bash
         run: |
-          ver=$(awk '
-          /project[[:space:]]*\(/ { inproj=1 }
-          inproj && match($0, /VERSION[[:space:]]+([0-9.]+)/, m) { print m[1]; exit }
-          inproj && /\)/ { inproj=0 }
-          ' CMakeLists.txt)
-          [[ -n "$ver" ]] || { echo "Failed to parse version" >&2; exit 1; }
+          ver=$(cmake -L -N build | awk -F= '/^shmipc_VERSION:/{print $2}')
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Build
@@ -91,15 +85,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-tags: true
-      - name: Extract version
+      - name: Extract version 
         id: ver
         shell: bash
-        run: | 
-          ver=$(sed -nE 's/^project\([^)]*VERSION[[:space:]]+([0-9.]+).*/\1/p' CMakeLists.txt | head -1)
-          if [ -z "$ver" ]; then
-            echo "Failed to parse version from CMakeLists.txt" >&2
-            exit 1
+        run: |
+          f=$(ls dist_artifacts/**/libshmipc-*.tar.gz | head -1)
+          if [[ -z "$f" ]]; then
+            echo "No package found" >&2; exit 1
           fi
+          ver=$(sed -nE 's/.*libshmipc-([0-9.]+)-.*/\1/p' <<<"$f")
+          [[ -n "$ver" ]] || { echo "Failed to parse version" >&2; exit 1; }
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Download all artifacts
