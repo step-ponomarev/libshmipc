@@ -211,9 +211,7 @@ IpcTransaction _read(IpcChannel *channel, IpcEntry *dest,
         free(read_entry.payload);
         return ipc_create_transaction(curr_tx.entry_id, IPC_TIMEOUT);
       }
-    }
-
-    if (timeout == NULL) {
+    } else {
       if (prev_inited && prev_tx.entry_id == curr_tx.entry_id &&
           curr_tx.status != IPC_OK) {
         round_trips++;
@@ -222,11 +220,12 @@ IpcTransaction _read(IpcChannel *channel, IpcEntry *dest,
       }
       prev_tx = curr_tx;
       prev_inited = true;
-    }
 
-    if (timeout == NULL && round_trips == channel->config.max_round_trips) {
-      free(read_entry.payload);
-      return ipc_create_transaction(curr_tx.entry_id, IPC_REACHED_RETRY_LIMIT);
+      if (round_trips == channel->config.max_round_trips) {
+        free(read_entry.payload);
+        return ipc_create_transaction(curr_tx.entry_id,
+                                      IPC_REACHED_RETRY_LIMIT);
+      }
     }
 
     if (_is_retry_status(curr_tx.status)) {

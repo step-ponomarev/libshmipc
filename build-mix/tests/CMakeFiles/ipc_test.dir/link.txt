@@ -1,0 +1,2 @@
+/usr/bin/ar qc libipc_test.a CMakeFiles/ipc_test.dir/test_runner.c.o
+/usr/bin/ranlib libipc_test.a

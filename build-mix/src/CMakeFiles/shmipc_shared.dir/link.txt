@@ -1,0 +1,1 @@
+/opt/homebrew/bin/gcc-15  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libshmipc_shared.0.0.0.dylib -install_name @rpath/libshmipc_shared.0.dylib CMakeFiles/shmipc_shared.dir/ipc_buffer.c.o CMakeFiles/shmipc_shared.dir/ipc_channel.c.o CMakeFiles/shmipc_shared.dir/ipc_utils.c.o CMakeFiles/shmipc_shared.dir/ipc_mmap.c.o

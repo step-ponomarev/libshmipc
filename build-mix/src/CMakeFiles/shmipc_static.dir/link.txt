@@ -1,0 +1,2 @@
+/usr/bin/ar qc libshmipc_static.a CMakeFiles/shmipc_static.dir/ipc_buffer.c.o CMakeFiles/shmipc_static.dir/ipc_channel.c.o CMakeFiles/shmipc_static.dir/ipc_utils.c.o CMakeFiles/shmipc_static.dir/ipc_mmap.c.o
+/usr/bin/ranlib libshmipc_static.a

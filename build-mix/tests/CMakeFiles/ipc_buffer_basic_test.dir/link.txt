@@ -1,0 +1,1 @@
+/opt/homebrew/bin/gcc-15  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/ipc_buffer_basic_test.dir/ipc_buffer_basic_test.c.o -o ipc_buffer_basic_test  ../src/libshmipc_static.a libipc_test.a
