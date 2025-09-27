@@ -77,9 +77,19 @@ install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/ShmipcConfigVersion.cmake"
   DESTINATION ${SHMIPC_INSTALL_CONFIGDIR})
 
-# ---------- CPack (пакеты) ----------
+# Метаданные пакета — задаём ДО include(CPack)
+set(CPACK_PACKAGE_NAME              "libshmipc")
+set(CPACK_PACKAGE_VENDOR            "Stepan Ponomarev")
+set(CPACK_PACKAGE_VERSION           ${PROJECT_VERSION})
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Shared-memory IPC library")
+set(CPACK_PACKAGE_HOMEPAGE_URL      "https://github.com/step-ponomarev/libshmipc")
+set(CPACK_PACKAGE_CONTACT           "step.ponomarev@gmail.com")
+
+#TODO License
+#set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_SOURCE_DIR}/LICENSE")  # если есть LICENSE
+set(CPACK_GENERATOR                 "TGZ")
+set(CPACK_PACKAGE_CHECKSUM        "SHA256")
+
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 include(CPack)
-set(CPACK_PACKAGE_NAME "shmipc")
-set(CPACK_PACKAGE_VENDOR "stepan.ponomarev")
-set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
-set(CPACK_GENERATOR "TGZ")
+
