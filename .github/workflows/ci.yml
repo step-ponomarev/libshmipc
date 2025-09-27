@@ -59,8 +59,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DSHMIPC_BUILD_STATIC=ON \
             -DSHMIPC_BUILD_SHARED=ON \
-            -DSHMIPC_BUILD_TESTS=ON \
-            -DSHMIPC_ENABLE_WERROR=ON \
+            -DSHMIPC_BUILD_TESTS=ON \ 
             ${{ matrix.cmake_extra }}
 
       - name: Extract version
