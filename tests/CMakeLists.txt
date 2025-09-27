@@ -10,6 +10,7 @@ function(target_test_flags tgt)
   target_compile_options(${tgt} PRIVATE
     $<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>
   )
+  target_fix_posix(${tgt})
 endfunction()
 
 add_library(ipc_test STATIC test_runner.c)
