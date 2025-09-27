@@ -1,4 +1,4 @@
-name: "CI: quick tests (PR only)"
+name: "Test on push branch"
 
 on:
   pull_request:

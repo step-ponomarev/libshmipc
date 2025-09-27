@@ -1,4 +1,4 @@
-name: "Release builds (on main)"
+name: "Release builds"
 
 on:
   push:
