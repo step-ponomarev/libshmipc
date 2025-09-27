@@ -187,33 +187,59 @@ void test_race_between_skip_and_read() {
   IpcTransaction tx = ipc_buffer_peek(buf, &entry);
   assert(tx.status == IPC_OK);
 
-  std::atomic<bool> skip_done = false;
-  std::atomic<bool> read_done = false;
+  std::atomic<bool> start{false};
+  std::atomic<bool> skip_done{false};
+  std::atomic<bool> read_done{false};
 
   std::thread t1([&] {
+    while (!start.load(std::memory_order_acquire)) {
+    }
     IpcTransaction result = ipc_buffer_skip(buf, tx.entry_id);
     skip_done = true;
+
     assert(result.status == IPC_OK || result.status == IPC_ALREADY_SKIPED);
   });
 
   std::thread t2([&] {
-    IpcEntry e = {.payload = malloc(sizeof(size_t)), .size = sizeof(size_t)};
-    IpcTransaction tx = ipc_buffer_read(buf, &e);
+    IpcEntry e{.payload = malloc(sizeof(size_t)), .size = sizeof(size_t)};
+
+    while (!start.load(std::memory_order_acquire)) {
+    }
+
+    IpcTransaction r{};
+    const int max_retries = 100;
+    for (int i = 0; i < max_retries; ++i) {
+      r = ipc_buffer_read(buf, &e);
+      if (r.status == IPC_OK || r.status == IPC_EMPTY ||
+          r.status == IPC_ALREADY_SKIPED)
+        break;
+      if (r.status == IPC_LOCKED || r.status == IPC_NOT_READY) {
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
+        continue;
+      }
+
+      assert(!"unexpected status from ipc_buffer_read");
+    }
+
     read_done = true;
-    if (tx.status == IPC_OK) {
+
+    if (r.status == IPC_OK) {
       size_t v;
       memcpy(&v, e.payload, e.size);
       assert(v == val);
     } else {
-      assert(tx.status == IPC_ALREADY_SKIPED || tx.status == IPC_EMPTY ||
-             tx.status == IPC_LOCKED);
+      assert(r.status == IPC_ALREADY_SKIPED || r.status == IPC_EMPTY);
     }
+
     free(e.payload);
   });
+
+  start.store(true, std::memory_order_release);
 
   t1.join();
   t2.join();
   assert(skip_done && read_done);
+
   free(buf);
 }
 
