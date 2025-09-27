@@ -86,7 +86,7 @@ set(CPACK_PACKAGE_HOMEPAGE_URL      "https://github.com/step-ponomarev/libshmipc
 set(CPACK_PACKAGE_CONTACT           "step.ponomarev@gmail.com")
 
 #TODO License
-#set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_SOURCE_DIR}/LICENSE")  # если есть LICENSE
+#set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_SOURCE_DIR}/LICENSE") 
 set(CPACK_GENERATOR                 "TGZ")
 set(CPACK_PACKAGE_CHECKSUM        "SHA256")
 
