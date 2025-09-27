@@ -85,11 +85,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-tags: true
-
       - name: Extract version
         id: ver
-        run: |
-          ver=$(awk '/^project\\(/ {for(i=1;i<=NF;i++) if($i=="VERSION") {print $(i+1); exit}}' CMakeLists.txt)
+        shell: bash
+        run: | 
+          ver=$(sed -nE 's/^project\([^)]*VERSION[[:space:]]+([0-9.]+).*/\1/p' CMakeLists.txt | head -1)
+          if [ -z "$ver" ]; then
+            echo "Failed to parse version from CMakeLists.txt" >&2
+            exit 1
+          fi
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Download all artifacts
