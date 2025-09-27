@@ -1,9 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/Users/stepan/libshmipc/build-mix/cmake_install.cmake",
-		"/Users/stepan/libshmipc/build-mix/src/cmake_install.cmake",
-		"/Users/stepan/libshmipc/build-mix/tests/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
