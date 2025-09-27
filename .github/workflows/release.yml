@@ -1,72 +1,36 @@
-name: "CI: quick tests on every push/PR + full builds on main"
+name: "Release builds (on main)"
 
 on:
   push:
-    branches: ['**']
-  pull_request:
-    branches: ['**']
+    branches: [ main ]
 
-jobs: 
-  test:
-    name: Test 
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build cmake
-
-      - name: Configure
-        run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DSHMIPC_BUILD_STATIC=ON \
-            -DSHMIPC_BUILD_SHARED=ON \
-            -DSHMIPC_BUILD_TESTS=ON
-
-      - name: Build
-        run: cmake --build build -j
-
-      - name: Test
-        run: ctest --test-dir build --output-on-failure -j1 --timeout 120
-
-  # ---------- FULL BUILD MATRIX (only on push to main) ----------
+jobs:
   build-matrix:
-    name: Build matrix (${{ matrix.os_name }} ${{ matrix.arch }})
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Build (${{ matrix.os_name }} ${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64
           - os_name: linux
             arch: x86_64
             runner: ubuntu-latest
             cmake_extra: ""
-          # Linux arm64 
           - os_name: linux
             arch: arm64
             runner: ubuntu-latest
             cmake_extra: ""
-          # macOS arm64 (Apple Silicon)
           - os_name: macos
             arch: arm64
             runner: macos-latest
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=arm64"
-          # macOS x86_64 (Intel)
           - os_name: macos
             arch: x86_64
             runner: macos-13
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-tags: true
 
@@ -100,7 +64,7 @@ jobs:
         run: cmake --build build -j
 
       - name: Test (single-threaded)
-        run: ctest --test-dir build --output-on-failure -j1 --timeout 120
+        run: ctest --test-dir build --output-on-failure -j1 --timeout 10
 
       - name: Package
         run: cmake --build build --target package
@@ -116,11 +80,9 @@ jobs:
   release:
     name: Release
     needs: build-matrix
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-tags: true
 
@@ -144,3 +106,4 @@ jobs:
           files: dist_artifacts/**/*.{tar.gz,sha256}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
