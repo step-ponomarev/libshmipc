@@ -6,10 +6,6 @@
 
 SHMIPC_BEGIN_DECLS
 
-// TODO: documentation
-//  generic result wrapper
-typedef enum { RESULT_OK = 0, RESULT_ERROR = 1 } ResultStatus;
-
 #define IPC_RESULT(NAME, T)                                                    \
   typedef struct NAME {                                                        \
     IpcStatus ipc_status;                                                      \
@@ -17,29 +13,25 @@ typedef enum { RESULT_OK = 0, RESULT_ERROR = 1 } ResultStatus;
       T result;                                                                \
       char *error_detail;                                                      \
     };                                                                         \
-    ResultStatus _rs;                                                          \
+    char _rs;                                                                  \
   } NAME;                                                                      \
                                                                                \
   static inline NAME NAME##_ok(IpcStatus ipc_status, T result) {               \
     NAME r;                                                                    \
     r.ipc_status = ipc_status;                                                 \
     r.result = result;                                                         \
-    r._rs = RESULT_OK;                                                         \
+    r._rs = 0;                                                                 \
     return r;                                                                  \
   }                                                                            \
   static inline NAME NAME##_error(IpcStatus ipc_status, char *error_detail) {  \
     NAME r;                                                                    \
     r.ipc_status = ipc_status;                                                 \
     r.error_detail = error_detail;                                             \
-    r._rs = RESULT_ERROR;                                                      \
+    r._rs = 1;                                                                 \
     return r;                                                                  \
   }                                                                            \
-  static inline bool NAME##_is_ok(NAME result) {                               \
-    return result._rs == RESULT_OK;                                            \
-  }                                                                            \
-  static inline bool NAME##_is_error(NAME result) {                            \
-    return result._rs == RESULT_ERROR;                                         \
-  }
+  static inline bool NAME##_is_ok(NAME result) { return result._rs == 0; }     \
+  static inline bool NAME##_is_error(NAME result) { return result._rs == 1; }
 
 /**
  * @note Values >= 0 indicate non-error statuses (e.g., empty, not ready),
