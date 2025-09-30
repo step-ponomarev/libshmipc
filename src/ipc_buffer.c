@@ -142,7 +142,6 @@ IpcTransactionResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
                                         "illegal state: buffer is corrupted");
     }
 
-    // TODO: IS_NOT_READY OK?
     if (status == IPC_EMPTY || status == IPC_NOT_READY ||
         status == IPC_LOCKED) {
       return IpcTransactionResult_ok(status, head);
