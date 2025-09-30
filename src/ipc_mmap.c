@@ -1,8 +1,8 @@
 #include "ipc_utils.h"
+#include "shmipc/ipc_common.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <shmipc/ipc_mmap.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -11,141 +11,170 @@
 
 #define OPEN_MODE S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP
 
-int _open_shm(const char *, const uint64_t);
-IpcStatus _unmap(void *, const uint64_t);
-IpcStatus _unlink(const char *);
-char *_copy(const char *);
+IntegerResult _open_shm(const char *, const uint64_t);
+IpcStatusResult _unmap(void *, const uint64_t);
+IpcStatusResult _unlink(const char *);
+StringResult _copy(const char *);
 
-IpcMemorySegment *ipc_mmap(const char *name, const uint64_t size,
-                           IpcMmapError *err) {
-  if (name == NULL || size == 0 || err == NULL) {
-    return NULL;
+IpcMemorySegmentResult ipc_mmap(const char *name, const uint64_t size) {
+  if (name == NULL) {
+    return IpcMemorySegmentResult_error(IPC_ERR_INVALID_ARGUMENT,
+                                        "invalid argument: name is NULL");
+  }
+
+  if (size == 0) {
+    return IpcMemorySegmentResult_error(IPC_ERR_INVALID_ARGUMENT,
+                                        "invalid argument: size == 0");
   }
 
   const long page_size = sysconf(_SC_PAGESIZE);
+  if (page_size == -1) {
+    return IpcMemorySegmentResult_error(
+        IPC_ERR_SYSTEM,
+        "system error: sysconf(_SC_PAGESIZE) is failed, check errno");
+  }
+
   const uint64_t aligned_size = ALIGN_UP(size, page_size);
-  const int fd = _open_shm(name, aligned_size);
-  if (fd < 0) {
-    *err = fd;
-    return NULL;
+  const IntegerResult fd_result = _open_shm(name, aligned_size);
+  if (IntegerResult_is_error(fd_result)) {
+    return IpcMemorySegmentResult_error(fd_result.ipc_status,
+                                        fd_result.error_detail);
   }
 
-  uint8_t *mem =
-      mmap(NULL, aligned_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
-  if (mem == MAP_FAILED) {
-    close(fd);
-    *err = SYSTEM_ERR;
-    return NULL;
+  uint8_t *mmapedped = mmap(NULL, aligned_size, PROT_READ | PROT_WRITE,
+                            MAP_SHARED, fd_result.result, 0);
+  close(fd_result.result);
+  if (mmapedped == MAP_FAILED) {
+    return IpcMemorySegmentResult_error(IPC_ERR_SYSTEM,
+                                        "system error: mmap is failed");
   }
 
-  close(fd);
-
-  IpcMemorySegment *res = malloc(sizeof(IpcMemorySegment));
-  if (res == NULL) {
-    _unmap(mem, aligned_size);
-    *err = SYSTEM_ERR;
-    return NULL;
+  IpcMemorySegment *memory_segment = malloc(sizeof(IpcMemorySegment));
+  if (memory_segment == NULL) {
+    _unmap(mmapedped, aligned_size);
+    return IpcMemorySegmentResult_error(
+        IPC_ERR_SYSTEM, "system error: memory segment allocation is failed");
   }
 
-  char *name_copy = _copy(name);
-  if (name_copy == NULL) {
-    _unmap(mem, aligned_size);
-    free(res);
-    *err = SYSTEM_ERR;
-    return NULL;
+  const StringResult name_copy = _copy(name);
+  if (StringResult_is_error(name_copy)) {
+    _unmap(mmapedped, aligned_size);
+    free(memory_segment);
+    return IpcMemorySegmentResult_error(IPC_ERR_SYSTEM, name_copy.error_detail);
   }
 
-  res->name = name_copy;
-  res->memory = mem;
-  res->size = aligned_size;
+  memory_segment->name = name_copy.result;
+  memory_segment->memory = mmapedped;
+  memory_segment->size = aligned_size;
 
-  return res;
+  return IpcMemorySegmentResult_ok(IPC_OK, memory_segment);
 }
 
-IpcStatus ipc_unmap(IpcMemorySegment *segment) {
-  if (segment == NULL || segment->memory == NULL) {
-    return IPC_ERR_INVALID_ARGUMENT;
+IpcStatusResult ipc_unmap(IpcMemorySegment *segment) {
+  if (segment == NULL) {
+    return IpcStatusResult_error(IPC_ERR_INVALID_ARGUMENT,
+                                 "invalid argument: segment is NULL");
   }
 
-  IpcStatus status = _unmap(segment->memory, segment->size);
-  if (status != IPC_OK) {
-    return status;
+  if (segment->memory == NULL) {
+    return IpcStatusResult_error(IPC_ERR_ILLEGAL_STATE,
+                                 "illegal state: segment->memory is NULL");
+  }
+
+  const IpcStatusResult unmap_result = _unmap(segment->memory, segment->size);
+  if (IpcStatusResult_is_error(unmap_result)) {
+    return unmap_result;
   }
 
   free(segment->name);
   free(segment);
 
-  return status;
+  return unmap_result;
 }
 
-IpcStatus ipc_unlink(IpcMemorySegment *segment) {
+IpcStatusResult ipc_unlink(IpcMemorySegment *segment) {
   if (segment == NULL) {
-    return IPC_ERR_INVALID_ARGUMENT;
+    return IpcStatusResult_error(IPC_ERR_INVALID_ARGUMENT,
+                                 "invalid argument: segment is NULL");
   }
 
-  _unlink(segment->name);
+  if (segment->memory == NULL) {
+    return IpcStatusResult_error(IPC_ERR_ILLEGAL_STATE,
+                                 "illegal state: segment->memory is NULL");
+  }
+
+  const IpcStatusResult unlink_result = _unlink(segment->name);
+  if (IpcStatusResult_is_error(unlink_result)) {
+    return unlink_result;
+  }
 
   return ipc_unmap(segment);
 }
 
-IpcStatus _unmap(void *memory, const uint64_t size) {
+IpcStatusResult _unmap(void *memory, const uint64_t size) {
   if (munmap(memory, size) != 0) {
-    return IPC_ERR;
+    return IpcStatusResult_error(IPC_ERR_SYSTEM,
+                                 "system error: munmap is failed");
   }
 
-  return IPC_OK;
+  return IpcStatusResult_ok(IPC_OK, IPC_OK);
 }
 
-IpcStatus _unlink(const char *name) {
+IpcStatusResult _unlink(const char *name) {
   if (shm_unlink(name) != 0) {
-    return IPC_ERR;
+    return IpcStatusResult_error(IPC_ERR_SYSTEM,
+                                 "system error: shm_unlink is failed");
   }
 
-  return IPC_OK;
+  return IpcStatusResult_ok(IPC_OK, IPC_OK);
 }
 
-int _open_shm(const char *name, const uint64_t size) {
+IntegerResult _open_shm(const char *name, const uint64_t size) {
   int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, OPEN_MODE);
   if (fd >= 0) {
     if (ftruncate(fd, size) < 0) {
-      return -1;
+      return IntegerResult_error(IPC_ERR_SYSTEM,
+                                 "system error: ftruncate is failed");
     }
 
-    return fd;
+    return IntegerResult_ok(IPC_OK, fd);
   }
 
   if (errno != EEXIST) {
-    return SYSTEM_ERR;
+    return IntegerResult_error(
+        IPC_ERR_SYSTEM, "system error: unexpected shm_open error, check errno");
   }
 
   fd = shm_open(name, O_RDWR, OPEN_MODE);
   if (fd < 0) {
-    return SYSTEM_ERR;
+    return IntegerResult_error(
+        IPC_ERR_SYSTEM, "system error: unexpected shm_open error, check errno");
   }
 
   struct stat st;
   if (fstat(fd, &st) != 0) {
     close(fd);
-    return SYSTEM_ERR;
+    return IntegerResult_error(IPC_ERR_SYSTEM, "system error: fstat is failed");
   }
 
   if ((uint64_t)st.st_size != size) {
     close(fd);
-    return INVALID_SIZE;
+    return IntegerResult_error(IPC_ERR_ILLEGAL_STATE,
+                               "illegal state: unexpected file size");
   }
 
-  return fd;
+  return IntegerResult_ok(IPC_OK, fd);
 }
 
-char *_copy(const char *src) {
+StringResult _copy(const char *src) {
   const size_t len = strlen(src) + 1;
   char *cpy = malloc(len);
   if (cpy == NULL) {
-    return NULL;
+    return StringResult_error(IPC_ERR_SYSTEM,
+                              "system error: char buffer allocation is failed");
   }
 
   memcpy(cpy, src, len);
 
-  return cpy;
+  return StringResult_ok(IPC_OK, cpy);
 }

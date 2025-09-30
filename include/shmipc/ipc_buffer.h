@@ -6,6 +6,8 @@
 SHMIPC_BEGIN_DECLS
 
 typedef struct IpcBuffer IpcBuffer;
+typedef struct IpcBufferResult IpcBufferResult;
+IPC_RESULT(IpcBufferResult, IpcBuffer *)
 
 /**
  * @brief Returns the total memory size required to create an IPC buffer.
@@ -34,7 +36,7 @@ SHMIPC_API uint64_t ipc_buffer_allign_size(uint64_t size);
  * @note To calculate the correct memory size, it is recommended to use
  * `ipc_buffer_allign_size()`.
  */
-SHMIPC_API IpcBuffer *ipc_buffer_create(void *mem, const uint64_t size);
+SHMIPC_API IpcBufferResult ipc_buffer_create(void *mem, const uint64_t size);
 
 /**
  * @brief Attaches to an existing IPC buffer in shared memory.
@@ -50,7 +52,7 @@ SHMIPC_API IpcBuffer *ipc_buffer_create(void *mem, const uint64_t size);
  * @note This function does not validate the contents of the memory block.
  * It assumes the memory has been properly initialized by `ipc_buffer_create`.
  */
-SHMIPC_API IpcBuffer *ipc_buffer_attach(void *mem);
+SHMIPC_API IpcBufferResult ipc_buffer_attach(void *mem);
 
 /**
  * @brief Writes a payload to the IPC buffer.
@@ -71,8 +73,8 @@ SHMIPC_API IpcBuffer *ipc_buffer_attach(void *mem);
  * @note The write is treated as an atomic operation: data is either fully
  * written and published, or not written at all.
  */
-SHMIPC_API IpcStatus ipc_buffer_write(IpcBuffer *buffer, const void *data,
-                                      const uint64_t size);
+SHMIPC_API IpcStatusResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
+                                            const uint64_t size);
 
 /**
  * @brief Reads the next available entry from the IPC buffer.
@@ -103,7 +105,8 @@ SHMIPC_API IpcStatus ipc_buffer_write(IpcBuffer *buffer, const void *data,
  * @warning The caller must ensure that `dest->payload` points to valid memory
  * capable of holding at least `dest->size` bytes.
  */
-SHMIPC_API IpcTransaction ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest);
+SHMIPC_API IpcTransactionResult ipc_buffer_read(IpcBuffer *buffer,
+                                                IpcEntry *dest);
 
 /**
  * @brief Inspects the next available entry in the IPC buffer without consuming
@@ -131,8 +134,8 @@ SHMIPC_API IpcTransaction ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest);
  * in place and unmodified in the buffer. The caller must not alter or free the
  * memory.
  */
-SHMIPC_API IpcTransaction ipc_buffer_peek(const IpcBuffer *buffer,
-                                          IpcEntry *dest);
+SHMIPC_API IpcTransactionResult ipc_buffer_peek(const IpcBuffer *buffer,
+                                                IpcEntry *dest);
 
 /**
  * @brief Skips the next entry in the IPC buffer without reading its contents.
@@ -159,8 +162,8 @@ SHMIPC_API IpcTransaction ipc_buffer_peek(const IpcBuffer *buffer,
  * changing it from `NOT_READY` to `READY`). In such cases, skipping ensures the
  * entry is locked and not consumed.
  */
-SHMIPC_API IpcTransaction ipc_buffer_skip(IpcBuffer *buffer,
-                                          const IpcEntryId id);
+SHMIPC_API IpcStatusResult ipc_buffer_skip(IpcBuffer *buffer,
+                                           const IpcEntryId id);
 
 /**
  * @brief Forcefully skips the next entry in the IPC buffer.
@@ -186,7 +189,7 @@ SHMIPC_API IpcTransaction ipc_buffer_skip(IpcBuffer *buffer,
  * entries. Use with caution in production systems. Prefer `ipc_buffer_skip`
  * when possible.
  */
-SHMIPC_API IpcTransaction ipc_buffer_skip_force(IpcBuffer *buffer);
+SHMIPC_API IpcTransactionResult ipc_buffer_skip_force(IpcBuffer *buffer);
 
 /**
  * @brief Reserves space for a new entry in the IPC buffer.
@@ -216,9 +219,9 @@ SHMIPC_API IpcTransaction ipc_buffer_skip_force(IpcBuffer *buffer);
  * to make it visible to consumers. Failing to commit may result in lost space
  * or inconsistent buffer state.
  */
-SHMIPC_API IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer,
-                                                   const uint64_t size,
-                                                   void **dest);
+SHMIPC_API IpcTransactionResult ipc_buffer_reserve_entry(IpcBuffer *buffer,
+                                                         const uint64_t size,
+                                                         void **dest);
 
 /**
  * @brief Marks a previously reserved entry as ready for consumption.
@@ -240,7 +243,7 @@ SHMIPC_API IpcTransaction ipc_buffer_reserve_entry(IpcBuffer *buffer,
  * properly reserved results in undefined behavior and possible data corruption.
  */
 
-SHMIPC_API IpcStatus ipc_buffer_commit_entry(IpcBuffer *buffer,
-                                             const IpcEntryId id);
+SHMIPC_API IpcStatusResult ipc_buffer_commit_entry(IpcBuffer *buffer,
+                                                   const IpcEntryId id);
 
 SHMIPC_END_DECLS

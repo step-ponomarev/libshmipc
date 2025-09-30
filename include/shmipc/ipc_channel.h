@@ -10,6 +10,9 @@ SHMIPC_BEGIN_DECLS
 
 typedef struct IpcChannel IpcChannel;
 
+typedef struct IpcChannelResult IpcChannelResult;
+IPC_RESULT(IpcChannelResult, IpcChannel *)
+
 typedef struct IpcChannelConfiguration {
   uint32_t max_round_trips;
   long start_sleep_ns;
@@ -47,8 +50,8 @@ SHMIPC_API uint64_t ipc_channel_allign_size(uint64_t size);
  *       It does not take ownership of the memory pointed to by `mem`.
  *       Use `ipc_channel_destroy()` to deallocate the channel structure.
  */
-SHMIPC_API IpcChannel *ipc_channel_create(void *mem, const uint64_t size,
-                                          const IpcChannelConfiguration config);
+SHMIPC_API IpcChannelResult ipc_channel_create(
+    void *mem, const uint64_t size, const IpcChannelConfiguration config);
 
 /**
  * @brief Connects to an existing IPC channel using a shared memory region.
@@ -67,7 +70,7 @@ SHMIPC_API IpcChannel *ipc_channel_create(void *mem, const uint64_t size,
  * @note The returned `IpcChannel *` must be released using
  * `ipc_channel_destroy` to free associated resources.
  */
-SHMIPC_API IpcChannel *
+SHMIPC_API IpcChannelResult
 ipc_channel_connect(void *mem, const IpcChannelConfiguration config);
 
 /**
@@ -86,7 +89,7 @@ ipc_channel_connect(void *mem, const IpcChannelConfiguration config);
  * @note It is the caller’s responsibility to ensure no other threads are
  *       using the channel when this function is called.
  */
-SHMIPC_API IpcStatus ipc_channel_destroy(IpcChannel *channel);
+SHMIPC_API IpcStatusResult ipc_channel_destroy(IpcChannel *channel);
 
 /**
  * @brief Writes a payload into the IPC channel.
@@ -109,8 +112,9 @@ SHMIPC_API IpcStatus ipc_channel_destroy(IpcChannel *channel);
  * @note This function does not block; it returns immediately even if the buffer
  *       is full or unprepared.
  */
-SHMIPC_API IpcStatus ipc_channel_write(IpcChannel *channel, const void *data,
-                                       const uint64_t size);
+SHMIPC_API IpcStatusResult ipc_channel_write(IpcChannel *channel,
+                                             const void *data,
+                                             const uint64_t size);
 
 /**
  * @brief Blocking read from the IPC channel.
@@ -138,7 +142,8 @@ SHMIPC_API IpcStatus ipc_channel_write(IpcChannel *channel, const void *data,
  * @note If called via `ipc_channel_read_with_timeout`, it will timeout after
  * the specified duration, returning `IPC_TIMEOUT`.
  */
-SHMIPC_API IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest);
+SHMIPC_API IpcTransactionResult ipc_channel_read(IpcChannel *channel,
+                                                 IpcEntry *dest);
 
 /**
  * @brief Reads the next available entry from the IPC channel with a timeout.
@@ -169,7 +174,7 @@ SHMIPC_API IpcTransaction ipc_channel_read(IpcChannel *channel, IpcEntry *dest);
  *       identifier of the last observed entry. You may inspect the state of
  * this entry using `ipc_channel_peek()` to diagnose the cause of the stall.
  */
-SHMIPC_API IpcTransaction ipc_channel_read_with_timeout(
+SHMIPC_API IpcTransactionResult ipc_channel_read_with_timeout(
     IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout);
 
 /**
@@ -197,8 +202,8 @@ SHMIPC_API IpcTransaction ipc_channel_read_with_timeout(
  * @note The function guarantees that `dest` is not modified unless the read
  * succeeds.
  */
-SHMIPC_API IpcTransaction ipc_channel_try_read(IpcChannel *channel,
-                                               IpcEntry *dest);
+SHMIPC_API IpcTransactionResult ipc_channel_try_read(IpcChannel *channel,
+                                                     IpcEntry *dest);
 
 /**
  * @brief Peeks at the next available entry in the IPC channel without consuming
@@ -223,8 +228,8 @@ SHMIPC_API IpcTransaction ipc_channel_try_read(IpcChannel *channel,
  * @note The payload returned remains owned by the channel. Do not modify or
  * free it. For persistent access, copy the contents into a user-managed buffer.
  */
-SHMIPC_API IpcTransaction ipc_channel_peek(const IpcChannel *channel,
-                                           IpcEntry *dest);
+SHMIPC_API IpcTransactionResult ipc_channel_peek(const IpcChannel *channel,
+                                                 IpcEntry *dest);
 
 /**
  * @brief Skips the specified entry in the IPC channel by its ID.
@@ -246,7 +251,7 @@ SHMIPC_API IpcTransaction ipc_channel_peek(const IpcChannel *channel,
  * @note Skipping is useful for handling corrupted or unprocessable entries in a
  * robust IPC setup.
  */
-IpcTransaction ipc_channel_skip(IpcChannel *channel, const IpcEntryId id);
+IpcStatusResult ipc_channel_skip(IpcChannel *channel, const IpcEntryId id);
 
 /**
  * @brief Forcibly skips the current entry in the IPC channel.
@@ -268,6 +273,6 @@ IpcTransaction ipc_channel_skip(IpcChannel *channel, const IpcEntryId id);
  *       as it performs consistency checks before skipping. The force
  *       variant should be reserved for error recovery scenarios.
  */
-SHMIPC_API IpcTransaction ipc_channel_skip_force(IpcChannel *channel);
+SHMIPC_API IpcTransactionResult ipc_channel_skip_force(IpcChannel *channel);
 
 SHMIPC_END_DECLS

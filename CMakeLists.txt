@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 
 # ---------- Project ----------
-project(shmipc
+project(
+  shmipc
   VERSION 0.0.1
-  LANGUAGES C CXX)
+  LANGUAGES C CXX
+)
 
 # ---------- Options ----------
 option(SHMIPC_BUILD_STATIC     "Build static library"           ON)

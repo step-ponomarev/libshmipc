@@ -15,8 +15,8 @@ static const IpcChannelConfiguration DEFAULT_CONFIG = {
 
 void produce(IpcChannel *channel, const size_t from, const size_t to) {
   for (size_t i = from; i < to;) {
-    IpcStatus status = ipc_channel_write(channel, &i, sizeof(size_t));
-    if (status != IPC_OK) {
+    IpcStatusResult status = ipc_channel_write(channel, &i, sizeof(size_t));
+    if (status.ipc_status != IPC_OK) {
       continue;
     }
 
@@ -32,8 +32,8 @@ void consume(IpcChannel *channel, const size_t expected,
       break;
     }
 
-    IpcTransaction tx = ipc_channel_read(channel, &e);
-    if (tx.status != IPC_OK) {
+    IpcTransactionResult tx = ipc_channel_read(channel, &e);
+    if (tx.ipc_status != IPC_OK) {
       if (dest->size() == expected) {
         break;
       }
@@ -54,7 +54,10 @@ void test_single_writer_single_reader() {
   const size_t count = 200000;
 
   std::vector<uint8_t> mem(size);
-  IpcChannel *channel = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+
+  const IpcChannelResult channel_result =
+      ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+  IpcChannel *channel = channel_result.result;
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
 
@@ -77,7 +80,9 @@ void test_multiple_writer_single_reader() {
   const size_t total = 300000;
 
   std::vector<uint8_t> mem(size);
-  IpcChannel *channel = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+  const IpcChannelResult channel_result =
+      ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+  IpcChannel *channel = channel_result.result;
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
   std::thread p1(produce, channel, 0, 100000);
@@ -103,7 +108,9 @@ void test_multiple_writer_multiple_reader() {
   const size_t total = 300000;
 
   std::vector<uint8_t> mem(size);
-  IpcChannel *channel = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+  const IpcChannelResult channel_result =
+      ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+  IpcChannel *channel = channel_result.result;
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
   std::thread p1(produce, channel, 0, 100000);
@@ -132,35 +139,40 @@ void test_multiple_writer_multiple_reader() {
 void _test_race_between_skip_and_read() {
   const uint64_t size = ipc_channel_allign_size(128);
   std::vector<uint8_t> mem(size);
-  IpcChannel *channel = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+  const IpcChannelResult channel_result =
+      ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+  IpcChannel *channel = channel_result.result;
 
   const size_t val = 42;
-  assert(ipc_channel_write(channel, &val, sizeof(val)) == IPC_OK);
+  assert(ipc_channel_write(channel, &val, sizeof(val)).ipc_status == IPC_OK);
 
   IpcEntry entry;
-  IpcTransaction tx = ipc_channel_peek(channel, &entry);
-  assert(tx.status == IPC_OK);
+  IpcTransactionResult tx = ipc_channel_peek(channel, &entry);
+  assert(tx.ipc_status == IPC_OK);
 
   std::atomic<bool> skip_done = false;
   std::atomic<bool> read_done = false;
 
   std::thread t1([&] {
-    IpcTransaction result = ipc_channel_skip(channel, tx.entry_id);
+    IpcStatusResult result = ipc_channel_skip(channel, tx.result);
     skip_done.store(true);
-    assert(result.status == IPC_OK || result.status == IPC_ALREADY_SKIPED ||
-           result.status == IPC_EMPTY);
+    assert(result.ipc_status == IPC_OK ||
+           result.ipc_status == IPC_ALREADY_SKIPED ||
+           result.ipc_status ==
+               IPC_TRANSACTION_MISS_MATCHED || // if read was before skip
+           result.ipc_status == IPC_EMPTY);
   });
 
   std::thread t2([&] {
     IpcEntry e = {.payload = malloc(sizeof(size_t)), .size = sizeof(size_t)};
-    IpcTransaction tx = ipc_channel_try_read(channel, &e);
+    IpcTransactionResult tx = ipc_channel_try_read(channel, &e);
     read_done.store(true);
-    if (tx.status == IPC_OK) {
+    if (tx.ipc_status == IPC_OK) {
       size_t v;
       memcpy(&v, e.payload, e.size);
       assert(v == val);
     } else {
-      assert(tx.status == IPC_EMPTY || tx.status == IPC_LOCKED);
+      assert(tx.ipc_status == IPC_EMPTY || tx.ipc_status == IPC_LOCKED);
     }
     free(e.payload);
   });

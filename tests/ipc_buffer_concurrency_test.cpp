@@ -14,14 +14,14 @@
 void delayed_produce(IpcBuffer *buf, const size_t from, const size_t to) {
   for (size_t i = from; i < to;) {
     void *dest;
-    IpcTransaction tx = ipc_buffer_reserve_entry(buf, sizeof(i), &dest);
-    if (tx.status != IPC_OK) {
+    IpcTransactionResult tx = ipc_buffer_reserve_entry(buf, sizeof(i), &dest);
+    if (tx.ipc_status != IPC_OK) {
       continue;
     };
 
     std::this_thread::sleep_for(std::chrono::microseconds(10));
     memcpy(dest, &i, sizeof(i));
-    ipc_buffer_commit_entry(buf, tx.entry_id);
+    ipc_buffer_commit_entry(buf, tx.result);
 
     i++;
   }
@@ -29,8 +29,8 @@ void delayed_produce(IpcBuffer *buf, const size_t from, const size_t to) {
 
 void produce(IpcBuffer *buf, const size_t from, const size_t to) {
   for (size_t i = from; i < to;) {
-    IpcStatus status = ipc_buffer_write(buf, &i, sizeof(size_t));
-    if (status != IPC_OK) {
+    IpcStatusResult status = ipc_buffer_write(buf, &i, sizeof(size_t));
+    if (status.ipc_status != IPC_OK) {
       continue;
     }
 
@@ -47,8 +47,8 @@ void consume(IpcBuffer *buf, const size_t expected,
       break;
     }
 
-    IpcTransaction tx = ipc_buffer_read(buf, &e);
-    if (tx.status != IPC_OK) {
+    IpcTransactionResult tx = ipc_buffer_read(buf, &e);
+    if (tx.ipc_status != IPC_OK) {
       if (dest->size() == expected) {
         break;
       }
@@ -69,7 +69,8 @@ void test_single_writer_single_reader() {
   const size_t count = 200000;
 
   std::vector<uint8_t> mem(size);
-  IpcBuffer *buf = ipc_buffer_create(mem.data(), size);
+  const IpcBufferResult buffer_result = ipc_buffer_create(mem.data(), size);
+  IpcBuffer *buf = buffer_result.result;
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
 
@@ -92,7 +93,8 @@ void test_multiple_writer_single_reader() {
   const size_t total = 300000;
 
   std::vector<uint8_t> mem(size);
-  IpcBuffer *buf = ipc_buffer_create(mem.data(), size);
+  const IpcBufferResult buffer_result = ipc_buffer_create(mem.data(), size);
+  IpcBuffer *buf = buffer_result.result;
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
   std::thread p1(produce, buf, 0, 100000);
@@ -118,7 +120,8 @@ void test_multiple_writer_multiple_reader() {
   const size_t total = 300000;
 
   std::vector<uint8_t> mem(size);
-  IpcBuffer *buf = ipc_buffer_create(mem.data(), size);
+  const IpcBufferResult buffer_result = ipc_buffer_create(mem.data(), size);
+  IpcBuffer *buf = buffer_result.result;
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
   std::thread p1(produce, buf, 0, 100000);
@@ -149,7 +152,8 @@ void test_delayed_multiple_writer_multiple_reader() {
   const size_t total = 3000;
 
   std::vector<uint8_t> mem(size);
-  IpcBuffer *buf = ipc_buffer_create(mem.data(), size);
+  const IpcBufferResult buffer_result = ipc_buffer_create(mem.data(), size);
+  IpcBuffer *buf = buffer_result.result;
 
   auto dest = std::make_shared<concurrent_set<size_t>>();
   std::thread p1(delayed_produce, buf, 0, 1000);
@@ -178,32 +182,37 @@ void test_delayed_multiple_writer_multiple_reader() {
 void _test_race_between_skip_and_read() {
   const uint64_t size = ipc_buffer_allign_size(128);
   std::vector<uint8_t> mem(size);
-  IpcBuffer *buf = ipc_buffer_create(mem.data(), size);
+  const IpcBufferResult buffer_result = ipc_buffer_create(mem.data(), size);
+  IpcBuffer *buf = buffer_result.result;
 
   const size_t val = 42;
-  assert(ipc_buffer_write(buf, &val, sizeof(val)) == IPC_OK);
+  assert(ipc_buffer_write(buf, &val, sizeof(val)).ipc_status == IPC_OK);
 
   IpcEntry entry;
-  IpcTransaction tx = ipc_buffer_peek(buf, &entry);
-  assert(tx.status == IPC_OK);
+  IpcTransactionResult tx = ipc_buffer_peek(buf, &entry);
+  assert(tx.ipc_status == IPC_OK);
 
   std::thread t1([&] {
-    IpcTransaction result = ipc_buffer_skip(buf, tx.entry_id);
-    assert(result.status == IPC_OK || result.status == IPC_ALREADY_SKIPED ||
-           result.status == IPC_EMPTY);
+    IpcStatusResult result = ipc_buffer_skip(buf, tx.result);
+
+    assert(result.ipc_status == IPC_OK ||
+           result.ipc_status == IPC_ALREADY_SKIPED ||
+           result.ipc_status ==
+               IPC_TRANSACTION_MISS_MATCHED || // if read was before skip
+           result.ipc_status == IPC_EMPTY);
   });
 
   std::thread t2([&] {
     IpcEntry e = {.payload = malloc(sizeof(size_t)), .size = sizeof(size_t)};
-    IpcTransaction tx = ipc_buffer_read(buf, &e);
+    IpcTransactionResult tx = ipc_buffer_read(buf, &e);
 
-    if (tx.status == IPC_OK) {
+    if (tx.ipc_status == IPC_OK) {
       size_t v;
       memcpy(&v, e.payload, e.size);
       assert(v == val);
     } else {
-      assert(tx.status == IPC_ALREADY_SKIPED || tx.status == IPC_EMPTY ||
-             tx.status == IPC_LOCKED);
+      assert(tx.ipc_status == IPC_ALREADY_SKIPED ||
+             tx.ipc_status == IPC_EMPTY || tx.ipc_status == IPC_LOCKED);
     }
     free(e.payload);
   });
