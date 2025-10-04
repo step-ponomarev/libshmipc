@@ -69,10 +69,13 @@ static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
   // always set dest
   *dest = header;
 
-  if (first_flag == FLAG_NOT_READY)
+  if (first_flag == FLAG_NOT_READY) {
     return IPC_ERR_NOT_READY;
-  if (first_flag == FLAG_LOCKED)
+  }
+
+  if (first_flag == FLAG_LOCKED) {
     return IPC_ERR_LOCKED;
+  }
 
   return (head != header->seq) ? IPC_ERR_CORRUPTED : IPC_OK;
 }
@@ -378,7 +381,7 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
 
   if (dest == NULL) {
     return IpcBufferReserveEntryResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is null", error);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is NULL", error);
   }
 
   const uint64_t buf_size =
@@ -442,30 +445,32 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
 
 IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
                                                    const IpcEntryId id) {
+  IpcBufferCommitEntryError error = {.entry_id = id};
   if (buffer == NULL) {
-    IpcBufferCommitEntryError body = {.entry_id = id};
     return IpcBufferCommitEntryResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is null", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
 
-  EntryHeader *hdr = (EntryHeader *)(((struct IpcBuffer *)buffer)->data);
-  const IpcStatus st = _read_entry_header((struct IpcBuffer *)buffer, id, &hdr);
+  EntryHeader *header = (EntryHeader *)(((struct IpcBuffer *)buffer)->data);
+  const IpcStatus status =
+      _read_entry_header((struct IpcBuffer *)buffer, id, &header);
 
-  /* строго как раньше: коммит допустим только из NOT_READY/ CORRUPTED */
-  if (st != IPC_ERR_NOT_READY && st != IPC_ERR_CORRUPTED) {
-    if (st == IPC_ERR_LOCKED) {
-      IpcBufferCommitEntryError body = {.entry_id = id};
+  if (status != IPC_ERR_NOT_READY && status != IPC_ERR_CORRUPTED) {
+    error.entry_id = id;
+
+    if (status == IPC_ERR_LOCKED) {
       return IpcBufferCommitEntryResult_error_body(
-          IPC_ERR_LOCKED, "locked: buffer is locked", body);
+          IPC_ERR_LOCKED, "locked: buffer is locked", error);
     }
-    IpcBufferCommitEntryError body = {.entry_id = id};
+
     return IpcBufferCommitEntryResult_error_body(
         IPC_ERR_ILLEGAL_STATE,
         "illegal state: unexpected entry status, committed or flag incorrect",
-        body);
+        error);
   }
 
-  hdr->seq = id;
-  _set_flag((uint8_t *)&hdr->flag, FLAG_READY);
+  header->seq = id;
+  _set_flag((uint8_t *)&header->flag, FLAG_READY);
+
   return IpcBufferCommitEntryResult_ok(IPC_OK);
 }
