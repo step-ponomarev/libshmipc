@@ -340,43 +340,45 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
 }
 
 IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
+  IpcBufferSkipForceError error = {.entry_id = 0};
+
   if (buffer == NULL) {
-    IpcBufferSkipForceError body = {.entry_id = 0};
     return IpcBufferSkipForceResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
 
   uint64_t head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
-  EntryHeader *hdr = NULL;
-  IpcStatus st = _read_entry_header((struct IpcBuffer *)buffer, head, &hdr);
-  if (st == IPC_EMPTY) {
+  EntryHeader *header = NULL;
+  IpcStatus status = _read_entry_header((struct IpcBuffer *)buffer, head, &header);
+  if (status == IPC_EMPTY) {
     return IpcBufferSkipForceResult_ok(IPC_EMPTY, head);
   }
 
-  const bool moved = atomic_compare_exchange_strong(
-      &((struct IpcBuffer *)buffer)->header->head, &head,
-      head + hdr->entry_size);
-  st = moved ? IPC_OK : IPC_ALREADY_SKIPPED;
-  return IpcBufferSkipForceResult_ok(st, head);
+  return atomic_compare_exchange_strong(
+             &((struct IpcBuffer *)buffer)->header->head, &head,
+             head + header->entry_size)
+             ? IpcBufferSkipForceResult_ok(IPC_OK, head)
+             : IpcBufferSkipForceResult_ok(IPC_ALREADY_SKIPPED, head);
 }
 
 IpcBufferReserveEntryResult
 ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
+  IpcBufferReserveEntryError error = {.entry_id = 0};
+
   if (buffer == NULL) {
-    IpcBufferReserveEntryError body = {.entry_id = 0};
     return IpcBufferReserveEntryResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
+
   if (size == 0) {
-    IpcBufferReserveEntryError body = {.entry_id = 0};
     return IpcBufferReserveEntryResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: allocation size is 0",
-        body);
+        error);
   }
+
   if (dest == NULL) {
-    IpcBufferReserveEntryError body = {.entry_id = 0};
     return IpcBufferReserveEntryResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is null", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is null", error);
   }
 
   const uint64_t buf_size =
@@ -384,13 +386,13 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
   uint64_t full_entry_size =
       ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
   if (full_entry_size > buf_size) {
-    IpcBufferReserveEntryError body = {.entry_id = 0};
+    error.buffer_size = buf_size;
     return IpcBufferReserveEntryResult_error_body(
         IPC_ERR_ENTRY_TOO_LARGE, "invalid argument: entry size exceeds buffer",
-        body);
+        error);
   }
 
-  uint64_t tail, rel_tail, space_to_wrap;
+  uint64_t tail, rel_tail, space_to_wrap, total_required_entry_size;
   bool wrapped = false;
 
   do {
@@ -399,10 +401,9 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
     space_to_wrap = buf_size - rel_tail;
 
     wrapped = space_to_wrap < full_entry_size;
-    uint64_t effective_entry = full_entry_size;
+    total_required_entry_size = full_entry_size;
     if (wrapped) {
-      /* как раньше — увеличиваем, чтобы поместить маркер + запись с начала */
-      effective_entry =
+      total_required_entry_size =
           ALIGN_UP(space_to_wrap + sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
     }
 
@@ -411,35 +412,32 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
     const uint64_t used = tail - head;
     const uint64_t free_space = buf_size - used;
 
-    if (free_space < effective_entry) {
-      IpcBufferReserveEntryError body = {.entry_id = tail};
+    if (free_space < total_required_entry_size) {
+      error.entry_id = tail;
+      error.required_size = total_required_entry_size;
+      error.free_space = free_space;
       return IpcBufferReserveEntryResult_error_body(
           IPC_ERR_NO_SPACE_CONTIGUOUS, "not enough contiguous space in buffer",
-          body);
+          error);
     }
+  } while (!atomic_compare_exchange_strong(
+      &((struct IpcBuffer *)buffer)->header->tail, &tail, tail + total_required_entry_size));
 
-    const uint64_t new_tail = tail + effective_entry;
-    if (!atomic_compare_exchange_strong(
-            &((struct IpcBuffer *)buffer)->header->tail, &tail, new_tail)) {
-      continue; // retry
-    }
+  uint64_t offset = rel_tail;
+  if (wrapped) {
+    _set_flag(((struct IpcBuffer *)buffer)->data + offset, FLAG_WRAP_AROUND);
+    offset = 0;
+  }
 
-    uint64_t offset = rel_tail;
-    if (wrapped) {
-      _set_flag(((struct IpcBuffer *)buffer)->data + offset, FLAG_WRAP_AROUND);
-      offset = 0;
-    }
+  EntryHeader *header =
+      (EntryHeader *)(((struct IpcBuffer *)buffer)->data + offset);
+  header->entry_size = total_required_entry_size;
+  header->payload_size = size;
+  _set_flag((uint8_t *)&header->flag, FLAG_NOT_READY);
 
-    EntryHeader *hdr =
-        (EntryHeader *)(((struct IpcBuffer *)buffer)->data + offset);
-    hdr->entry_size = effective_entry;
-    hdr->payload_size = size;
-    _set_flag((uint8_t *)&hdr->flag, FLAG_NOT_READY);
+  *dest = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
 
-    *dest = (void *)(((uint8_t *)hdr) + sizeof(EntryHeader));
-    return IpcBufferReserveEntryResult_ok(IPC_OK, tail);
-
-  } while (true);
+  return IpcBufferReserveEntryResult_ok(IPC_OK, tail);
 }
 
 IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,

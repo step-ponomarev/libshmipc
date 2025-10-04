@@ -64,6 +64,9 @@ SHMIPC_API IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer);
 
 typedef struct IpcBufferReserveEntryError {
   IpcEntryId entry_id;
+  uint64_t buffer_size;
+  size_t required_size;
+  size_t free_space;
 } IpcBufferReserveEntryError;
 IPC_RESULT(IpcBufferReserveEntryResult, IpcEntryId, IpcBufferReserveEntryError)
 SHMIPC_API IpcBufferReserveEntryResult
