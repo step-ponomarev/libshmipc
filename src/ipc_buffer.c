@@ -455,6 +455,7 @@ IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
   const IpcStatus status =
       _read_entry_header((struct IpcBuffer *)buffer, id, &header);
 
+  // if not set NOT_READY flag yet, race condition guard
   if (status != IPC_ERR_NOT_READY && status != IPC_ERR_CORRUPTED) {
     error.entry_id = id;
 
