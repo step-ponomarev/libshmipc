@@ -34,9 +34,8 @@ public:
     }
     
     ~BufferWrapper() {
-        if (buffer_) {
-            free(buffer_);
-        }
+        // IpcBuffer doesn't require explicit cleanup
+        // The memory is managed by the mem_ vector
     }
     
     IpcBuffer* get() const { return buffer_; }
@@ -51,9 +50,7 @@ public:
     
     BufferWrapper& operator=(BufferWrapper&& other) noexcept {
         if (this != &other) {
-            if (buffer_) {
-                free(buffer_);
-            }
+            // IpcBuffer doesn't require explicit cleanup
             buffer_ = other.buffer_;
             mem_ = std::move(other.mem_);
             other.buffer_ = nullptr;
@@ -405,7 +402,7 @@ void CHECK_ERROR(const IpcChannelSkipResult& result, IpcStatus expected_status) 
 template<typename T>
 void write_data(IpcBuffer* buffer, const T& data) {
     const IpcBufferWriteResult result = ipc_buffer_write(buffer, &data, sizeof(data));
-    CHECK_OK(result);
+    CHECK(result.ipc_status == IPC_OK);
 }
 
 template<typename T>
@@ -413,7 +410,7 @@ T read_data(IpcBuffer* buffer) {
     EntryWrapper entry(sizeof(T));
     IpcEntry entry_ref = entry.get();
     const IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
-    CHECK_OK(result);
+    CHECK(result.ipc_status == IPC_OK);
     
     T data;
     memcpy(&data, entry_ref.payload, sizeof(T));

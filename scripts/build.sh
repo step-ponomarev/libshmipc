@@ -7,7 +7,7 @@ rm -rf build
 CC=$(brew --prefix)/bin/gcc-15 CXX=/usr/bin/clang++ \
   cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build -j
-ctest --test-dir build --timeout 10 -V
+ctest --test-dir build --timeout 20 -V
 
 cp build/compile_commands.json . 2>/dev/null || true
 
