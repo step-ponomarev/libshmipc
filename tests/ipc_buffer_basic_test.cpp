@@ -86,6 +86,53 @@ TEST_CASE("create buffer error structure verification") {
     CHECK(small_result.error.body.min_size == 26);
 }
 
+// ==================== Tests for ipc_buffer_attach ====================
+
+TEST_CASE("attach buffer with NULL memory") {
+    const IpcBufferAttachResult attach_result = ipc_buffer_attach(nullptr);
+    test_utils::CHECK_ERROR_WITH_FIELDS(attach_result, IPC_ERR_INVALID_ARGUMENT, 26);
+}
+
+TEST_CASE("attach buffer success case") {
+    uint8_t mem[128];
+    
+    // First create a buffer
+    const IpcBufferCreateResult create_result = ipc_buffer_create(mem, 128);
+    test_utils::CHECK_OK(create_result);
+    IpcBuffer* created_buffer = create_result.result;
+    
+    // Write some data to the buffer
+    const int test_value = 42;
+    const IpcBufferWriteResult write_result = ipc_buffer_write(created_buffer, &test_value, sizeof(test_value));
+    CHECK(write_result.ipc_status == IPC_OK);
+    
+    // Now attach to the same memory
+    const IpcBufferAttachResult attach_result = ipc_buffer_attach(mem);
+    test_utils::CHECK_OK(attach_result);
+    IpcBuffer* attached_buffer = attach_result.result;
+    
+    // Verify that we can read the same data
+    test_utils::EntryWrapper entry(sizeof(test_value));
+    IpcEntry entry_ref = entry.get();
+    const IpcBufferReadResult read_result = ipc_buffer_read(attached_buffer, &entry_ref);
+    CHECK(read_result.ipc_status == IPC_OK);
+    
+    int read_value;
+    memcpy(&read_value, entry_ref.payload, sizeof(test_value));
+    CHECK(read_value == test_value);
+    
+    // Clean up
+    free(created_buffer);
+    free(attached_buffer);
+}
+
+TEST_CASE("attach buffer error structure verification") {
+    // Test NULL pointer case
+    const IpcBufferAttachResult null_result = ipc_buffer_attach(nullptr);
+    CHECK(IpcBufferAttachResult_is_error(null_result));
+    CHECK(null_result.error.body.min_size == 26); // sizeof(IpcBufferHeader) + 2
+}
+
 TEST_CASE("single entry") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     

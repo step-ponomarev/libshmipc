@@ -165,6 +165,22 @@ void CHECK_ERROR_WITH_FIELDS(const IpcBufferCreateResult& result, IpcStatus expe
     CHECK(result.error.body.min_size == expected_min_size);
 }
 
+void CHECK_OK(const IpcBufferAttachResult& result) {
+    CHECK(IpcBufferAttachResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcBufferAttachResult& result, IpcStatus expected_status) {
+    CHECK(IpcBufferAttachResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
+void CHECK_ERROR_WITH_FIELDS(const IpcBufferAttachResult& result, IpcStatus expected_status, 
+                            size_t expected_min_size) {
+    CHECK(IpcBufferAttachResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+    CHECK(result.error.body.min_size == expected_min_size);
+}
+
 void CHECK_OK(const IpcBufferWriteResult& result) {
     CHECK(IpcBufferWriteResult_is_ok(result));
 }
