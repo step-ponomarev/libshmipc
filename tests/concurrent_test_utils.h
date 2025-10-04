@@ -53,13 +53,11 @@ void consume_buffer(IpcBuffer* buffer, size_t expected,
 
         IpcEntry entry_ref = entry.get();
         IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
-        if (IpcBufferReadResult_is_error(result)) {
-            continue;
+        if (result.ipc_status == IPC_OK) {
+            size_t res;
+            memcpy(&res, entry_ref.payload, entry_ref.size);
+            dest->insert(res);
         }
-
-        size_t res;
-        memcpy(&res, entry_ref.payload, entry_ref.size);
-        dest->insert(res);
     }
 }
 
