@@ -129,36 +129,37 @@ IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel) {
 
 IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
                                         const size_t size) {
-  IpcChannelWriteError werr = {.entry_id = 0,
+  IpcChannelWriteError error = {.entry_id = 0,
                                .requested_size = (size_t)size,
                                .available_contiguous = 0,
                                .buffer_size = 0};
 
   if (channel == NULL) {
     return IpcChannelWriteResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", werr);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", error);
   }
 
   if (channel->buffer == NULL) {
     return IpcChannelWriteResult_error_body(
-        IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", werr);
+        IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
   }
 
-  const IpcBufferWriteResult wr =
-      ipc_buffer_write(channel->buffer, data, (size_t)size);
-  if (IpcBufferWriteResult_is_error(wr)) {
-    if (IpcBufferWriteResult_is_error_has_body(wr.error)) {
-      const IpcBufferWriteError b = wr.error.body;
-      werr.entry_id = b.entry_id;
-      werr.requested_size = b.requested_size;
-      werr.available_contiguous = b.available_contiguous;
-      werr.buffer_size = b.buffer_size;
+  const IpcBufferWriteResult write_result =
+      ipc_buffer_write(channel->buffer, data, size);
+  if (IpcBufferWriteResult_is_error(write_result)) {
+    if (IpcBufferWriteResult_is_error_has_body(write_result.error)) {
+      const IpcBufferWriteError b = write_result.error.body;
+      error.entry_id = b.entry_id;
+      error.requested_size = b.requested_size;
+      error.available_contiguous = b.available_contiguous;
+      error.buffer_size = b.buffer_size;
     }
-    return IpcChannelWriteResult_error_body(wr.ipc_status, wr.error.detail,
-                                            werr);
+
+    return IpcChannelWriteResult_error_body(write_result.ipc_status,
+                                            write_result.error.detail, error);
   }
 
-  return IpcChannelWriteResult_ok(wr.ipc_status);
+  return IpcChannelWriteResult_ok(write_result.ipc_status);
 }
 
 IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest) {
