@@ -7,32 +7,29 @@
 #include <unistd.h>
 
 void test_different_segment_sizes() {
-  const char name[] = "test";
+  const char name[] = "/test";
 
-  IpcMmapError err;
-  IpcMemorySegment *created_segment = ipc_mmap(name, 1, &err);
-  assert(created_segment != NULL);
+  const IpcMemorySegmentResult created_segment = ipc_mmap(name, 1);
+  assert(IpcMemorySegmentResult_is_ok(created_segment));
 
   const long page_size = sysconf(_SC_PAGESIZE);
-  const IpcMemorySegment *diff_size_segment =
-      ipc_mmap(name, page_size + 1, &err);
-
-  assert(ipc_unlink(created_segment) == IPC_OK);
-  assert(diff_size_segment == NULL);
-  assert(err == INVALID_SIZE);
+  const IpcMemorySegmentResult diff_size_segment =
+      ipc_mmap(name, page_size + 1);
+  assert(IpcMemorySegmentResult_is_error(diff_size_segment));
+  assert(ipc_unlink(created_segment.result).ipc_status == IPC_OK);
+  assert(diff_size_segment.ipc_status == IPC_ERR_ILLEGAL_STATE);
 }
 
 void test_min_segment_size() {
-  const char name[] = "test";
+  const char name[] = "/test";
 
-  IpcMmapError err;
-  IpcMemorySegment *created_segment = ipc_mmap(name, 1, &err);
-  assert(created_segment != NULL);
+  const IpcMemorySegmentResult created_segment = ipc_mmap(name, 1);
+  assert(IpcMemorySegmentResult_is_ok(created_segment));
 
   const long page_size = sysconf(_SC_PAGESIZE);
-  const uint64_t size = created_segment->size;
+  const uint64_t size = created_segment.result->size;
 
-  assert(ipc_unlink(created_segment) == IPC_OK);
+  assert(ipc_unlink(created_segment.result).ipc_status == IPC_OK);
   assert((uint64_t)page_size == size);
 }
 

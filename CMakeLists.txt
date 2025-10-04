@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 
 # ---------- Project ----------
-project(shmipc
+project(
+  shmipc
   VERSION 0.0.1
-  LANGUAGES C CXX)
+  LANGUAGES C CXX
+)
 
 # ---------- Options ----------
 option(SHMIPC_BUILD_STATIC     "Build static library"           ON)
@@ -26,8 +28,7 @@ function(target_enable_warnings tgt)
   target_compile_options(${tgt} PRIVATE -Werror)
 endfunction()
 
-# --- pocix fix ----
-#TODO remove it
+# --- POSIX feature macros ----
 function(target_fix_posix tgt)
   target_compile_definitions(${tgt} PRIVATE
   _POSIX_C_SOURCE=200809L

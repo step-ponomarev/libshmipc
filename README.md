@@ -52,17 +52,29 @@ IpcChannelConfiguration config = {
   .max_sleep_ns = 100000
 };
 
-IpcChannel *chan = ipc_channel_create(mem, sizeof(mem), config);
+IpcChannelResult chan_result = ipc_channel_create(mem, sizeof(mem), config);
+if (IpcChannelResult_is_error(chan_result)) {
+  printf("Failed to create channel: %s\n", chan_result.error.detail);
+  return -1;
+}
+IpcChannel *chan = chan_result.result;
 
 int val = 123;
-ipc_channel_write(chan, &val, sizeof(val));
-
-IpcEntry entry;
-IpcTransaction tx = ipc_channel_read(chan, &entry);
-if (tx.status == IPC_OK) {
-  printf("Received: %d\n", *(int*)entry.payload);
-  free(entry.payload);
+IpcChannelWriteResult write_result = ipc_channel_write(chan, &val, sizeof(val));
+if (IpcChannelWriteResult_is_error(write_result)) {
+  printf("Write failed: %s\n", write_result.error.detail);
 }
 
-ipc_channel_destroy(chan);
+IpcEntry entry;
+IpcChannelReadResult read_result = ipc_channel_read(chan, &entry);
+if (IpcChannelReadResult_is_ok(read_result)) {
+  printf("Received: %d\n", *(int*)entry.payload);
+} else {
+  printf("Read failed: %s\n", read_result.error.detail);
+}
+
+IpcChannelDestroyResult destroy_result = ipc_channel_destroy(chan);
+if (IpcChannelDestroyResult_is_error(destroy_result)) {
+  printf("Destroy failed: %s\n", destroy_result.error.detail);
+}
 ```
