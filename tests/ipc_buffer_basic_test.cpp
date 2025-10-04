@@ -1,250 +1,188 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
-
+#include "test_utils.h"
 #include "shmipc/ipc_common.h"
 #include "shmipc/ipc_buffer.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
 #include <cstring>
 
 TEST_CASE("create too small buffer") {
     uint8_t mem[128];
     const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, 0);
-    CHECK(IpcBufferCreateResult_is_error(buffer_result));
-    CHECK(buffer_result.ipc_status == IPC_ERR_INVALID_ARGUMENT);
+    test_utils::CHECK_ERROR(buffer_result, IPC_ERR_INVALID_ARGUMENT);
 }
 
 TEST_CASE("size align function") {
     uint8_t mem[128];
     const IpcBufferCreateResult buffer_result =
         ipc_buffer_create(mem, ipc_buffer_align_size(0));
-    CHECK(IpcBufferCreateResult_is_ok(buffer_result));
+    test_utils::CHECK_OK(buffer_result);
 }
 
 TEST_CASE("single entry") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
-
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    
     const int eval = 12;
-
-    CHECK(IpcBufferWriteResult_is_ok(
-        ipc_buffer_write(buffer, &eval, sizeof(eval))));
-
-    IpcEntry entry = {.payload = malloc(sizeof(eval)), .size = sizeof(eval)};
-
-    const IpcBufferReadResult result = ipc_buffer_read(buffer, &entry);
-    CHECK(IpcBufferReadResult_is_ok(result));
-    CHECK(entry.size == sizeof(eval));
-
-    int res;
-    memcpy(&res, entry.payload, entry.size);
-
-    CHECK(res == eval);
-
-    free(entry.payload);
-    free(buffer);
+    test_utils::write_data(buffer.get(), eval);
+    
+    const int result = test_utils::read_data<int>(buffer.get());
+    CHECK(result == eval);
 }
 
 TEST_CASE("fill buffer") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     size_t added_count = 0;
     while (IpcBufferWriteResult_is_ok(
-               ipc_buffer_write(buffer, &added_count, sizeof(size_t))) &&
+               ipc_buffer_write(buffer.get(), &added_count, sizeof(size_t))) &&
            (++added_count))
         ;
 
     const IpcBufferWriteResult status_result =
-        ipc_buffer_write(buffer, &added_count, sizeof(size_t));
-    CHECK(IpcBufferWriteResult_is_error(status_result));
-    CHECK(status_result.ipc_status == IPC_ERR_NO_SPACE_CONTIGUOUS);
+        ipc_buffer_write(buffer.get(), &added_count, sizeof(size_t));
+    test_utils::CHECK_ERROR(status_result, IPC_ERR_NO_SPACE_CONTIGUOUS);
 
-    size_t *ptr = static_cast<size_t*>(malloc(sizeof(size_t)));
-    IpcEntry entry = {.payload = ptr, .size = sizeof(size_t)};
+    test_utils::EntryWrapper entry(sizeof(size_t));
     for (size_t i = 0; i < added_count; i++) {
-        const IpcBufferReadResult read_res = ipc_buffer_read(buffer, &entry);
-        CHECK(IpcBufferReadResult_is_ok(read_res));
+        IpcEntry entry_ref = entry.get();
+        const IpcBufferReadResult read_res = ipc_buffer_read(buffer.get(), &entry_ref);
+        test_utils::CHECK_OK(read_res);
         CHECK(read_res.ipc_status == IPC_OK);
-        CHECK(entry.size == sizeof(size_t));
+        CHECK(entry_ref.size == sizeof(size_t));
 
         size_t res;
-        memcpy(&res, entry.payload, entry.size);
-
+        memcpy(&res, entry_ref.payload, entry_ref.size);
         CHECK(res == i);
     }
 
-    const IpcBufferReadResult read_res = ipc_buffer_read(buffer, &entry);
-    CHECK(IpcBufferReadResult_is_ok(read_res));
+    IpcEntry entry_ref = entry.get();
+    const IpcBufferReadResult read_res = ipc_buffer_read(buffer.get(), &entry_ref);
+    test_utils::CHECK_OK(read_res);
     CHECK(read_res.ipc_status == IPC_EMPTY);
-
-    free(ptr);
-    free(buffer);
 }
 
 TEST_CASE("add to full buffer") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     size_t added_count = 0;
     while (IpcBufferWriteResult_is_ok(
-               ipc_buffer_write(buffer, &added_count, sizeof(size_t))) &&
+               ipc_buffer_write(buffer.get(), &added_count, sizeof(size_t))) &&
            (++added_count))
         ;
 
-    CHECK(ipc_buffer_write(buffer, &added_count, sizeof(size_t)).ipc_status ==
+    CHECK(ipc_buffer_write(buffer.get(), &added_count, sizeof(size_t)).ipc_status ==
           IPC_ERR_NO_SPACE_CONTIGUOUS);
-
-    free(buffer);
 }
 
 TEST_CASE("wrap buffer") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     size_t added_count = 0;
-    while (ipc_buffer_write(buffer, &added_count, sizeof(size_t)).ipc_status ==
+    while (ipc_buffer_write(buffer.get(), &added_count, sizeof(size_t)).ipc_status ==
                IPC_OK &&
            (++added_count))
         ;
 
-    CHECK(ipc_buffer_write(buffer, &added_count, sizeof(size_t)).ipc_status ==
+    CHECK(ipc_buffer_write(buffer.get(), &added_count, sizeof(size_t)).ipc_status ==
           IPC_ERR_NO_SPACE_CONTIGUOUS);
 
-    CHECK(ipc_buffer_skip_force(buffer).ipc_status == IPC_OK);
+    CHECK(ipc_buffer_skip_force(buffer.get()).ipc_status == IPC_OK);
 
     const size_t last_val = 666;
-    CHECK(ipc_buffer_write(buffer, &last_val, sizeof(last_val)).ipc_status ==
+    CHECK(ipc_buffer_write(buffer.get(), &last_val, sizeof(last_val)).ipc_status ==
           IPC_OK);
 
-    IpcEntry entry = {.payload = malloc(sizeof(size_t)), .size = sizeof(size_t)};
-
+    test_utils::EntryWrapper entry(sizeof(size_t));
     size_t prev;
 
-    while (ipc_buffer_read(buffer, &entry).ipc_status == IPC_OK) {
-        CHECK(entry.size == sizeof(size_t));
-        memcpy(&prev, entry.payload, entry.size);
+    while (true) {
+        IpcEntry entry_ref = entry.get();
+        if (ipc_buffer_read(buffer.get(), &entry_ref).ipc_status != IPC_OK) {
+            break;
+        }
+        CHECK(entry_ref.size == sizeof(size_t));
+        memcpy(&prev, entry_ref.payload, entry_ref.size);
     }
 
     CHECK(prev == last_val);
-    free(entry.payload);
-    free(buffer);
 }
 
 TEST_CASE("peek") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     const int expected_val = 12;
-    CHECK(ipc_buffer_write(buffer, &expected_val, sizeof(expected_val))
-              .ipc_status == IPC_OK);
+    test_utils::write_data(buffer.get(), expected_val);
 
-    IpcEntry entry;
-    CHECK(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_OK);
-    CHECK(entry.size == sizeof(expected_val));
+    const int peeked_val = test_utils::peek_data<int>(buffer.get());
+    CHECK(expected_val == peeked_val);
 
+    test_utils::EntryWrapper entry(sizeof(expected_val));
+    IpcEntry entry_ref = entry.get();
+    test_utils::CHECK_OK(ipc_buffer_read(buffer.get(), &entry_ref));
+    
     int val;
-    memcpy(&val, entry.payload, sizeof(expected_val));
+    memcpy(&val, entry_ref.payload, sizeof(expected_val));
     CHECK(expected_val == val);
 
-    entry.payload = malloc(sizeof(expected_val));
-    entry.size = sizeof(expected_val);
-
-    CHECK(ipc_buffer_read(buffer, &entry).ipc_status == IPC_OK);
-    memcpy(&val, entry.payload, sizeof(expected_val));
-    CHECK(expected_val == val);
-
-    free(entry.payload);
-
-    CHECK(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_EMPTY);
-
-    free(buffer);
+    IpcEntry empty_entry;
+    CHECK(ipc_buffer_peek(buffer.get(), &empty_entry).ipc_status == IPC_EMPTY);
 }
 
 TEST_CASE("skip") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     const int expected_val = 12;
-    CHECK(ipc_buffer_write(buffer, &expected_val, sizeof(expected_val))
-              .ipc_status == IPC_OK);
+    test_utils::write_data(buffer.get(), expected_val);
 
     IpcEntry entry;
-
-    const IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer, &entry);
-    CHECK(peek_res.ipc_status == IPC_OK);
-    CHECK(ipc_buffer_skip(buffer, entry.offset).ipc_status == IPC_OK);
-    CHECK(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_EMPTY);
-
-    free(buffer);
+    const IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer.get(), &entry);
+    test_utils::CHECK_OK(peek_res);
+    CHECK(ipc_buffer_skip(buffer.get(), entry.offset).ipc_status == IPC_OK);
+    CHECK(ipc_buffer_peek(buffer.get(), &entry).ipc_status == IPC_EMPTY);
 }
 
 TEST_CASE("double skip") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     const int expected_val = 12;
-    CHECK(ipc_buffer_write(buffer, &expected_val, sizeof(expected_val))
-              .ipc_status == IPC_OK);
+    test_utils::write_data(buffer.get(), expected_val);
 
     IpcEntry entry;
+    const IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer.get(), &entry);
+    test_utils::CHECK_OK(peek_res);
+    CHECK(ipc_buffer_skip(buffer.get(), entry.offset).ipc_status == IPC_OK);
 
-    const IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer, &entry);
-    CHECK(peek_res.ipc_status == IPC_OK);
-    CHECK(ipc_buffer_skip(buffer, entry.offset).ipc_status == IPC_OK);
-
-    const IpcBufferSkipResult skip_result = ipc_buffer_skip(buffer, entry.offset);
+    const IpcBufferSkipResult skip_result = ipc_buffer_skip(buffer.get(), entry.offset);
     CHECK(IpcBufferSkipResult_is_error(skip_result));
     CHECK(skip_result.ipc_status == IPC_ERR_OFFSET_MISMATCH);
-    CHECK(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_EMPTY);
-
-    free(buffer);
+    CHECK(ipc_buffer_peek(buffer.get(), &entry).ipc_status == IPC_EMPTY);
 }
 
 TEST_CASE("skip forced") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     const int expected_val = 12;
-    CHECK(ipc_buffer_write(buffer, &expected_val, sizeof(expected_val))
-              .ipc_status == IPC_OK);
+    test_utils::write_data(buffer.get(), expected_val);
 
     IpcEntry entry;
-    CHECK(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_OK);
-    CHECK(ipc_buffer_skip_force(buffer).ipc_status == IPC_OK);
-    CHECK(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_EMPTY);
-
-    free(buffer);
+    CHECK(ipc_buffer_peek(buffer.get(), &entry).ipc_status == IPC_OK);
+    CHECK(ipc_buffer_skip_force(buffer.get()).ipc_status == IPC_OK);
+    CHECK(ipc_buffer_peek(buffer.get(), &entry).ipc_status == IPC_EMPTY);
 }
 
 TEST_CASE("skip with incorrect id") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     const int expected_val = 12;
-    CHECK(ipc_buffer_write(buffer, &expected_val, sizeof(expected_val))
-              .ipc_status == IPC_OK);
+    test_utils::write_data(buffer.get(), expected_val);
 
     IpcEntry entry;
-
-    const IpcBufferPeekResult result = ipc_buffer_peek(buffer, &entry);
-    CHECK(result.ipc_status == IPC_OK);
+    const IpcBufferPeekResult result = ipc_buffer_peek(buffer.get(), &entry);
+    test_utils::CHECK_OK(result);
 
     IpcEntry entry2;
-    const IpcBufferPeekResult result2 = ipc_buffer_peek(buffer, &entry2);
-    CHECK(result2.ipc_status == IPC_OK);
+    const IpcBufferPeekResult result2 = ipc_buffer_peek(buffer.get(), &entry2);
+    test_utils::CHECK_OK(result2);
     CHECK(entry.offset == entry2.offset);
-
     CHECK(entry.size == entry2.size);
 
     int val1;
@@ -254,136 +192,114 @@ TEST_CASE("skip with incorrect id") {
     memcpy(&val2, entry2.payload, entry2.size);
 
     CHECK(val1 == val2);
-
-    free(buffer);
 }
 
 TEST_CASE("peek consistency") {
-    uint8_t mem[256];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 256);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
 
     int v1 = 1, v2 = 2;
-    CHECK(ipc_buffer_write(buffer, &v1, sizeof(v1)).ipc_status == IPC_OK);
-    CHECK(ipc_buffer_write(buffer, &v2, sizeof(v2)).ipc_status == IPC_OK);
+    test_utils::write_data(buffer.get(), v1);
+    test_utils::write_data(buffer.get(), v2);
 
     IpcEntry entry;
-    CHECK(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_OK);
+    test_utils::CHECK_OK(ipc_buffer_peek(buffer.get(), &entry));
 
     int seen;
     memcpy(&seen, entry.payload, sizeof(seen));
     CHECK(seen == v1);
 
-    CHECK(ipc_buffer_skip_force(buffer).ipc_status == IPC_OK);
+    CHECK(ipc_buffer_skip_force(buffer.get()).ipc_status == IPC_OK);
 
-    CHECK(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_OK);
+    test_utils::CHECK_OK(ipc_buffer_peek(buffer.get(), &entry));
     memcpy(&seen, entry.payload, sizeof(seen));
     CHECK(seen == v2);
-
-    free(buffer);
 }
 
 TEST_CASE("read too small") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     int val = 42;
-    CHECK(ipc_buffer_write(buffer, &val, sizeof(val)).ipc_status == IPC_OK);
+    test_utils::write_data(buffer.get(), val);
 
-    IpcEntry entry = {.payload = malloc(sizeof(val) - 1),
-                      .size = sizeof(val) - 1};
-
-    CHECK(ipc_buffer_read(buffer, &entry).ipc_status == IPC_ERR_TOO_SMALL);
-
-    free(entry.payload);
-    free(buffer);
+    test_utils::EntryWrapper entry(sizeof(val) - 1);
+    IpcEntry entry_ref = entry.get();
+    CHECK(ipc_buffer_read(buffer.get(), &entry_ref).ipc_status == IPC_ERR_TOO_SMALL);
 }
 
 TEST_CASE("reserve commit read") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     const int expected_val = 12;
     int *data;
 
     const IpcBufferReserveEntryResult result =
-        ipc_buffer_reserve_entry(buffer, sizeof(expected_val), reinterpret_cast<void **>(&data));
+        ipc_buffer_reserve_entry(buffer.get(), sizeof(expected_val), reinterpret_cast<void **>(&data));
     CHECK(result.ipc_status == IPC_OK);
 
-    IpcEntry entry = {.payload = malloc(sizeof(expected_val)),
-                      .size = sizeof(expected_val)};
-
-    CHECK(ipc_buffer_read(buffer, &entry).ipc_status == IPC_ERR_NOT_READY);
+    test_utils::EntryWrapper entry(sizeof(expected_val));
+    IpcEntry entry_ref = entry.get();
+    CHECK(ipc_buffer_read(buffer.get(), &entry_ref).ipc_status == IPC_ERR_NOT_READY);
 
     *data = expected_val;
-    CHECK(ipc_buffer_commit_entry(buffer, result.result).ipc_status == IPC_OK);
-    CHECK(ipc_buffer_read(buffer, &entry).ipc_status == IPC_OK);
-    CHECK(entry.size == sizeof(expected_val));
+    CHECK(ipc_buffer_commit_entry(buffer.get(), result.result).ipc_status == IPC_OK);
+    
+    entry_ref = entry.get();
+    test_utils::CHECK_OK(ipc_buffer_read(buffer.get(), &entry_ref));
+    CHECK(entry_ref.size == sizeof(expected_val));
 
     int res;
-    memcpy(&res, entry.payload, entry.size);
+    memcpy(&res, entry_ref.payload, entry_ref.size);
     CHECK(res == expected_val);
-
-    free(entry.payload);
-    free(buffer);
 }
 
 TEST_CASE("reserve double commit") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     const int expected_val = 12;
     int *data;
 
     const IpcBufferReserveEntryResult result =
-        ipc_buffer_reserve_entry(buffer, sizeof(expected_val), reinterpret_cast<void **>(&data));
+        ipc_buffer_reserve_entry(buffer.get(), sizeof(expected_val), reinterpret_cast<void **>(&data));
     CHECK(result.ipc_status == IPC_OK);
 
-    IpcEntry entry = {.payload = malloc(sizeof(expected_val)),
-                      .size = sizeof(expected_val)};
-
-    CHECK(ipc_buffer_read(buffer, &entry).ipc_status == IPC_ERR_NOT_READY);
+    test_utils::EntryWrapper entry(sizeof(expected_val));
+    IpcEntry entry_ref = entry.get();
+    CHECK(ipc_buffer_read(buffer.get(), &entry_ref).ipc_status == IPC_ERR_NOT_READY);
 
     *data = expected_val;
-    CHECK(ipc_buffer_commit_entry(buffer, result.result).ipc_status == IPC_OK);
+    CHECK(ipc_buffer_commit_entry(buffer.get(), result.result).ipc_status == IPC_OK);
     CHECK(IpcBufferCommitEntryResult_is_error(
-        ipc_buffer_commit_entry(buffer, result.result)));
-    CHECK(ipc_buffer_read(buffer, &entry).ipc_status == IPC_OK);
-    CHECK(entry.size == sizeof(expected_val));
+        ipc_buffer_commit_entry(buffer.get(), result.result)));
+    
+    entry_ref = entry.get();
+    test_utils::CHECK_OK(ipc_buffer_read(buffer.get(), &entry_ref));
+    CHECK(entry_ref.size == sizeof(expected_val));
 
     int res;
-    memcpy(&res, entry.payload, entry.size);
+    memcpy(&res, entry_ref.payload, entry_ref.size);
     CHECK(res == expected_val);
-
-    free(entry.payload);
-    free(buffer);
 }
 
 TEST_CASE("multiple reserve commit read") {
-    uint8_t mem[1024];
-    const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 1024);
-    IpcBuffer *buffer = bufferResult.result;
+    test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
 
     for (int i = 0; i < 10; ++i) {
         int *ptr;
         const IpcBufferReserveEntryResult result =
-            ipc_buffer_reserve_entry(buffer, sizeof(int), reinterpret_cast<void **>(&ptr));
+            ipc_buffer_reserve_entry(buffer.get(), sizeof(int), reinterpret_cast<void **>(&ptr));
 
         CHECK(result.ipc_status == IPC_OK);
         *ptr = i;
-        CHECK(ipc_buffer_commit_entry(buffer, result.result).ipc_status == IPC_OK);
+        CHECK(ipc_buffer_commit_entry(buffer.get(), result.result).ipc_status == IPC_OK);
     }
 
-    int *buf = static_cast<int*>(malloc(sizeof(int)));
-    IpcEntry entry = {.payload = buf, .size = sizeof(int)};
+    test_utils::EntryWrapper entry(sizeof(int));
     for (int i = 0; i < 10; ++i) {
-        CHECK(ipc_buffer_read(buffer, &entry).ipc_status == IPC_OK);
-        CHECK(*buf == i);
+        IpcEntry entry_ref = entry.get();
+        test_utils::CHECK_OK(ipc_buffer_read(buffer.get(), &entry_ref));
+        
+        int val;
+        memcpy(&val, entry_ref.payload, sizeof(int));
+        CHECK(val == i);
     }
-
-    free(buf);
-    free(buffer);
 }

@@ -1,194 +1,104 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
-
+#include "concurrent_test_utils.h"
+#include "test_utils.h"
 #include "concurrent_set.hpp"
 #include "shmipc/ipc_channel.h"
 #include <atomic>
-#include <cstdint>
 #include <memory>
-#include <stddef.h>
-#include <string.h>
 #include <thread>
 #include <vector>
 
-static const IpcChannelConfiguration DEFAULT_CONFIG = {
-    .max_round_trips = 1024, .start_sleep_ns = 1000, .max_sleep_ns = 100000};
-
-void produce(IpcChannel *channel, const size_t from, const size_t to) {
-  for (size_t i = from; i < to;) {
-    IpcChannelWriteResult status =
-        ipc_channel_write(channel, &i, sizeof(size_t));
-    if (status.ipc_status != IPC_OK) {
-      continue;
-    }
-    i++;
-  }
-}
-
-void consume(IpcChannel *channel, const size_t expected,
-             std::shared_ptr<concurrent_set<size_t>> dest) {
-  IpcEntry e;
-  while (true) {
-    if (dest->size() == expected)
-      break;
-
-    IpcChannelReadResult rx = ipc_channel_read(channel, &e);
-    if (rx.ipc_status != IPC_OK) {
-      if (dest->size() == expected)
-        break;
-      continue;
-    }
-
-    size_t res;
-    memcpy(&res, e.payload, e.size);
-    dest->insert(res);
-    free(e.payload);
-  }
-}
-
 TEST_CASE("single writer single reader") {
-  const uint64_t size = ipc_channel_align_size(128);
-  const size_t count = 200000;
+    const uint64_t size = ipc_channel_align_size(test_utils::SMALL_BUFFER_SIZE);
+    const size_t count = test_utils::DEFAULT_COUNT;
 
-  std::vector<uint8_t> mem(size);
+    std::vector<uint8_t> mem(size);
 
-  const IpcChannelResult channel_result =
-      ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
-  IpcChannel *channel = channel_result.result;
+    const IpcChannelResult channel_result =
+        ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
+    IpcChannel *channel = channel_result.result;
 
-  auto dest = std::make_shared<concurrent_set<size_t>>();
+    auto dest = std::make_shared<concurrent_set<size_t>>();
 
-  std::thread producer(produce, channel, 0, count);
-  std::thread consumer_thr(consume, channel, count, dest);
+    std::thread producer(concurrent_test_utils::produce_channel, channel, 0, count);
+    std::thread consumer_thr(concurrent_test_utils::consume_channel, channel, count, dest);
 
-  producer.join();
-  consumer_thr.join();
+    producer.join();
+    consumer_thr.join();
 
-  CHECK(dest->size() == count);
-  for (size_t i = 0; i < count; i++) {
-    CHECK(dest->contains(i));
-  }
+    CHECK(dest->size() == count);
+    for (size_t i = 0; i < count; i++) {
+        CHECK(dest->contains(i));
+    }
 
-  ipc_channel_destroy(channel);
+    ipc_channel_destroy(channel);
 }
 
 TEST_CASE("multiple writer single reader") {
-  const uint64_t size = ipc_channel_align_size(128);
-  const size_t total = 300000;
+    const uint64_t size = ipc_channel_align_size(test_utils::SMALL_BUFFER_SIZE);
+    const size_t total = test_utils::LARGE_COUNT;
 
-  std::vector<uint8_t> mem(size);
-  const IpcChannelResult channel_result =
-      ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
-  IpcChannel *channel = channel_result.result;
+    std::vector<uint8_t> mem(size);
+    const IpcChannelResult channel_result =
+        ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
+    IpcChannel *channel = channel_result.result;
 
-  auto dest = std::make_shared<concurrent_set<size_t>>();
-  std::thread p1(produce, channel, 0, 100000);
-  std::thread p2(produce, channel, 100000, 200000);
-  std::thread p3(produce, channel, 200000, 300000);
+    auto dest = std::make_shared<concurrent_set<size_t>>();
+    std::thread p1(concurrent_test_utils::produce_channel, channel, 0, total / 3);
+    std::thread p2(concurrent_test_utils::produce_channel, channel, total / 3, 2 * total / 3);
+    std::thread p3(concurrent_test_utils::produce_channel, channel, 2 * total / 3, total);
 
-  std::thread consumer_thr(consume, channel, total, dest);
+    std::thread consumer_thr(concurrent_test_utils::consume_channel, channel, total, dest);
 
-  p1.join();
-  p2.join();
-  p3.join();
-  consumer_thr.join();
+    p1.join();
+    p2.join();
+    p3.join();
+    consumer_thr.join();
 
-  CHECK(dest->size() == total);
-  for (size_t i = 0; i < total; i++) {
-    CHECK(dest->contains(i));
-  }
+    CHECK(dest->size() == total);
+    for (size_t i = 0; i < total; i++) {
+        CHECK(dest->contains(i));
+    }
 
-  ipc_channel_destroy(channel);
+    ipc_channel_destroy(channel);
 }
 
 TEST_CASE("multiple writer multiple reader") {
-  const uint64_t size = ipc_channel_align_size(128);
-  const size_t total = 300000;
+    const uint64_t size = ipc_channel_align_size(test_utils::SMALL_BUFFER_SIZE);
+    const size_t total = test_utils::LARGE_COUNT;
 
-  std::vector<uint8_t> mem(size);
-  const IpcChannelResult channel_result =
-      ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
-  IpcChannel *channel = channel_result.result;
+    std::vector<uint8_t> mem(size);
+    const IpcChannelResult channel_result =
+        ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
+    IpcChannel *channel = channel_result.result;
 
-  auto dest = std::make_shared<concurrent_set<size_t>>();
-  std::thread p1(produce, channel, 0, 100000);
-  std::thread p2(produce, channel, 100000, 200000);
-  std::thread p3(produce, channel, 200000, 300000);
+    auto dest = std::make_shared<concurrent_set<size_t>>();
+    std::thread p1(concurrent_test_utils::produce_channel, channel, 0, total / 3);
+    std::thread p2(concurrent_test_utils::produce_channel, channel, total / 3, 2 * total / 3);
+    std::thread p3(concurrent_test_utils::produce_channel, channel, 2 * total / 3, total);
 
-  std::thread c1(consume, channel, total, dest);
-  std::thread c2(consume, channel, total, dest);
-  std::thread c3(consume, channel, total, dest);
+    std::thread c1(concurrent_test_utils::consume_channel, channel, total, dest);
+    std::thread c2(concurrent_test_utils::consume_channel, channel, total, dest);
+    std::thread c3(concurrent_test_utils::consume_channel, channel, total, dest);
 
-  p1.join();
-  p2.join();
-  p3.join();
-  c1.join();
-  c2.join();
-  c3.join();
+    p1.join();
+    p2.join();
+    p3.join();
+    c1.join();
+    c2.join();
+    c3.join();
 
-  CHECK(dest->size() == total);
-  for (size_t i = 0; i < total; i++) {
-    CHECK(dest->contains(i));
-  }
-
-  ipc_channel_destroy(channel);
-}
-
-void _test_race_between_skip_and_read() {
-  const uint64_t size = ipc_channel_align_size(128);
-  std::vector<uint8_t> mem(size);
-  const IpcChannelResult channel_result =
-      ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
-  IpcChannel *channel = channel_result.result;
-
-  const size_t val = 42;
-  CHECK(ipc_channel_write(channel, &val, sizeof(val)).ipc_status == IPC_OK);
-
-  IpcEntry entry;
-  IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
-  CHECK(pk.ipc_status == IPC_OK);
-
-  std::atomic<bool> skip_done = false;
-  std::atomic<bool> read_done = false;
-
-  IpcEntry e; // for reader
-
-  std::thread t1([&] {
-    IpcChannelSkipResult result = ipc_channel_skip(channel, entry.offset);
-    skip_done.store(true);
-    
-    bool valid_status = (result.ipc_status == IPC_OK || 
-                        result.ipc_status == IPC_ERR_LOCKED ||
-                        result.ipc_status == IPC_ERR_OFFSET_MISMATCH ||
-                        result.ipc_status == IPC_EMPTY);
-    CHECK(valid_status);
-  });
-
-  std::thread t2([&] {
-    IpcChannelTryReadResult result = ipc_channel_try_read(channel, &e);
-    read_done.store(true);
-    if (result.ipc_status == IPC_OK) {
-      size_t v;
-      memcpy(&v, e.payload, e.size);
-      CHECK(v == val);
-      free(e.payload);
-    } else {
-      bool valid_status = (result.ipc_status == IPC_EMPTY || result.ipc_status == IPC_ERR_LOCKED);
-      CHECK(valid_status);
+    CHECK(dest->size() == total);
+    for (size_t i = 0; i < total; i++) {
+        CHECK(dest->contains(i));
     }
-  });
 
-  t1.join();
-  t2.join();
-  CHECK(skip_done.load());
-  CHECK(read_done.load());
-
-  ipc_channel_destroy(channel);
+    ipc_channel_destroy(channel);
 }
 
 TEST_CASE("race between skip and read") {
-  for (int i = 0; i < 1000; i++) {
-    _test_race_between_skip_and_read();
-  }
+    for (int i = 0; i < 1000; i++) {
+        concurrent_test_utils::test_race_between_skip_and_read_channel();
+    }
 }
-

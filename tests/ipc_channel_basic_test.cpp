@@ -4,7 +4,6 @@
 #include "../src/ipc_utils.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_channel.h"
-#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
