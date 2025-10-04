@@ -73,40 +73,34 @@ IpcChannelResult ipc_channel_create(void *mem, const size_t size,
 IpcChannelConnectResult ipc_channel_connect(void *mem,
                                             const IpcChannelConfiguration config) {
   const size_t min_total = ipc_buffer_align_size(2);
+  IpcChannelConnectError error = {
+    .min_size = min_total, .config = config};
 
   if (mem == NULL) {
-    IpcChannelConnectError body = {
-        .min_size = min_total, .config = config};
-    return IpcChannelConnectResult_error_body(IPC_ERR_INVALID_ARGUMENT,
-                                              "invalid argument: mem is NULL", body);
+    return IpcChannelConnectResult_error_body(
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
   }
 
   if (!_is_valid_config(config)) {
-    IpcChannelConnectError body = {
-        .min_size = min_total, .config = config};
     return IpcChannelConnectResult_error_body(
         IPC_ERR_INVALID_ARGUMENT,
         "invalid argument: valid config must be {start_sleep_ns > 0 && "
         "max_round_trips > 0 && max_sleep_ns > 0 && max_sleep_ns >= "
         "start_sleep_ns}",
-        body);
+        error);
   }
 
   IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
   if (channel == NULL) {
-    IpcChannelConnectError body = {
-        .min_size = min_total, .config = config};
     return IpcChannelConnectResult_error_body(
-        IPC_ERR_SYSTEM, "system error: channel allocation failed", body);
+        IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
   }
 
   const IpcBufferAttachResult buffer_result = ipc_buffer_attach(mem);
   if (IpcBufferAttachResult_is_error(buffer_result)) {
-    IpcChannelConnectError body = {
-        .min_size = min_total, .config = config};
     free(channel);
-    return IpcChannelConnectResult_error_body(buffer_result.ipc_status,
-                                              buffer_result.error.detail, body);
+    return IpcChannelConnectResult_error_body(
+        buffer_result.ipc_status, buffer_result.error.detail, error);
   }
 
   channel->buffer = buffer_result.result;
