@@ -120,7 +120,7 @@ public:
     }
     
     IpcEntry get() const {
-        return {.payload = payload_, .size = size_};
+        return {.offset = 0, .payload = payload_, .size = size_};
     }
     
     void* payload() const { return payload_; }
