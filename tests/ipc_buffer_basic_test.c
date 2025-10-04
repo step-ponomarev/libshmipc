@@ -9,31 +9,32 @@
 
 void test_create_too_small_buffer() {
   uint8_t mem[128];
-  const IpcBufferResult buffer_result = ipc_buffer_create(mem, 0);
-  assert(IpcBufferResult_is_error(buffer_result));
+  const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, 0);
+  assert(IpcBufferCreateResult_is_error(buffer_result));
   assert(buffer_result.ipc_status == IPC_ERR_INVALID_ARGUMENT);
 }
 
-void test_size_allign_funcion() {
+void test_size_align_function() {
   uint8_t mem[128];
-  const IpcBufferResult buffer_result =
-      ipc_buffer_create(mem, ipc_buffer_allign_size(0));
-  assert(IpcBufferResult_is_ok(buffer_result));
+  const IpcBufferCreateResult buffer_result =
+      ipc_buffer_create(mem, ipc_buffer_align_size(0));
+  assert(IpcBufferCreateResult_is_ok(buffer_result));
 }
 
 void test_sigle_entry() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   const int eval = 12;
 
-  assert(IpcStatusResult_is_ok(ipc_buffer_write(buffer, &eval, sizeof(eval))));
+  assert(IpcBufferWriteResult_is_ok(
+      ipc_buffer_write(buffer, &eval, sizeof(eval))));
 
   IpcEntry entry = {.payload = malloc(sizeof(eval)), .size = sizeof(eval)};
 
-  const IpcTransactionResult tx_result = ipc_buffer_read(buffer, &entry);
-  assert(IpcTransactionResult_is_ok(tx_result));
+  const IpcBufferReadResult tx_result = ipc_buffer_read(buffer, &entry);
+  assert(IpcBufferReadResult_is_ok(tx_result));
   assert(entry.size == sizeof(eval));
 
   int res;
@@ -47,25 +48,25 @@ void test_sigle_entry() {
 
 void test_fill_buffer() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   size_t added_count = 0;
-  while (IpcStatusResult_is_ok(
+  while (IpcBufferWriteResult_is_ok(
              ipc_buffer_write(buffer, &added_count, sizeof(size_t))) &&
          (++added_count))
     ;
 
-  const IpcStatusResult status_result =
+  const IpcBufferWriteResult status_result =
       ipc_buffer_write(buffer, &added_count, sizeof(size_t));
-  assert(IpcStatusResult_is_error(status_result) &&
-         status_result.ipc_status == IPC_NO_SPACE_CONTIGUOUS);
+  assert(IpcBufferWriteResult_is_error(status_result) &&
+         status_result.ipc_status == IPC_ERR_NO_SPACE_CONTIGUOUS);
 
   size_t *ptr = malloc(sizeof(size_t));
   IpcEntry entry = {.payload = ptr, .size = sizeof(size_t)};
   for (size_t i = 0; i < added_count; i++) {
-    const IpcTransactionResult read_res = ipc_buffer_read(buffer, &entry);
-    assert(IpcTransactionResult_is_ok(read_res));
+    const IpcBufferReadResult read_res = ipc_buffer_read(buffer, &entry);
+    assert(IpcBufferReadResult_is_ok(read_res));
     assert(read_res.ipc_status == IPC_OK);
     assert(entry.size == sizeof(size_t));
 
@@ -75,8 +76,8 @@ void test_fill_buffer() {
     assert(res == i);
   }
 
-  const IpcTransactionResult read_res = ipc_buffer_read(buffer, &entry);
-  assert(IpcTransactionResult_is_ok(read_res));
+  const IpcBufferReadResult read_res = ipc_buffer_read(buffer, &entry);
+  assert(IpcBufferReadResult_is_ok(read_res));
   assert(read_res.ipc_status == IPC_EMPTY);
 
   free(ptr);
@@ -85,24 +86,24 @@ void test_fill_buffer() {
 
 void test_add_to_full_buffer() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   size_t added_count = 0;
-  while (IpcStatusResult_is_ok(
+  while (IpcBufferWriteResult_is_ok(
              ipc_buffer_write(buffer, &added_count, sizeof(size_t))) &&
          (++added_count))
     ;
 
   assert(ipc_buffer_write(buffer, &added_count, sizeof(size_t)).ipc_status ==
-         IPC_NO_SPACE_CONTIGUOUS);
+         IPC_ERR_NO_SPACE_CONTIGUOUS);
 
   free(buffer);
 }
 
 void test_wrap_buffer() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   size_t added_count = 0;
@@ -112,7 +113,7 @@ void test_wrap_buffer() {
     ;
 
   assert(ipc_buffer_write(buffer, &added_count, sizeof(size_t)).ipc_status ==
-         IPC_NO_SPACE_CONTIGUOUS);
+         IPC_ERR_NO_SPACE_CONTIGUOUS);
 
   assert(ipc_buffer_skip_force(buffer).ipc_status == IPC_OK);
 
@@ -136,7 +137,7 @@ void test_wrap_buffer() {
 
 void test_peek() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   const int expected_val = 12;
@@ -167,7 +168,7 @@ void test_peek() {
 
 void test_skip() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   const int expected_val = 12;
@@ -176,9 +177,9 @@ void test_skip() {
 
   IpcEntry entry;
 
-  const IpcTransactionResult tx = ipc_buffer_peek(buffer, &entry);
-  assert(tx.ipc_status == IPC_OK);
-  assert(ipc_buffer_skip(buffer, tx.result).ipc_status == IPC_OK);
+  const IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer, &entry);
+  assert(peek_res.ipc_status == IPC_OK);
+  assert(ipc_buffer_skip(buffer, entry.id).ipc_status == IPC_OK);
   assert(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_EMPTY);
 
   free(buffer);
@@ -186,7 +187,7 @@ void test_skip() {
 
 void test_double_skip() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   const int expected_val = 12;
@@ -195,13 +196,13 @@ void test_double_skip() {
 
   IpcEntry entry;
 
-  const IpcTransactionResult tx = ipc_buffer_peek(buffer, &entry);
-  assert(tx.ipc_status == IPC_OK);
-  assert(ipc_buffer_skip(buffer, tx.result).ipc_status == IPC_OK);
+  const IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer, &entry);
+  assert(peek_res.ipc_status == IPC_OK);
+  assert(ipc_buffer_skip(buffer, entry.id).ipc_status == IPC_OK);
 
-  const IpcStatusResult skip_result = ipc_buffer_skip(buffer, tx.result);
-  assert(IpcStatusResult_is_error(skip_result));
-  assert(skip_result.ipc_status == IPC_TRANSACTION_MISS_MATCHED);
+  const IpcBufferSkipResult skip_result = ipc_buffer_skip(buffer, entry.id);
+  assert(IpcBufferSkipResult_is_error(skip_result));
+  assert(skip_result.ipc_status == IPC_ERR_TRANSACTION_MISMATCH);
   assert(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_EMPTY);
 
   free(buffer);
@@ -209,7 +210,7 @@ void test_double_skip() {
 
 void test_skip_forced() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   const int expected_val = 12;
@@ -226,7 +227,7 @@ void test_skip_forced() {
 
 void test_skip_with_incorrect_id() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   const int expected_val = 12;
@@ -235,13 +236,13 @@ void test_skip_with_incorrect_id() {
 
   IpcEntry entry;
 
-  const IpcTransactionResult tx = ipc_buffer_peek(buffer, &entry);
+  const IpcBufferPeekResult tx = ipc_buffer_peek(buffer, &entry);
   assert(tx.ipc_status == IPC_OK);
 
   IpcEntry entry2;
-  const IpcTransactionResult tx2 = ipc_buffer_peek(buffer, &entry2);
+  const IpcBufferPeekResult tx2 = ipc_buffer_peek(buffer, &entry2);
   assert(tx2.ipc_status == IPC_OK);
-  assert(tx.result == tx2.result);
+  assert(entry.id == entry2.id);
 
   assert(entry.size == entry2.size);
 
@@ -258,7 +259,7 @@ void test_skip_with_incorrect_id() {
 
 void test_peek_consistency() {
   uint8_t mem[256];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 256);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 256);
   IpcBuffer *buffer = bufferResult.result;
 
   int v1 = 1, v2 = 2;
@@ -283,7 +284,7 @@ void test_peek_consistency() {
 
 void test_read_too_small() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   int val = 42;
@@ -300,20 +301,20 @@ void test_read_too_small() {
 
 void test_reserve_commit_read() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   const int expected_val = 12;
   int *data;
 
-  const IpcTransactionResult tx =
+  const IpcBufferReserveEntryResult tx =
       ipc_buffer_reserve_entry(buffer, sizeof(expected_val), ((void **)&data));
   assert(tx.ipc_status == IPC_OK);
 
   IpcEntry entry = {.payload = malloc(sizeof(expected_val)),
                     .size = sizeof(expected_val)};
 
-  assert(ipc_buffer_read(buffer, &entry).ipc_status == IPC_NOT_READY);
+  assert(ipc_buffer_read(buffer, &entry).ipc_status == IPC_ERR_NOT_READY);
 
   *data = expected_val;
   assert(ipc_buffer_commit_entry(buffer, tx.result).ipc_status == IPC_OK);
@@ -330,24 +331,25 @@ void test_reserve_commit_read() {
 
 void test_reserve_double_commit() {
   uint8_t mem[128];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 128);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 128);
   IpcBuffer *buffer = bufferResult.result;
 
   const int expected_val = 12;
   int *data;
 
-  const IpcTransactionResult tx =
+  const IpcBufferReserveEntryResult tx =
       ipc_buffer_reserve_entry(buffer, sizeof(expected_val), ((void **)&data));
   assert(tx.ipc_status == IPC_OK);
 
   IpcEntry entry = {.payload = malloc(sizeof(expected_val)),
                     .size = sizeof(expected_val)};
 
-  assert(ipc_buffer_read(buffer, &entry).ipc_status == IPC_NOT_READY);
+  assert(ipc_buffer_read(buffer, &entry).ipc_status == IPC_ERR_NOT_READY);
 
   *data = expected_val;
   assert(ipc_buffer_commit_entry(buffer, tx.result).ipc_status == IPC_OK);
-  assert(IpcStatusResult_is_error(ipc_buffer_commit_entry(buffer, tx.result)));
+  assert(IpcBufferCommitEntryResult_is_error(
+      ipc_buffer_commit_entry(buffer, tx.result)));
   assert(ipc_buffer_read(buffer, &entry).ipc_status == IPC_OK);
   assert(entry.size == sizeof(expected_val));
 
@@ -361,12 +363,12 @@ void test_reserve_double_commit() {
 
 void test_multiple_reserve_commit_read() {
   uint8_t mem[1024];
-  const IpcBufferResult bufferResult = ipc_buffer_create(mem, 1024);
+  const IpcBufferCreateResult bufferResult = ipc_buffer_create(mem, 1024);
   IpcBuffer *buffer = bufferResult.result;
 
   for (int i = 0; i < 10; ++i) {
     int *ptr;
-    const IpcTransactionResult tx =
+    const IpcBufferReserveEntryResult tx =
         ipc_buffer_reserve_entry(buffer, sizeof(int), ((void **)&ptr));
 
     assert(tx.ipc_status == IPC_OK);
@@ -387,7 +389,7 @@ void test_multiple_reserve_commit_read() {
 
 int main() {
   run_test("create too small buffer", &test_create_too_small_buffer);
-  run_test("size allign funciton", &test_size_allign_funcion);
+  run_test("size align function", &test_size_align_function);
   run_test("single entry", &test_sigle_entry);
   run_test("peek entry", &test_peek);
   run_test("peek consistency", &test_peek_consistency);

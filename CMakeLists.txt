@@ -28,8 +28,7 @@ function(target_enable_warnings tgt)
   target_compile_options(${tgt} PRIVATE -Werror)
 endfunction()
 
-# --- pocix fix ----
-#TODO remove it
+# --- POSIX feature macros ----
 function(target_fix_posix tgt)
   target_compile_definitions(${tgt} PRIVATE
   _POSIX_C_SOURCE=200809L

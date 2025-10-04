@@ -11,65 +11,37 @@ typedef struct IpcMemorySegment {
   void *memory;
 } IpcMemorySegment;
 
-typedef struct IpcMemorySegmentResult IpcMemorySegmentResult;
-IPC_RESULT(IpcMemorySegmentResult, IpcMemorySegment *)
-/**
- * @brief Opens or creates a shared memory segment and maps it into the process
- * address space.
- *
- * Maps a named POSIX shared memory segment into memory with read and write
- * permissions. On success, returns a handle to the mapped memory segment. On
- * failure, sets an error code.
- *
- * @param name   Name of the shared memory segment (must be a null-terminated
- * string).
- * @param size   Size in bytes to allocate or check for the segment.
- * @param err    Output parameter for error reporting. Must not be NULL.
- *
- * @return Pointer to an `IpcMemorySegment` structure on success, or NULL on
- * failure.
- *
- * @note The returned segment must be released using `ipc_unmap` or `ipc_unlink`
- * when no longer needed.
- * @note On error, the value pointed to by `err` is set to the appropriate error
- * code.
- */
-SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
-                                           const uint64_t size);
+typedef struct IpcMmapCreateError {
+  const char *name;
+  uint64_t requested_size;
+  uint64_t aligned_size;
+  long page_size;
+  uint64_t existing_size;
+  bool existed;
+  int sys_errno;
+} IpcMmapCreateError;
 
-/**
- * @brief Unmaps and releases a shared memory segment.
- *
- * Unmaps the memory associated with the given shared memory segment and
- * releases all related resources. After calling this function, the `segment`
- * pointer is invalid and must not be used.
- *
- * @param segment Pointer to an `IpcMemorySegment` previously returned by
- * `ipc_mmap`. May be NULL.
- * @return `IPC_OK` on success; `IPC_ERR_INVALID_ARGUMENT` if `segment` or its
- * memory pointer is NULL; other error codes on failure.
- *
- * @note Does not remove the shared memory object itself; use `ipc_unlink` to
- * unlink the underlying segment.
- */
-SHMIPC_API IpcStatusResult ipc_unmap(IpcMemorySegment *segment);
+IPC_RESULT(IpcMemorySegmentResult, IpcMemorySegment *, IpcMmapCreateError)
 
-/**
- * @brief Unlinks and unmaps a shared memory segment.
- *
- * Removes the named shared memory object from the system and unmaps the
- * associated memory region, releasing all allocated resources.
- *
- * @param segment Pointer to an `IpcMemorySegment` previously returned by
- * `ipc_mmap`.
- * @return `IPC_OK` on success; `IPC_ERR_INVALID_ARGUMENT` if `segment` is NULL;
- * other error codes on failure.
- *
- * @note After calling this function, the `segment` pointer is invalid and must
- * not be used.
- * @note This operation is irreversible; the shared memory object will be
- * deleted once all processes have closed it.
- */
-SHMIPC_API IpcStatusResult ipc_unlink(IpcMemorySegment *segment);
+SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name, uint64_t size);
+
+typedef struct IpcMmapUnmapError {
+  const char *name;
+  uint64_t size;
+  int sys_errno;
+} IpcMmapUnmapError;
+
+IPC_RESULT_UNIT(IpcMmapUnmapResult, IpcMmapUnmapError)
+
+SHMIPC_API IpcMmapUnmapResult ipc_unmap(IpcMemorySegment *segment);
+
+typedef struct IpcMmapUnlinkError {
+  const char *name;
+  int sys_errno;
+} IpcMmapUnlinkError;
+
+IPC_RESULT_UNIT(IpcMmapUnlinkResult, IpcMmapUnlinkError)
+
+SHMIPC_API IpcMmapUnlinkResult ipc_unlink(IpcMemorySegment *segment);
 
 SHMIPC_END_DECLS

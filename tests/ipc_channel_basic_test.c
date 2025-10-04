@@ -3,7 +3,6 @@
 #include "test_runner.h"
 #include <assert.h>
 #include <shmipc/ipc_channel.h>
-#include <shmipc/ipc_common.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +12,7 @@ static const IpcChannelConfiguration DEFAULT_CONFIG = {
     .max_round_trips = 1024, .start_sleep_ns = 1000, .max_sleep_ns = 100000};
 
 void test_invalid_config() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
 
   assert(IpcChannelResult_is_error(ipc_channel_create(
@@ -43,7 +42,7 @@ void test_invalid_config() {
 }
 
 void test_write_too_large_entry() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
   const IpcChannelResult channel_result =
       ipc_channel_create(mem, size, DEFAULT_CONFIG);
@@ -59,7 +58,7 @@ void test_write_too_large_entry() {
 }
 
 void test_write_read() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
 
   IpcChannelResult channel_result =
@@ -71,8 +70,9 @@ void test_write_read() {
   const int val = 43;
   assert(ipc_channel_write(producer, &val, sizeof(val)).ipc_status == IPC_OK);
 
-  channel_result = ipc_channel_connect(mem, DEFAULT_CONFIG);
-  IpcChannel *consumer = channel_result.result;
+  IpcChannelConnectResult connect_result = ipc_channel_connect(mem, DEFAULT_CONFIG);
+  assert(IpcChannelConnectResult_is_ok(connect_result));
+  IpcChannel *consumer = connect_result.result;
   assert(consumer != NULL);
 
   IpcEntry entry;
@@ -81,6 +81,7 @@ void test_write_read() {
   int res;
   memcpy(&res, entry.payload, sizeof(res));
   assert(res == val);
+  free(entry.payload);
 
   ipc_channel_destroy(producer);
   ipc_channel_destroy(consumer);
@@ -91,7 +92,7 @@ void test_destroy_null() {
 }
 
 void test_peek() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
 
   IpcChannelResult channel_result =
@@ -104,8 +105,8 @@ void test_peek() {
          IPC_OK);
 
   IpcEntry entry;
-  IpcTransactionResult tx = ipc_channel_peek(channel, &entry);
-  assert(tx.ipc_status == IPC_OK);
+  IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
+  assert(pk.ipc_status == IPC_OK);
   assert(entry.size == sizeof(expected));
 
   int peeked;
@@ -113,17 +114,18 @@ void test_peek() {
   assert(peeked == expected);
 
   IpcEntry entry2;
-  IpcTransactionResult tx2 = ipc_channel_read(channel, &entry2);
-  assert(tx2.ipc_status == IPC_OK);
+  IpcChannelReadResult rd = ipc_channel_read(channel, &entry2);
+  assert(rd.ipc_status == IPC_OK);
   int read_val;
   memcpy(&read_val, entry2.payload, sizeof(read_val));
   assert(read_val == expected);
+  free(entry2.payload);
 
   ipc_channel_destroy(channel);
 }
 
 void test_peek_empty() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
 
   IpcChannelResult channel_result =
@@ -132,14 +134,14 @@ void test_peek_empty() {
   IpcChannel *channel = channel_result.result;
 
   IpcEntry entry;
-  IpcTransactionResult tx = ipc_channel_peek(channel, &entry);
-  assert(tx.ipc_status == IPC_EMPTY);
+  IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
+  assert(pk.ipc_status == IPC_EMPTY);
 
   ipc_channel_destroy(channel);
 }
 
 void test_write_try_read() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
 
   IpcChannelResult channel_result =
@@ -155,14 +157,14 @@ void test_write_try_read() {
 
   int res;
   memcpy(&res, entry.payload, entry.size);
-
   assert(expected == res);
+  free(entry.payload);
 
   ipc_channel_destroy(channel);
 }
 
 void test_try_read_empty() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
 
   IpcChannelResult channel_result =
@@ -176,26 +178,25 @@ void test_try_read_empty() {
 }
 
 void test_read_retry_limit_reacehed() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
 
   IpcChannelResult channel_result =
       ipc_channel_create(mem, size, DEFAULT_CONFIG);
   IpcChannel *channel = channel_result.result;
 
-  const IpcBufferResult buffer_result = ipc_buffer_attach(mem);
+  const IpcBufferAttachResult buffer_result = ipc_buffer_attach(mem);
   IpcBuffer *buf = buffer_result.result;
 
   const int expected = -11;
 
   void *dest;
-  IpcTransactionResult tx =
+  IpcBufferReserveEntryResult tx =
       ipc_buffer_reserve_entry(buf, sizeof(expected), &dest);
   memcpy(dest, &expected, sizeof(expected));
 
   IpcEntry entry;
-  assert(ipc_channel_read(channel, &entry).ipc_status ==
-         IPC_REACHED_RETRY_LIMIT);
+  assert(ipc_channel_read(channel, &entry).ipc_status == IPC_ERR_RETRY_LIMIT);
 
   ipc_buffer_commit_entry(buf, tx.result);
   assert(ipc_channel_read(channel, &entry).ipc_status == IPC_OK);
@@ -203,55 +204,55 @@ void test_read_retry_limit_reacehed() {
   int res;
   memcpy(&res, entry.payload, sizeof(expected));
   assert(expected == res);
+  free(entry.payload);
 
   ipc_channel_destroy(channel);
-  free(buf);
 }
 
 void test_skip_corrupted_entry() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
 
   IpcChannelResult channel_result =
       ipc_channel_create(mem, size, DEFAULT_CONFIG);
   IpcChannel *channel = channel_result.result;
 
-  const IpcBufferResult buffer_result = ipc_buffer_attach(mem);
+  const IpcBufferAttachResult buffer_result = ipc_buffer_attach(mem);
   IpcBuffer *buf = buffer_result.result;
 
   void *dest;
-
   const int expected = -11;
 
   ipc_buffer_reserve_entry(buf, sizeof(expected), &dest);
 
-  IpcTransactionResult commited_tx =
+  IpcBufferReserveEntryResult commited_tx =
       ipc_buffer_reserve_entry(buf, sizeof(expected), &dest);
   memcpy(dest, &expected, sizeof(expected));
-
   ipc_buffer_commit_entry(buf, commited_tx.result);
 
   IpcEntry entry;
-  IpcTransactionResult read_tx = ipc_channel_read(channel, &entry);
-  assert(read_tx.ipc_status == IPC_REACHED_RETRY_LIMIT);
+  IpcChannelReadResult read_res = ipc_channel_read(channel, &entry);
+  assert(read_res.ipc_status == IPC_ERR_RETRY_LIMIT);
 
-  read_tx = ipc_channel_peek(channel, &entry);
-  assert(ipc_channel_skip(channel, read_tx.result).ipc_status == IPC_OK);
+  IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
+  assert(IpcChannelPeekResult_is_error(pk));
+  assert(ipc_channel_skip(channel, pk.error.body.entry_id).ipc_status ==
+         IPC_OK);
 
-  read_tx = ipc_channel_read(channel, &entry);
-  assert(read_tx.ipc_status == IPC_OK);
-  assert(read_tx.result == commited_tx.result);
+  read_res = ipc_channel_read(channel, &entry);
+  assert(read_res.ipc_status == IPC_OK);
+  assert(entry.id == commited_tx.result);
 
   int res;
   memcpy(&res, entry.payload, sizeof(expected));
   assert(expected == res);
+  free(entry.payload);
 
   ipc_channel_destroy(channel);
-  free(buf);
 }
 
 void test_skip_force() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
   IpcChannelResult channel_result =
       ipc_channel_create(mem, size, DEFAULT_CONFIG);
@@ -269,7 +270,7 @@ void test_skip_force() {
 }
 
 void test_read_timeout() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
 
   IpcChannelResult channel_result =
@@ -285,7 +286,7 @@ void test_read_timeout() {
 
   IpcEntry entry;
   assert(ipc_channel_read_with_timeout(channel, &entry, &timeout).ipc_status ==
-         IPC_TIMEOUT);
+         IPC_ERR_TIMEOUT);
 
   assert(clock_gettime(CLOCK_MONOTONIC, &time) == 0);
 
@@ -296,27 +297,27 @@ void test_read_timeout() {
 }
 
 void test_channel_read_before_commit_via_channel() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
 
   IpcChannelResult channel_result =
       ipc_channel_create(mem, size, DEFAULT_CONFIG);
   IpcChannel *channel = channel_result.result;
 
-  const IpcBufferResult buffer_result = ipc_buffer_attach(mem);
+  const IpcBufferAttachResult buffer_result = ipc_buffer_attach(mem);
   IpcBuffer *buf = buffer_result.result;
 
   const int expected = 42;
 
   void *dest;
-  IpcTransactionResult tx_res =
+  IpcBufferReserveEntryResult tx_res =
       ipc_buffer_reserve_entry(buf, sizeof(int), &dest);
   assert(tx_res.ipc_status == IPC_OK);
   *((int *)dest) = expected;
 
   IpcEntry entry;
-  IpcTransactionResult tx_read = ipc_channel_read(channel, &entry);
-  assert(tx_read.ipc_status == IPC_REACHED_RETRY_LIMIT);
+  IpcChannelReadResult tx_read = ipc_channel_read(channel, &entry);
+  assert(tx_read.ipc_status == IPC_ERR_RETRY_LIMIT);
 
   assert(ipc_buffer_commit_entry(buf, tx_res.result).ipc_status == IPC_OK);
 
@@ -329,36 +330,36 @@ void test_channel_read_before_commit_via_channel() {
 
   free(entry.payload);
   ipc_channel_destroy(channel);
-  free(buf);
 }
 
 void test_channel_double_commit() {
-  const uint64_t size = ipc_channel_allign_size(128);
+  const uint64_t size = ipc_channel_align_size(128);
   uint8_t mem[size];
   IpcChannelResult channel_result =
       ipc_channel_create(mem, size, DEFAULT_CONFIG);
   IpcChannel *channel = channel_result.result;
 
-  const IpcBufferResult buffer_result = ipc_buffer_attach(mem);
+  const IpcBufferAttachResult buffer_result = ipc_buffer_attach(mem);
   IpcBuffer *buf = buffer_result.result;
 
   void *dest;
-  IpcTransactionResult tx = ipc_buffer_reserve_entry(buf, sizeof(int), &dest);
+  IpcBufferReserveEntryResult tx =
+      ipc_buffer_reserve_entry(buf, sizeof(int), &dest);
   assert(tx.ipc_status == IPC_OK);
   *(int *)dest = 42;
   assert(ipc_buffer_commit_entry(buf, tx.result).ipc_status == IPC_OK);
-  assert(IpcStatusResult_is_error(ipc_buffer_commit_entry(buf, tx.result)));
+  assert(IpcBufferCommitEntryResult_is_error(
+      ipc_buffer_commit_entry(buf, tx.result)));
 
   IpcEntry entry;
-  IpcTransactionResult read1 = ipc_channel_read(channel, &entry);
+  IpcChannelReadResult read1 = ipc_channel_read(channel, &entry);
   assert(read1.ipc_status == IPC_OK);
+  free(entry.payload);
 
-  IpcTransactionResult read2 = ipc_channel_try_read(channel, &entry);
+  IpcChannelTryReadResult read2 = ipc_channel_try_read(channel, &entry);
   assert(read2.ipc_status == IPC_EMPTY);
 
-  free(entry.payload);
   ipc_channel_destroy(channel);
-  free(buf);
 }
 
 int main() {
