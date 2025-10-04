@@ -2,9 +2,6 @@
 
 #include <shmipc/ipc_common.h>
 #include <shmipc/ipc_export.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <time.h>
 
 SHMIPC_BEGIN_DECLS
