@@ -82,6 +82,13 @@ public:
     IpcChannel* operator->() const { return channel_; }
     const uint8_t* get_mem() const { return mem_.data(); }
     
+    // Release ownership of the channel (caller becomes responsible for destroying it)
+    IpcChannel* release() {
+        IpcChannel* result = channel_;
+        channel_ = nullptr;
+        return result;
+    }
+    
     ChannelWrapper(const ChannelWrapper&) = delete;
     ChannelWrapper& operator=(const ChannelWrapper&) = delete;
     ChannelWrapper(ChannelWrapper&& other) noexcept 

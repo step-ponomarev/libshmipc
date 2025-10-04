@@ -135,8 +135,9 @@ TEST_CASE("channel destroy - NULL channel") {
 TEST_CASE("channel destroy - success case") {
     test_utils::ChannelWrapper channel(test_utils::SMALL_BUFFER_SIZE);
     
-    
-    const IpcChannelDestroyResult result = ipc_channel_destroy(channel.get());
+    // Release ownership from wrapper to avoid double-free in destructor
+    IpcChannel* ch = channel.release();
+    const IpcChannelDestroyResult result = ipc_channel_destroy(ch);
     test_utils::CHECK_OK(result);
 }
 
