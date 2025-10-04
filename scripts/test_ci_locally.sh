@@ -2,45 +2,34 @@
 
 set -e
 
-echo "🧪 Testing CI workflow locally..."
-echo "================================="
+echo "Testing CI workflow locally..."
 
 cd "$(dirname "$0")/.."
 
-# Clean build directory to simulate fresh CI environment
-echo "🧹 Cleaning build directory..."
+echo "Cleaning build directory..."
 rm -rf build
 
-# Install dependencies (simulate CI setup)
-echo "📦 Installing dependencies..."
+echo "Installing dependencies..."
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo "Detected Linux - would install: sudo apt-get update && sudo apt-get install -y ninja-build cmake"
-    # For actual CI testing, uncomment the next line:
-    # sudo apt-get update && sudo apt-get install -y ninja-build cmake
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Detected macOS - would install: brew install ninja cmake"
-    # For actual CI testing, uncomment the next line:
-    # brew install ninja cmake
 fi
 
-# Configure (simulate CI configure step)
-echo "⚙️  Configuring build..."
+echo "Configuring build..."
 cmake -S . -B build -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DSHMIPC_BUILD_STATIC=ON \
     -DSHMIPC_BUILD_SHARED=ON \
     -DSHMIPC_BUILD_TESTS=ON
 
-# Build (simulate CI build step)
-echo "🔨 Building..."
+echo "Building..."
 cmake --build build -j
 
-# Test basic tests (simulate CI test step)
-echo "✅ Running basic tests..."
+echo "Running basic tests..."
 ctest --test-dir build --output-on-failure -j1 --timeout 100
 
-# Test performance and stress tests (simulate release CI)
-echo "⚡ Building performance and stress tests..."
+echo "Building performance and stress tests..."
 cd build
 
 g++ -std=c++20 -O0 -g -UNDEBUG -Wall -Wextra -Wpedantic -Werror \
@@ -64,17 +53,16 @@ g++ -std=c++20 -O0 -g -UNDEBUG -Wall -Wextra -Wpedantic -Werror \
     -Lsrc -lshmipc_static -lpthread \
     -o ipc_channel_stress_test
 
-echo "🚀 Running performance and stress tests..."
+echo "Running performance and stress tests..."
 ./ipc_channel_performance_test
 ./ipc_buffer_stress_test
 ./ipc_channel_stress_test
 
 cd ..
 
-# Package (simulate CI package step)
-echo "📦 Creating package..."
+echo "Creating package..."
 cmake --build build --target package
 
 echo ""
-echo "🎉 CI simulation completed successfully!"
-echo "✅ Your code would pass CI checks!"
+echo "CI simulation completed successfully!"
+echo "Your code would pass CI checks!"
