@@ -181,6 +181,102 @@ void CHECK_ERROR_WITH_FIELDS(const IpcBufferAttachResult& result, IpcStatus expe
     CHECK(result.error.body.min_size == expected_min_size);
 }
 
+void CHECK_ERROR_WITH_FIELDS(const IpcBufferWriteResult& result, IpcStatus expected_status,
+                            uint64_t expected_offset, size_t expected_requested_size,
+                            size_t expected_available_contiguous, size_t expected_buffer_size) {
+    CHECK(IpcBufferWriteResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+    CHECK(result.error.body.offset == expected_offset);
+    CHECK(result.error.body.requested_size == expected_requested_size);
+    CHECK(result.error.body.available_contiguous == expected_available_contiguous);
+    CHECK(result.error.body.buffer_size == expected_buffer_size);
+}
+
+void CHECK_ERROR_WITH_FIELDS(const IpcBufferReadResult& result, IpcStatus expected_status,
+                            uint64_t expected_offset, size_t expected_required_size) {
+    CHECK(IpcBufferReadResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+    CHECK(result.error.body.offset == expected_offset);
+    CHECK(result.error.body.required_size == expected_required_size);
+}
+
+void CHECK_ERROR_WITH_FIELDS(const IpcBufferPeekResult& result, IpcStatus expected_status,
+                            uint64_t expected_offset) {
+    CHECK(IpcBufferPeekResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+    CHECK(result.error.body.offset == expected_offset);
+}
+
+void CHECK_OK(const IpcBufferSkipResult& result) {
+    CHECK(IpcBufferSkipResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcBufferSkipResult& result, IpcStatus expected_status) {
+    CHECK(IpcBufferSkipResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
+void CHECK_ERROR_WITH_FIELDS(const IpcBufferSkipResult& result, IpcStatus expected_status,
+                            uint64_t expected_offset) {
+    CHECK(IpcBufferSkipResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+    CHECK(result.error.body.offset == expected_offset);
+}
+
+void CHECK_OK(const IpcBufferSkipForceResult& result) {
+    CHECK(IpcBufferSkipForceResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcBufferSkipForceResult& result, IpcStatus expected_status) {
+    CHECK(IpcBufferSkipForceResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
+void CHECK_ERROR_WITH_FIELDS(const IpcBufferSkipForceResult& result, IpcStatus expected_status,
+                              bool expected_unit) {
+    CHECK(IpcBufferSkipForceResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+    CHECK(result.error.body._unit == expected_unit);
+}
+
+// IpcBufferReserveEntryResult utilities
+void CHECK_OK(const IpcBufferReserveEntryResult& result) {
+    CHECK(IpcBufferReserveEntryResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcBufferReserveEntryResult& result, IpcStatus expected_status) {
+    CHECK(IpcBufferReserveEntryResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
+void CHECK_ERROR_WITH_FIELDS(const IpcBufferReserveEntryResult& result, IpcStatus expected_status,
+                              uint64_t expected_offset, uint64_t expected_buffer_size,
+                              size_t expected_required_size, size_t expected_free_space) {
+    CHECK(IpcBufferReserveEntryResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+    CHECK(result.error.body.offset == expected_offset);
+    CHECK(result.error.body.buffer_size == expected_buffer_size);
+    CHECK(result.error.body.required_size == expected_required_size);
+    CHECK(result.error.body.free_space == expected_free_space);
+}
+
+// IpcBufferCommitEntryResult utilities
+void CHECK_OK(const IpcBufferCommitEntryResult& result) {
+    CHECK(IpcBufferCommitEntryResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcBufferCommitEntryResult& result, IpcStatus expected_status) {
+    CHECK(IpcBufferCommitEntryResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
+void CHECK_ERROR_WITH_FIELDS(const IpcBufferCommitEntryResult& result, IpcStatus expected_status,
+                              uint64_t expected_offset) {
+    CHECK(IpcBufferCommitEntryResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+    CHECK(result.error.body.offset == expected_offset);
+}
+
 void CHECK_OK(const IpcBufferWriteResult& result) {
     CHECK(IpcBufferWriteResult_is_ok(result));
 }
