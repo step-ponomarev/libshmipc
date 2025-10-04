@@ -923,7 +923,6 @@ TEST_CASE("fill buffer") {
 
     IpcEntry entry_ref = entry.get();
     const IpcBufferReadResult read_res = ipc_buffer_read(buffer.get(), &entry_ref);
-    test_utils::CHECK_OK(read_res);
     CHECK(read_res.ipc_status == IPC_EMPTY);
 }
 

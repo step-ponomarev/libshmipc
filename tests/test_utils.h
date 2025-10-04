@@ -296,7 +296,7 @@ void CHECK_ERROR(const IpcBufferWriteResult& result, IpcStatus expected_status) 
 }
 
 void CHECK_OK(const IpcBufferReadResult& result) {
-    CHECK(IpcBufferReadResult_is_ok(result));
+    CHECK(result.ipc_status == IPC_OK);
 }
 
 void CHECK_ERROR(const IpcBufferReadResult& result, IpcStatus expected_status) {
@@ -370,7 +370,7 @@ void CHECK_ERROR(const IpcChannelWriteResult& result, IpcStatus expected_status)
 }
 
 void CHECK_OK(const IpcChannelReadResult& result) {
-    CHECK(IpcChannelReadResult_is_ok(result));
+    CHECK(result.ipc_status == IPC_OK);
 }
 
 void CHECK_ERROR(const IpcChannelReadResult& result, IpcStatus expected_status) {
@@ -434,7 +434,7 @@ template<typename T>
 T read_data(IpcChannel* channel) {
     IpcEntry entry;
     const IpcChannelReadResult result = ipc_channel_read(channel, &entry);
-    CHECK(IpcChannelReadResult_is_ok(result));
+    CHECK(result.ipc_status == IPC_OK);
     
     T data;
     memcpy(&data, entry.payload, sizeof(T));
@@ -498,7 +498,7 @@ T read_data_safe(IpcBuffer* buffer) {
     test_utils::EntryWrapper entry(sizeof(T));
     IpcEntry entry_ref = entry.get();
     const IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
-    if (!IpcBufferReadResult_is_ok(result)) {
+    if (result.ipc_status != IPC_OK) {
         throw std::runtime_error("Failed to read from buffer");
     }
     
@@ -511,7 +511,7 @@ template<typename T>
 T read_data_safe(IpcChannel* channel) {
     IpcEntry entry;
     const IpcChannelReadResult result = ipc_channel_read(channel, &entry);
-    if (!IpcChannelReadResult_is_ok(result)) {
+    if (result.ipc_status != IPC_OK) {
         throw std::runtime_error("Failed to read from channel");
     }
     
