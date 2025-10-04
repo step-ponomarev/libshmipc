@@ -254,6 +254,7 @@ IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
     return IpcBufferPeekResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
+
   if (dest == NULL) {
     return IpcBufferPeekResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is NULL", error);
@@ -262,22 +263,22 @@ IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
   const uint64_t head =
       atomic_load(&((const struct IpcBuffer *)buffer)->header->head);
 
-  EntryHeader *hdr = NULL;
+  EntryHeader *header = NULL;
   const IpcStatus st =
-      _read_entry_header((const struct IpcBuffer *)buffer, head, &hdr);
+      _read_entry_header((const struct IpcBuffer *)buffer, head, &header);
   if (st != IPC_OK) {
     if (st == IPC_EMPTY) {
-      dest->id = head;
-      dest->size = 0;
       return IpcBufferPeekResult_ok(IPC_EMPTY);
     }
-    IpcBufferPeekError body = {.entry_id = head};
-    return IpcBufferPeekResult_error_body(st, "unreadable buffer state", body);
+
+    error.entry_id = head;
+    return IpcBufferPeekResult_error_body(st, "unreadable buffer state", error);
   }
 
   dest->id = head;
-  dest->size = hdr->payload_size;
-  dest->payload = (uint8_t *)hdr + sizeof(EntryHeader);
+  dest->size = header->payload_size;
+  dest->payload = (uint8_t *)header + sizeof(EntryHeader);
+
   return IpcBufferPeekResult_ok(IPC_OK);
 }
 
