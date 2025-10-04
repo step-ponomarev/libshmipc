@@ -157,6 +157,14 @@ void CHECK_ERROR(const IpcBufferCreateResult& result, IpcStatus expected_status)
     CHECK(result.ipc_status == expected_status);
 }
 
+void CHECK_ERROR_WITH_FIELDS(const IpcBufferCreateResult& result, IpcStatus expected_status, 
+                            size_t expected_requested_size, size_t expected_min_size) {
+    CHECK(IpcBufferCreateResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+    CHECK(result.error.body.requested_size == expected_requested_size);
+    CHECK(result.error.body.min_size == expected_min_size);
+}
+
 void CHECK_OK(const IpcBufferWriteResult& result) {
     CHECK(IpcBufferWriteResult_is_ok(result));
 }

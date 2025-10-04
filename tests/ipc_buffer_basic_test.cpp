@@ -18,6 +18,74 @@ TEST_CASE("size align function") {
     test_utils::CHECK_OK(buffer_result);
 }
 
+TEST_CASE("create buffer with NULL memory") {
+    const IpcBufferCreateResult buffer_result = ipc_buffer_create(nullptr, 128);
+    test_utils::CHECK_ERROR_WITH_FIELDS(buffer_result, IPC_ERR_INVALID_ARGUMENT, 128, 26);
+}
+
+TEST_CASE("create buffer too small size with error fields") {
+    uint8_t mem[128];
+    const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, 10);
+    test_utils::CHECK_ERROR_WITH_FIELDS(buffer_result, IPC_ERR_INVALID_ARGUMENT, 10, 26);
+}
+
+TEST_CASE("create buffer with minimum valid size") {
+    uint8_t mem[128];
+    // MIN_BUFFER_SIZE = sizeof(IpcBufferHeader) + 2 = 24 + 2 = 26
+    const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, 26);
+    test_utils::CHECK_OK(buffer_result);
+}
+
+TEST_CASE("create buffer with different valid sizes") {
+    uint8_t mem[1024];
+    
+    // Test various valid sizes
+    const size_t test_sizes[] = {26, 32, 64, 128, 256, 512, 1024};
+    
+    for (size_t size : test_sizes) {
+        const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, size);
+        test_utils::CHECK_OK(buffer_result);
+        free(buffer_result.result); // Clean up
+    }
+}
+
+TEST_CASE("create buffer success case verification") {
+    uint8_t mem[128];
+    const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, 128);
+    
+    test_utils::CHECK_OK(buffer_result);
+    
+    // Verify that the buffer was actually created and can be used
+    IpcBuffer* buffer = buffer_result.result;
+    CHECK(buffer != nullptr);
+    
+    // Try to write something to verify it works
+    const int test_value = 42;
+    const IpcBufferWriteResult write_result = ipc_buffer_write(buffer, &test_value, sizeof(test_value));
+    CHECK(write_result.ipc_status == IPC_OK);
+    
+    // Clean up
+    free(buffer);
+}
+
+// Note: Testing malloc failure is difficult without mocking, but we can at least
+// verify that the error handling code path exists by checking the error structure
+TEST_CASE("create buffer error structure verification") {
+    uint8_t mem[128];
+    
+    // Test NULL pointer case
+    const IpcBufferCreateResult null_result = ipc_buffer_create(nullptr, 128);
+    CHECK(IpcBufferCreateResult_is_error(null_result));
+    CHECK(null_result.error.body.requested_size == 128);
+    CHECK(null_result.error.body.min_size == 26); // sizeof(IpcBufferHeader) + 2
+    
+    // Test too small size case
+    const IpcBufferCreateResult small_result = ipc_buffer_create(mem, 5);
+    CHECK(IpcBufferCreateResult_is_error(small_result));
+    CHECK(small_result.error.body.requested_size == 5);
+    CHECK(small_result.error.body.min_size == 26);
+}
+
 TEST_CASE("single entry") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     
