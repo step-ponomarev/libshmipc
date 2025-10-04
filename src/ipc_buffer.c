@@ -234,8 +234,8 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
           IPC_ERR_TOO_SMALL, "destination buffer is too small", error);
     }
 
-    uint8_t *payload = ((uint8_t *)header) + sizeof(EntryHeader);
-    memcpy(dest->payload, payload, header->payload_size);
+    //read/write race guard, read before move head
+    memcpy(dest->payload, ((uint8_t *)header) + sizeof(EntryHeader), header->payload_size);
 
     if (atomic_compare_exchange_strong(
             &((struct IpcBuffer *)buffer)->header->head, &head,
