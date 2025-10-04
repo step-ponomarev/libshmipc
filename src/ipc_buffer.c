@@ -213,9 +213,6 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
 
   const size_t dst_cap = dest->size;
   uint64_t head;
-
-  uint8_t dest_snapshot[dst_cap];
-  memcpy(dest_snapshot, dest->payload, dst_cap);
   
   for (;;) {
     head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
@@ -241,16 +238,14 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
     }
 
     //read/write race guard, read before move head
-    memcpy(dest->payload, ((uint8_t *)header) + sizeof(EntryHeader), header->payload_size);
-
+    memcpy(dest->payload, ((uint8_t *)header) + sizeof(EntryHeader),
+           header->payload_size);
     if (atomic_compare_exchange_strong(
             &((struct IpcBuffer *)buffer)->header->head, &head,
             head + header->entry_size)) {
       dest->id = head;
       dest->size = header->payload_size;
       return IpcBufferReadResult_ok(IPC_OK);
-    } else {
-      memcpy(dest->payload, dest_snapshot, dst_cap);
     }
   }
 }
