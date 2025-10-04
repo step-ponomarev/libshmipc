@@ -212,41 +212,41 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
   uint64_t head;
   uint64_t full_entry_size;
 
-  do {
+  for (;;) {
     head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
 
-    EntryHeader *hdr = NULL;
+    EntryHeader *header = NULL;
     const IpcStatus st =
-        _read_entry_header((struct IpcBuffer *)buffer, head, &hdr);
+        _read_entry_header((struct IpcBuffer *)buffer, head, &header);
     if (st != IPC_OK) {
       if (st == IPC_EMPTY) {
-        /* non-error: ok c флагом EMPTY + выставим id и обнулим поля */
-        dest->id = head;
-        dest->size = 0;
         return IpcBufferReadResult_ok(IPC_EMPTY);
       }
-      /* только ERR-коды — в error */
-      IpcBufferReadError body = {.entry_id = head};
-      return IpcBufferReadResult_error_body(st, "unreadable entry state", body);
+
+      error.entry_id = head;
+      return IpcBufferReadResult_error_body(st, "unreadable entry state",
+                                            error);
     }
 
-    full_entry_size = hdr->entry_size;
-    dest->id = head;
-    dest->size = hdr->payload_size;
-
-    if (dst_cap < dest->size) {
-      IpcBufferReadError body = {.entry_id = head};
+    full_entry_size = header->entry_size;
+    if (dst_cap < header->payload_size) {
+      error.entry_id = head;
+      error.required_size = header->payload_size;
       return IpcBufferReadResult_error_body(
-          IPC_ERR_TOO_SMALL, "destination buffer is too small", body);
+          IPC_ERR_TOO_SMALL, "destination buffer is too small", error);
     }
 
-    uint8_t *payload = ((uint8_t *)hdr) + sizeof(EntryHeader);
-    memcpy(dest->payload, payload, hdr->payload_size);
-  } while (!atomic_compare_exchange_strong(
-      &((struct IpcBuffer *)buffer)->header->head, &head,
-      head + full_entry_size));
+    uint8_t *payload = ((uint8_t *)header) + sizeof(EntryHeader);
+    memcpy(dest->payload, payload, header->payload_size);
 
-  return IpcBufferReadResult_ok(IPC_OK);
+    if (atomic_compare_exchange_strong(
+            &((struct IpcBuffer *)buffer)->header->head, &head,
+            head + full_entry_size)) {
+      dest->id = head;
+      dest->size = header->payload_size;
+      return IpcBufferReadResult_ok(IPC_OK);
+    }
+  }
 }
 
 /* === peek: 1-в-1 как раньше; EMPTY -> ok(EMPTY), ERR -> error === */
