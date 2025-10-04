@@ -208,16 +208,17 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest) {
 IpcChannelReadWithTimeoutResult
 ipc_channel_read_with_timeout(IpcChannel *channel, IpcEntry *dest,
                               const struct timespec *timeout) {
-  const IpcChannelReadResult rx = _read(channel, dest, timeout);
-  // Конвертируем IpcChannelReadResult в IpcChannelReadWithTimeoutResult
-  if (IpcChannelReadResult_is_error(rx)) {
-    IpcChannelReadWithTimeoutError body = {
-      .entry_id = rx.error.body.entry_id,
-      .timeout_used = timeout ? *timeout : (struct timespec){0, 0}
-    };
-    return IpcChannelReadWithTimeoutResult_error_body(rx.ipc_status, rx.error.detail, body);
+  const IpcChannelReadResult read_result = _read(channel, dest, timeout);
+  if (IpcChannelReadResult_is_ok(read_result)) {
+    return IpcChannelReadWithTimeoutResult_ok(read_result.ipc_status);
   }
-  return IpcChannelReadWithTimeoutResult_ok(rx.ipc_status);
+
+  IpcChannelReadWithTimeoutError body = {
+      .entry_id = read_result.error.body.entry_id,
+      .timeout_used = timeout != NULL ? *timeout : (struct timespec){0, 0}};
+
+  return IpcChannelReadWithTimeoutResult_error_body(
+      read_result.ipc_status, read_result.error.detail, body);
 }
 
 IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel,
