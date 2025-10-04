@@ -1,7 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "test_utils.h"
-#include "shmipc/ipc_common.h"
 #include "shmipc/ipc_buffer.h"
 #include <cstring>
 
@@ -38,32 +37,22 @@ TEST_CASE("buffer create - minimum valid size") {
 
 TEST_CASE("buffer create - various valid sizes") {
     uint8_t mem[1024];
-    
-    
     const size_t test_sizes[] = {26, 32, 64, 128, 256, 512, 1024};
     
     for (size_t size : test_sizes) {
         const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, size);
         test_utils::CHECK_OK(buffer_result);
-        free(buffer_result.result); 
+        free(buffer_result.result);
     }
 }
 
 TEST_CASE("buffer create - success case") {
     uint8_t mem[128];
     const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, 128);
-    
     test_utils::CHECK_OK(buffer_result);
     
-    
     IpcBuffer* buffer = buffer_result.result;
-    CHECK(buffer != nullptr);
-    
-    
-    const int test_value = 42;
-    const IpcBufferWriteResult write_result = ipc_buffer_write(buffer, &test_value, sizeof(test_value));
-    CHECK(write_result.ipc_status == IPC_OK);
-    
+    test_utils::verify_buffer_creation(buffer, 128);
     
     free(buffer);
 }
@@ -71,12 +60,10 @@ TEST_CASE("buffer create - success case") {
 TEST_CASE("buffer create - error structure verification") {
     uint8_t mem[128];
     
-    
     const IpcBufferCreateResult null_result = ipc_buffer_create(nullptr, 128);
     CHECK(IpcBufferCreateResult_is_error(null_result));
     CHECK(null_result.error.body.requested_size == 128);
-    CHECK(null_result.error.body.min_size == 26); 
-    
+    CHECK(null_result.error.body.min_size == 26);
     
     const IpcBufferCreateResult small_result = ipc_buffer_create(mem, 5);
     CHECK(IpcBufferCreateResult_is_error(small_result));
@@ -93,21 +80,17 @@ TEST_CASE("attach buffer with NULL memory") {
 TEST_CASE("attach buffer success case") {
     uint8_t mem[128];
     
-    
     const IpcBufferCreateResult create_result = ipc_buffer_create(mem, 128);
     test_utils::CHECK_OK(create_result);
     IpcBuffer* created_buffer = create_result.result;
-    
     
     const int test_value = 42;
     const IpcBufferWriteResult write_result = ipc_buffer_write(created_buffer, &test_value, sizeof(test_value));
     CHECK(write_result.ipc_status == IPC_OK);
     
-    
     const IpcBufferAttachResult attach_result = ipc_buffer_attach(mem);
     test_utils::CHECK_OK(attach_result);
     IpcBuffer* attached_buffer = attach_result.result;
-    
     
     test_utils::EntryWrapper entry(sizeof(test_value));
     IpcEntry entry_ref = entry.get();
@@ -118,16 +101,14 @@ TEST_CASE("attach buffer success case") {
     memcpy(&read_value, entry_ref.payload, sizeof(test_value));
     CHECK(read_value == test_value);
     
-    
     free(created_buffer);
     free(attached_buffer);
 }
 
 TEST_CASE("attach buffer error structure verification") {
-    
     const IpcBufferAttachResult null_result = ipc_buffer_attach(nullptr);
     CHECK(IpcBufferAttachResult_is_error(null_result));
-    CHECK(null_result.error.body.min_size == 26); 
+    CHECK(null_result.error.body.min_size == 26);
 }
 
 
@@ -153,8 +134,7 @@ TEST_CASE("write with zero size") {
 TEST_CASE("write success case") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const int test_data = 42;
-    const IpcBufferWriteResult write_result = ipc_buffer_write(buffer.get(), &test_data, sizeof(test_data));
-    test_utils::CHECK_OK(write_result);
+    CHECK(test_utils::write_data_safe(buffer.get(), test_data));
 }
 
 TEST_CASE("write error structure verification") {
@@ -196,13 +176,7 @@ TEST_CASE("read success case") {
     const int test_data = 42;
     test_utils::write_data(buffer.get(), test_data);
     
-    test_utils::EntryWrapper entry(sizeof(test_data));
-    IpcEntry entry_ref = entry.get();
-    const IpcBufferReadResult read_result = ipc_buffer_read(buffer.get(), &entry_ref);
-    test_utils::CHECK_OK(read_result);
-    
-    int read_data;
-    memcpy(&read_data, entry_ref.payload, sizeof(test_data));
+    const int read_data = test_utils::read_data_safe<int>(buffer.get());
     CHECK(read_data == test_data);
 }
 
@@ -972,8 +946,9 @@ TEST_CASE("wrap buffer") {
     size_t added_count = 0;
     while (ipc_buffer_write(buffer.get(), &added_count, sizeof(size_t)).ipc_status ==
                IPC_OK &&
-           (++added_count))
-        ;
+           (++added_count)) {
+        // Empty body - just increment counter
+    }
 
     CHECK(ipc_buffer_write(buffer.get(), &added_count, sizeof(size_t)).ipc_status ==
           IPC_ERR_NO_SPACE_CONTIGUOUS);

@@ -1,13 +1,13 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "test_utils.h"
-#include "shmipc/ipc_common.h"
 #include "shmipc/ipc_channel.h"
 #include <chrono>
 #include <vector>
 #include <thread>
 #include <atomic>
 #include <random>
+#include <iomanip>
 
 using namespace std::chrono;
 
@@ -36,7 +36,7 @@ TEST_CASE("channel stress - high load throughput") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)iterations / duration.count() * 1000000;
-    std::cout << "High load throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "High load throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(throughput > 100000);
 }
@@ -55,7 +55,7 @@ TEST_CASE("channel stress - memory pressure") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double creation_time = (double)duration.count() / num_channels;
-    std::cout << "Memory pressure - channel creation: " << creation_time << " μs per channel" << std::endl;
+    std::cout << "Memory pressure - channel creation: " << std::fixed << std::setprecision(1) << creation_time << " μs per channel" << std::endl;
     
     CHECK(creation_time < 1000);
     
@@ -125,7 +125,7 @@ TEST_CASE("channel stress - concurrent high load") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)items_consumed.load() / duration.count() * 1000000;
-    std::cout << "Concurrent high load throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Concurrent high load throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(items_consumed.load() > 0);
     CHECK(throughput > 5);
@@ -162,8 +162,8 @@ TEST_CASE("channel stress - large data burst") {
     
     double throughput = (double)iterations / duration.count() * 1000000;
     double data_throughput = (double)iterations * data_size / duration.count() * 1000000 / (1024 * 1024);
-    std::cout << "Large data burst throughput: " << throughput << " ops/sec, " 
-              << data_throughput << " MB/sec" << std::endl;
+    std::cout << "Large data burst throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec, " 
+              << std::fixed << std::setprecision(1) << data_throughput << " MB/sec" << std::endl;
     
     CHECK(throughput > 100);
     CHECK(data_throughput > 1.0);
@@ -193,7 +193,7 @@ TEST_CASE("channel stress - rapid create destroy") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double cycle_time = (double)duration.count() / num_cycles;
-    std::cout << "Rapid create/destroy cycle time: " << cycle_time << " μs per cycle" << std::endl;
+    std::cout << "Rapid create/destroy cycle time: " << std::fixed << std::setprecision(2) << cycle_time << " μs per cycle" << std::endl;
     
     CHECK(cycle_time < 1000);
 }
@@ -222,7 +222,7 @@ TEST_CASE("channel stress - timeout under load") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)timeout_iterations / duration.count() * 1000000;
-    std::cout << "Timeout under load throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Timeout under load throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(throughput > 1000);
 }
@@ -283,7 +283,7 @@ TEST_CASE("channel stress - random operations") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)num_operations / duration.count() * 1000000;
-    std::cout << "Random operations throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Random operations throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(throughput > 10);
 }

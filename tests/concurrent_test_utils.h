@@ -67,13 +67,15 @@ void consume_channel(IpcChannel* channel, size_t expected,
                      std::shared_ptr<concurrent_set<size_t>> dest) {
     IpcEntry entry;
     while (true) {
-        if (dest->size() == expected)
+        if (dest->size() == expected) {
             break;
+        }
 
         IpcChannelReadResult rx = ipc_channel_read(channel, &entry);
         if (rx.ipc_status != IPC_OK) {
-            if (dest->size() == expected)
+            if (dest->size() == expected) {
                 break;
+            }
             continue;
         }
 

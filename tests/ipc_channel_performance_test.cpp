@@ -1,12 +1,12 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "test_utils.h"
-#include "shmipc/ipc_common.h"
 #include "shmipc/ipc_channel.h"
 #include <chrono>
 #include <vector>
 #include <thread>
 #include <atomic>
+#include <iomanip>
 
 using namespace std::chrono;
 
@@ -28,7 +28,7 @@ TEST_CASE("channel performance - basic throughput") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)iterations / duration.count() * 1000000;
-    std::cout << "Basic throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Basic throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(throughput > 1000);
 }
@@ -53,7 +53,7 @@ TEST_CASE("channel performance - peek operations") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)peek_iterations / duration.count() * 1000000;
-    std::cout << "Peek operations throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Peek operations throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(throughput > 5000);
 }
@@ -85,7 +85,7 @@ TEST_CASE("channel performance - skip operations") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)skip_iterations / duration.count() * 1000000;
-    std::cout << "Skip operations throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Skip operations throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(throughput > 100);
 }
@@ -116,8 +116,8 @@ TEST_CASE("channel performance - large data") {
     
     double throughput = (double)iterations / duration.count() * 1000000;
     double data_throughput = (double)iterations * data_size / duration.count() * 1000000 / (1024 * 1024);
-    std::cout << "Large data throughput: " << throughput << " ops/sec, " 
-              << data_throughput << " MB/sec" << std::endl;
+    std::cout << "Large data throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec, " 
+              << std::fixed << std::setprecision(2) << data_throughput << " MB/sec" << std::endl;
     
     CHECK(throughput > 1);
     CHECK(data_throughput > 0.001);
@@ -161,7 +161,7 @@ TEST_CASE("channel performance - concurrent operations") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)items_consumed.load() / duration.count() * 1000000;
-    std::cout << "Concurrent throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Concurrent throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(items_consumed.load() > 0);
     CHECK(throughput > 100);
@@ -181,7 +181,7 @@ TEST_CASE("channel performance - memory usage") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double creation_time = (double)duration.count() / num_channels;
-    std::cout << "Channel creation time: " << creation_time << " μs per channel" << std::endl;
+    std::cout << "Channel creation time: " << std::fixed << std::setprecision(1) << creation_time << " μs per channel" << std::endl;
     
     CHECK(creation_time < 10000);
     

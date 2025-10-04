@@ -1,7 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "test_utils.h"
-#include "shmipc/ipc_common.h"
 #include "shmipc/ipc_channel.h"
 #include <cstring>
 #include <ctime>
@@ -65,7 +64,7 @@ TEST_CASE("channel create - success case") {
     test_utils::CHECK_OK(result);
     
     IpcChannel* channel = result.result;
-    CHECK(channel != nullptr);
+    test_utils::verify_channel_creation(channel);
     
     ipc_channel_destroy(channel);
 }

@@ -1,13 +1,13 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "test_utils.h"
-#include "shmipc/ipc_common.h"
 #include "shmipc/ipc_buffer.h"
 #include <chrono>
 #include <vector>
 #include <thread>
 #include <atomic>
 #include <random>
+#include <iomanip>
 
 using namespace std::chrono;
 
@@ -44,7 +44,7 @@ TEST_CASE("buffer stress - high load throughput") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)successful_operations / duration.count() * 1000000;
-    std::cout << "Buffer high load throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Buffer high load throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(successful_operations > 0);
     CHECK(throughput > 1000);
@@ -64,7 +64,7 @@ TEST_CASE("buffer stress - memory pressure") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double creation_time = (double)duration.count() / num_buffers;
-    std::cout << "Buffer memory pressure - creation: " << creation_time << " μs per buffer" << std::endl;
+    std::cout << "Buffer memory pressure - creation: " << std::fixed << std::setprecision(1) << creation_time << " μs per buffer" << std::endl;
     
     CHECK(creation_time < 10000);
 }
@@ -102,7 +102,7 @@ TEST_CASE("buffer stress - concurrent high load") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)items_processed / duration.count() * 1000000;
-    std::cout << "Buffer concurrent high load throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Buffer concurrent high load throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(items_processed > 0);
     CHECK(throughput > 1000);
@@ -142,8 +142,8 @@ TEST_CASE("buffer stress - large data burst") {
     
     double throughput = (double)successful_operations / duration.count() * 1000000;
     double data_throughput = (double)successful_operations * sizeof(int) / duration.count() * 1000000 / (1024 * 1024);
-    std::cout << "Buffer large data burst throughput: " << throughput << " ops/sec, " 
-              << data_throughput << " MB/sec" << std::endl;
+    std::cout << "Buffer large data burst throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec, " 
+              << std::fixed << std::setprecision(2) << data_throughput << " MB/sec" << std::endl;
     
     CHECK(successful_operations > 0);
     CHECK(throughput > 100);
@@ -176,7 +176,7 @@ TEST_CASE("buffer stress - rapid create destroy") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double cycle_time = (double)duration.count() / num_cycles;
-    std::cout << "Buffer rapid create/destroy cycle time: " << cycle_time << " μs per cycle" << std::endl;
+    std::cout << "Buffer rapid create/destroy cycle time: " << std::fixed << std::setprecision(2) << cycle_time << " μs per cycle" << std::endl;
     
     CHECK(cycle_time < 1000);
 }
@@ -207,7 +207,7 @@ TEST_CASE("buffer stress - reserve commit stress") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)num_operations / duration.count() * 1000000;
-    std::cout << "Buffer reserve/commit stress throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Buffer reserve/commit stress throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(throughput > 1000);
 }
@@ -259,7 +259,7 @@ TEST_CASE("buffer stress - peek skip stress") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)successful_operations / duration.count() * 1000000;
-    std::cout << "Buffer peek/skip stress throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Buffer peek/skip stress throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(successful_operations > 0);
     CHECK(throughput > 100);
@@ -306,7 +306,7 @@ TEST_CASE("buffer stress - random operations") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)num_operations / duration.count() * 1000000;
-    std::cout << "Buffer random operations throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Buffer random operations throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(throughput > 10000);
 }
@@ -389,7 +389,7 @@ TEST_CASE("buffer stress - concurrent mixed operations") {
     auto duration = duration_cast<microseconds>(end - start);
     
     double throughput = (double)total_operations.load() / duration.count() * 1000000;
-    std::cout << "Buffer concurrent mixed operations throughput: " << throughput << " ops/sec" << std::endl;
+    std::cout << "Buffer concurrent mixed operations throughput: " << std::fixed << std::setprecision(0) << throughput << " ops/sec" << std::endl;
     
     CHECK(throughput > 10000);
 }

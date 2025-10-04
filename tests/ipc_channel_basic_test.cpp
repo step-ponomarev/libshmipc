@@ -1,9 +1,10 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
-
-#include "../src/ipc_utils.h"
+#include "test_utils.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_channel.h"
+#include "shmipc/ipc_common.h"
+#include "../src/ipc_utils.h"
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -49,9 +50,7 @@ TEST_CASE("write read") {
     const uint64_t size = ipc_channel_align_size(128);
     std::vector<uint8_t> mem(size);
 
-    IpcChannelResult channel_result =
-        ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
-
+    IpcChannelResult channel_result = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *producer = channel_result.result;
     CHECK(producer != nullptr);
 
@@ -63,13 +62,8 @@ TEST_CASE("write read") {
     IpcChannel *consumer = connect_result.result;
     CHECK(consumer != nullptr);
 
-    IpcEntry entry;
-    CHECK(ipc_channel_read(consumer, &entry).ipc_status == IPC_OK);
-
-    int res;
-    memcpy(&res, entry.payload, sizeof(res));
+    const int res = test_utils::read_data_safe<int>(consumer);
     CHECK(res == val);
-    free(entry.payload);
 
     ipc_channel_destroy(producer);
     ipc_channel_destroy(consumer);

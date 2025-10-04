@@ -1,6 +1,5 @@
 #pragma once
 
-#include "doctest/doctest.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_channel.h"
 #include "shmipc/ipc_common.h"
@@ -8,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 template<typename T>
@@ -471,6 +471,70 @@ void reserve_and_write(IpcBuffer* buffer, const T& data) {
 void fill_buffer(IpcBuffer* buffer, size_t count) {
     for (size_t i = 0; i < count; ++i) {
         write_data(buffer, i);
+    }
+}
+
+template<typename T>
+bool write_data_safe(IpcBuffer* buffer, const T& data) {
+    const IpcBufferWriteResult result = ipc_buffer_write(buffer, &data, sizeof(data));
+    return result.ipc_status == IPC_OK;
+}
+
+template<typename T>
+bool write_data_safe(IpcChannel* channel, const T& data) {
+    const IpcChannelWriteResult result = ipc_channel_write(channel, &data, sizeof(data));
+    return result.ipc_status == IPC_OK;
+}
+
+template<typename T>
+T read_data_safe(IpcBuffer* buffer) {
+    test_utils::EntryWrapper entry(sizeof(T));
+    IpcEntry entry_ref = entry.get();
+    const IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
+    if (!IpcBufferReadResult_is_ok(result)) {
+        throw std::runtime_error("Failed to read from buffer");
+    }
+    
+    T data;
+    memcpy(&data, entry_ref.payload, sizeof(T));
+    return data;
+}
+
+template<typename T>
+T read_data_safe(IpcChannel* channel) {
+    IpcEntry entry;
+    const IpcChannelReadResult result = ipc_channel_read(channel, &entry);
+    if (!IpcChannelReadResult_is_ok(result)) {
+        throw std::runtime_error("Failed to read from channel");
+    }
+    
+    T data;
+    memcpy(&data, entry.payload, sizeof(T));
+    free(entry.payload);
+    return data;
+}
+
+void verify_buffer_creation(IpcBuffer* buffer, size_t /* expected_size */) {
+    if (buffer == nullptr) {
+        throw std::runtime_error("Buffer is null");
+    }
+    
+    const int test_value = 42;
+    const IpcBufferWriteResult write_result = ipc_buffer_write(buffer, &test_value, sizeof(test_value));
+    if (write_result.ipc_status != IPC_OK) {
+        throw std::runtime_error("Failed to write to buffer");
+    }
+}
+
+void verify_channel_creation(IpcChannel* channel) {
+    if (channel == nullptr) {
+        throw std::runtime_error("Channel is null");
+    }
+    
+    const int test_value = 42;
+    const IpcChannelWriteResult write_result = ipc_channel_write(channel, &test_value, sizeof(test_value));
+    if (write_result.ipc_status != IPC_OK) {
+        throw std::runtime_error("Failed to write to channel");
     }
 }
 
