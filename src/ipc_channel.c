@@ -110,16 +110,16 @@ IpcChannelConnectResult ipc_channel_connect(void *mem,
 }
 
 IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel) {
+  IpcChannelDestroyError error;
+
   if (channel == NULL) {
-    IpcChannelDestroyError body = {.had_buffer = false};
     return IpcChannelDestroyResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", error);
   }
 
   if (channel->buffer == NULL) {
-    IpcChannelDestroyError body = {.had_buffer = (channel->buffer != NULL)};
     return IpcChannelDestroyResult_error_body(
-        IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", body);
+        IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
   }
 
   free(channel->buffer);
