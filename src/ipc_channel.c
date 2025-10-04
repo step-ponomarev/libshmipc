@@ -26,48 +26,42 @@ inline uint64_t ipc_channel_align_size(size_t size) {
 IpcChannelResult ipc_channel_create(void *mem, const size_t size,
                                     const IpcChannelConfiguration config) {
   const size_t min_total = ipc_buffer_align_size(2);
+  IpcChannelOpenError error = {
+      .requested_size = size, .min_size = min_total, .config = config};
 
   if (mem == NULL) {
-    IpcChannelOpenError body = {
-        .requested_size = size, .min_size = min_total, .config = config};
     return IpcChannelResult_error_body(IPC_ERR_INVALID_ARGUMENT,
-                                       "invalid argument: mem is NULL", body);
+                                       "invalid argument: mem is NULL", error);
   }
 
   if (size == 0) {
-    IpcChannelOpenError body = {
-        .requested_size = size, .min_size = min_total, .config = config};
     return IpcChannelResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer size is 0", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer size is 0", error);
   }
 
   if (!_is_valid_config(config)) {
-    IpcChannelOpenError body = {
-        .requested_size = size, .min_size = min_total, .config = config};
+    error.requested_size = size;
     return IpcChannelResult_error_body(
         IPC_ERR_INVALID_ARGUMENT,
         "invalid argument: valid config must be {start_sleep_ns > 0 && "
         "max_round_trips > 0 && max_sleep_ns > 0 && max_sleep_ns >= "
         "start_sleep_ns}",
-        body);
-  }
-
-  IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
-  if (channel == NULL) {
-    IpcChannelOpenError body = {
-        .requested_size = size, .min_size = min_total, .config = config};
-    return IpcChannelResult_error_body(
-        IPC_ERR_SYSTEM, "system error: channel allocation failed", body);
+        error);
   }
 
   const IpcBufferCreateResult buffer_result =
       ipc_buffer_create(mem, (size_t)size);
   if (IpcBufferCreateResult_is_error(buffer_result)) {
-    IpcChannelOpenError body = {
-        .requested_size = size, .min_size = min_total, .config = config};
-    free(channel);
+    error.requested_size = size;
     return IpcChannelResult_error_body(buffer_result.ipc_status,
-                                       buffer_result.error.detail, body);
+                                       buffer_result.error.detail, error);
+  }
+
+  IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
+  if (channel == NULL) {
+    error.requested_size = size;
+    return IpcChannelResult_error_body(
+        IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
   }
 
   channel->buffer = buffer_result.result;
