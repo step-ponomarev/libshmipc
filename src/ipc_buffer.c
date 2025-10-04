@@ -211,6 +211,9 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
   const size_t dst_cap = dest->size;
   uint64_t head;
 
+  uint8_t dest_snapshot[dst_cap];
+  memcpy(dest_snapshot, dest->payload, dst_cap);
+  
   for (;;) {
     head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
 
@@ -243,6 +246,8 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
       dest->id = head;
       dest->size = header->payload_size;
       return IpcBufferReadResult_ok(IPC_OK);
+    } else {
+      memcpy(dest->payload, dest_snapshot, dst_cap);
     }
   }
 }
@@ -264,15 +269,15 @@ IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
       atomic_load(&((const struct IpcBuffer *)buffer)->header->head);
 
   EntryHeader *header = NULL;
-  const IpcStatus st =
+  const IpcStatus status =
       _read_entry_header((const struct IpcBuffer *)buffer, head, &header);
-  if (st != IPC_OK) {
-    if (st == IPC_EMPTY) {
+  if (status != IPC_OK) {
+    if (status == IPC_EMPTY) {
       return IpcBufferPeekResult_ok(IPC_EMPTY);
     }
 
     error.entry_id = head;
-    return IpcBufferPeekResult_error_body(st, "unreadable buffer state", error);
+    return IpcBufferPeekResult_error_body(status, "unreadable buffer state", error);
   }
 
   dest->id = head;
@@ -282,13 +287,12 @@ IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
   return IpcBufferPeekResult_ok(IPC_OK);
 }
 
-/* === skip: head!=id -> ok(ALREADY_SKIPPED), LOCKED -> error, EMPTY ->
- * ok(EMPTY) === */
 IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
+  IpcBufferSkipError error = {.entry_id = id};
+
   if (buffer == NULL) {
-    IpcBufferSkipError body = {.entry_id = id};
     return IpcBufferSkipResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
 
   uint64_t head;
@@ -298,25 +302,25 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
   do {
     head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
     if (head != id) {
+      error.entry_id = head;
       return IpcBufferSkipResult_error_body(
           IPC_ERR_TRANSACTION_MISMATCH,
-          "Transaction ID mismatch: expected different ID than current head",
-          (IpcBufferSkipError){.entry_id = head});
+          "Transaction ID mismatch: expected different ID than current head", error);
     }
 
-    const IpcStatus st =
+    const IpcStatus status =
         _read_entry_header((struct IpcBuffer *)buffer, head, &hdr);
-    if (st == IPC_EMPTY) {
+    if (status == IPC_EMPTY) {
       return IpcBufferSkipResult_ok(IPC_EMPTY, head);
     }
-    if (st == IPC_ERR_LOCKED) {
-      IpcBufferSkipError body = {.entry_id = head};
-      return IpcBufferSkipResult_error_body(IPC_ERR_LOCKED, "locked", body);
+
+    if (status == IPC_ERR_LOCKED) {
+      error.entry_id = head;
+      return IpcBufferSkipResult_error_body(IPC_ERR_LOCKED, "locked", error);
     }
 
     flag = _read_flag((uint8_t *)hdr);
   } while (!atomic_compare_exchange_strong(&hdr->flag, &flag, FLAG_LOCKED));
-  /* залочили — двигаем head как раньше */
 
   const bool moved = atomic_compare_exchange_strong(
       &((struct IpcBuffer *)buffer)->header->head, &head,
