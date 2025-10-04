@@ -201,7 +201,6 @@ void _test_race_between_skip_and_read() {
 
     if (IpcBufferSkipResult_is_ok(result)) {
       assert(result.ipc_status == IPC_OK ||
-             result.ipc_status == IPC_ALREADY_SKIPPED ||
              result.ipc_status == IPC_EMPTY);
     } else {
       assert(result.ipc_status == IPC_ERR_LOCKED ||
@@ -220,8 +219,7 @@ void _test_race_between_skip_and_read() {
       memcpy(&v, e.payload, e.size);
       assert(v == val);
     } else {
-      assert(tx.ipc_status == IPC_ALREADY_SKIPPED ||
-             tx.ipc_status == IPC_EMPTY || tx.ipc_status == IPC_ERR_LOCKED);
+      assert(tx.ipc_status == IPC_EMPTY || tx.ipc_status == IPC_ERR_LOCKED);
     }
     free(e.payload);
   });

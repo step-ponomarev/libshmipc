@@ -156,7 +156,6 @@ void _test_race_between_skip_and_read() {
     IpcChannelSkipResult result = ipc_channel_skip(channel, entry.id);
     skip_done.store(true);
     assert(result.ipc_status == IPC_OK || result.ipc_status == IPC_ERR_LOCKED ||
-           result.ipc_status == IPC_ALREADY_SKIPPED ||
            result.ipc_status == IPC_ERR_TRANSACTION_MISMATCH ||
            result.ipc_status == IPC_EMPTY);
   });

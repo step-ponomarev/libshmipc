@@ -296,20 +296,21 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
   }
 
   uint64_t head;
-  EntryHeader *hdr = NULL;
+  EntryHeader *header = NULL;
   Flag flag;
 
-  do {
+  for (;;) {
     head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
     if (head != id) {
       error.entry_id = head;
       return IpcBufferSkipResult_error_body(
           IPC_ERR_TRANSACTION_MISMATCH,
-          "Transaction ID mismatch: expected different ID than current head", error);
+          "Transaction ID mismatch: expected different ID than current head",
+          error);
     }
 
     const IpcStatus status =
-        _read_entry_header((struct IpcBuffer *)buffer, head, &hdr);
+        _read_entry_header((struct IpcBuffer *)buffer, head, &header);
     if (status == IPC_EMPTY) {
       return IpcBufferSkipResult_ok(IPC_EMPTY, head);
     }
@@ -319,14 +320,23 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
       return IpcBufferSkipResult_error_body(IPC_ERR_LOCKED, "locked", error);
     }
 
-    flag = _read_flag((uint8_t *)hdr);
-  } while (!atomic_compare_exchange_strong(&hdr->flag, &flag, FLAG_LOCKED));
+    flag = header->flag;
+    if (atomic_compare_exchange_strong(&header->flag, &flag, FLAG_LOCKED)) {
+      break;
+    }
+  }
 
-  const bool moved = atomic_compare_exchange_strong(
-      &((struct IpcBuffer *)buffer)->header->head, &head,
-      head + hdr->entry_size);
-  const IpcStatus st = moved ? IPC_OK : IPC_ALREADY_SKIPPED;
-  return IpcBufferSkipResult_ok(st, id);
+  if (!atomic_compare_exchange_strong(
+          &((struct IpcBuffer *)buffer)->header->head, &head,
+          head + header->entry_size)) {
+    error.entry_id = head;
+    return IpcBufferSkipResult_error_body(
+        IPC_ERR_TRANSACTION_MISMATCH,
+        "Transaction ID mismatch: expected different ID than current head",
+        error);
+  }
+
+  return IpcBufferSkipResult_ok(IPC_OK, id);
 }
 
 IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
