@@ -210,25 +210,23 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
 
   const size_t dst_cap = dest->size;
   uint64_t head;
-  uint64_t full_entry_size;
 
   for (;;) {
     head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
 
     EntryHeader *header = NULL;
-    const IpcStatus st =
+    const IpcStatus status =
         _read_entry_header((struct IpcBuffer *)buffer, head, &header);
-    if (st != IPC_OK) {
-      if (st == IPC_EMPTY) {
+    if (status != IPC_OK) {
+      if (status == IPC_EMPTY) {
         return IpcBufferReadResult_ok(IPC_EMPTY);
       }
 
       error.entry_id = head;
-      return IpcBufferReadResult_error_body(st, "unreadable entry state",
+      return IpcBufferReadResult_error_body(status, "unreadable entry state",
                                             error);
     }
 
-    full_entry_size = header->entry_size;
     if (dst_cap < header->payload_size) {
       error.entry_id = head;
       error.required_size = header->payload_size;
@@ -241,7 +239,7 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
 
     if (atomic_compare_exchange_strong(
             &((struct IpcBuffer *)buffer)->header->head, &head,
-            head + full_entry_size)) {
+            head + header->entry_size)) {
       dest->id = head;
       dest->size = header->payload_size;
       return IpcBufferReadResult_ok(IPC_OK);
@@ -249,17 +247,16 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
   }
 }
 
-/* === peek: 1-в-1 как раньше; EMPTY -> ok(EMPTY), ERR -> error === */
 IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
+  IpcBufferPeekError error = {.entry_id = 0};
+
   if (buffer == NULL) {
-    IpcBufferPeekError body = {.entry_id = 0};
     return IpcBufferPeekResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
   if (dest == NULL) {
-    IpcBufferPeekError body = {.entry_id = 0};
     return IpcBufferPeekResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is NULL", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is NULL", error);
   }
 
   const uint64_t head =
