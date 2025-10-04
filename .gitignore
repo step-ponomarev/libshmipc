@@ -60,3 +60,4 @@ build
 .cache
 compile_commands.json
 Testing
+third_party_doctest

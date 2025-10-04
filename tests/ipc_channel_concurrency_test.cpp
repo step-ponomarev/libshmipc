@@ -1,7 +1,8 @@
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "doctest/doctest.h"
+
 #include "concurrent_set.hpp"
 #include "shmipc/ipc_channel.h"
-#include "test_runner.h"
-#include <assert.h>
 #include <atomic>
 #include <cstdint>
 #include <memory>
@@ -45,7 +46,7 @@ void consume(IpcChannel *channel, const size_t expected,
   }
 }
 
-void test_single_writer_single_reader() {
+TEST_CASE("single writer single reader") {
   const uint64_t size = ipc_channel_align_size(128);
   const size_t count = 200000;
 
@@ -63,15 +64,15 @@ void test_single_writer_single_reader() {
   producer.join();
   consumer_thr.join();
 
-  assert(dest->size() == count);
+  CHECK(dest->size() == count);
   for (size_t i = 0; i < count; i++) {
-    assert(dest->contains(i));
+    CHECK(dest->contains(i));
   }
 
   ipc_channel_destroy(channel);
 }
 
-void test_multiple_writer_single_reader() {
+TEST_CASE("multiple writer single reader") {
   const uint64_t size = ipc_channel_align_size(128);
   const size_t total = 300000;
 
@@ -92,15 +93,15 @@ void test_multiple_writer_single_reader() {
   p3.join();
   consumer_thr.join();
 
-  assert(dest->size() == total);
+  CHECK(dest->size() == total);
   for (size_t i = 0; i < total; i++) {
-    assert(dest->contains(i));
+    CHECK(dest->contains(i));
   }
 
   ipc_channel_destroy(channel);
 }
 
-void test_multiple_writer_multiple_reader() {
+TEST_CASE("multiple writer multiple reader") {
   const uint64_t size = ipc_channel_align_size(128);
   const size_t total = 300000;
 
@@ -125,9 +126,9 @@ void test_multiple_writer_multiple_reader() {
   c2.join();
   c3.join();
 
-  assert(dest->size() == total);
+  CHECK(dest->size() == total);
   for (size_t i = 0; i < total; i++) {
-    assert(dest->contains(i));
+    CHECK(dest->contains(i));
   }
 
   ipc_channel_destroy(channel);
@@ -141,11 +142,11 @@ void _test_race_between_skip_and_read() {
   IpcChannel *channel = channel_result.result;
 
   const size_t val = 42;
-  assert(ipc_channel_write(channel, &val, sizeof(val)).ipc_status == IPC_OK);
+  CHECK(ipc_channel_write(channel, &val, sizeof(val)).ipc_status == IPC_OK);
 
   IpcEntry entry;
   IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
-  assert(pk.ipc_status == IPC_OK);
+  CHECK(pk.ipc_status == IPC_OK);
 
   std::atomic<bool> skip_done = false;
   std::atomic<bool> read_done = false;
@@ -156,9 +157,11 @@ void _test_race_between_skip_and_read() {
     IpcChannelSkipResult result = ipc_channel_skip(channel, entry.offset);
     skip_done.store(true);
     
-    assert(result.ipc_status == IPC_OK || result.ipc_status == IPC_ERR_LOCKED ||
-           result.ipc_status == IPC_ERR_OFFSET_MISMATCH ||
-           result.ipc_status == IPC_EMPTY);
+    bool valid_status = (result.ipc_status == IPC_OK || 
+                        result.ipc_status == IPC_ERR_LOCKED ||
+                        result.ipc_status == IPC_ERR_OFFSET_MISMATCH ||
+                        result.ipc_status == IPC_EMPTY);
+    CHECK(valid_status);
   });
 
   std::thread t2([&] {
@@ -167,34 +170,25 @@ void _test_race_between_skip_and_read() {
     if (result.ipc_status == IPC_OK) {
       size_t v;
       memcpy(&v, e.payload, e.size);
-      assert(v == val);
+      CHECK(v == val);
       free(e.payload);
     } else {
-      assert(result.ipc_status == IPC_EMPTY || result.ipc_status == IPC_ERR_LOCKED);
+      bool valid_status = (result.ipc_status == IPC_EMPTY || result.ipc_status == IPC_ERR_LOCKED);
+      CHECK(valid_status);
     }
   });
 
   t1.join();
   t2.join();
-  assert(skip_done.load() && read_done.load());
+  CHECK(skip_done.load());
+  CHECK(read_done.load());
 
   ipc_channel_destroy(channel);
 }
 
-void test_race_between_skip_and_read() {
+TEST_CASE("race between skip and read") {
   for (int i = 0; i < 1000; i++) {
     _test_race_between_skip_and_read();
   }
 }
 
-int main() {
-  run_test("single writer & single reader", &test_single_writer_single_reader);
-  run_test("multiple writer & single reader",
-           &test_multiple_writer_single_reader);
-  run_test("multiple writer & multiple reader",
-           &test_multiple_writer_multiple_reader);
-
-  run_test("race between skip and read", &test_race_between_skip_and_read);
-
-  return 0;
-}

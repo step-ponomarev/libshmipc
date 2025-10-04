@@ -1,8 +1,9 @@
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "doctest/doctest.h"
+
 #include "concurrent_set.hpp"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_common.h"
-#include "test_runner.h"
-#include <assert.h>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -62,7 +63,7 @@ void consume(IpcBuffer *buf, const size_t expected,
   free(e.payload);
 }
 
-void test_single_writer_single_reader() {
+TEST_CASE("single writer single reader") {
   const uint64_t size = ipc_buffer_align_size(128);
   const size_t count = 200000;
 
@@ -79,15 +80,15 @@ void test_single_writer_single_reader() {
   producer.join();
   consumer.join();
 
-  assert(dest->size() == count);
+  CHECK(dest->size() == count);
   for (size_t i = 0; i < count; i++) {
-    assert(dest->contains(i));
+    CHECK(dest->contains(i));
   }
 
   free(buf);
 }
 
-void test_multiple_writer_single_reader() {
+TEST_CASE("multiple writer single reader") {
   const uint64_t size = ipc_buffer_align_size(128);
   const size_t total = 300000;
 
@@ -107,15 +108,15 @@ void test_multiple_writer_single_reader() {
   p2.join();
   p3.join();
   consumer.join();
-  assert(dest->size() == total);
+  CHECK(dest->size() == total);
   for (size_t i = 0; i < total; i++) {
-    assert(dest->contains(i));
+    CHECK(dest->contains(i));
   }
 
   free(buf);
 }
 
-void test_multiple_writer_multiple_reader() {
+TEST_CASE("multiple writer multiple reader") {
   const uint64_t size = ipc_buffer_align_size(128);
   const size_t total = 300000;
 
@@ -140,15 +141,15 @@ void test_multiple_writer_multiple_reader() {
   consumer2.join();
   consumer3.join();
 
-  assert(dest->size() == total);
+  CHECK(dest->size() == total);
   for (size_t i = 0; i < total; i++) {
-    assert(dest->contains(i));
+    CHECK(dest->contains(i));
   }
 
   free(buf);
 }
 
-void test_delayed_multiple_writer_multiple_reader() {
+TEST_CASE("delayed multiple writer multiple reader") {
   const uint64_t size = ipc_buffer_align_size(128);
   const size_t total = 3000;
 
@@ -173,9 +174,9 @@ void test_delayed_multiple_writer_multiple_reader() {
   consumer2.join();
   consumer3.join();
 
-  assert(dest->size() == total);
+  CHECK(dest->size() == total);
   for (size_t i = 0; i < total; i++) {
-    assert(dest->contains(i));
+    CHECK(dest->contains(i));
   }
 
   free(buf);
@@ -189,21 +190,21 @@ void _test_race_between_skip_and_read() {
   IpcBuffer *buf = buffer_result.result;
 
   const size_t val = 42;
-  assert(ipc_buffer_write(buf, &val, sizeof(val)).ipc_status == IPC_OK);
+  CHECK(ipc_buffer_write(buf, &val, sizeof(val)).ipc_status == IPC_OK);
 
   IpcEntry entry;
   IpcBufferPeekResult peek_res = ipc_buffer_peek(buf, &entry);
-  assert(peek_res.ipc_status == IPC_OK);
+  CHECK(peek_res.ipc_status == IPC_OK);
 
   std::thread t1([&] {
     IpcBufferSkipResult result = ipc_buffer_skip(buf, entry.offset);
 
     if (IpcBufferSkipResult_is_ok(result)) {
-      assert(result.ipc_status == IPC_OK ||
-             result.ipc_status == IPC_EMPTY);
+      bool valid_status = (result.ipc_status == IPC_OK || result.ipc_status == IPC_EMPTY);
+      CHECK(valid_status);
     } else {
-      assert(result.ipc_status == IPC_ERR_LOCKED ||
-             result.ipc_status == IPC_ERR_OFFSET_MISMATCH);
+      bool valid_status = (result.ipc_status == IPC_ERR_LOCKED || result.ipc_status == IPC_ERR_OFFSET_MISMATCH);
+      CHECK(valid_status);
     }
   });
 
@@ -216,9 +217,10 @@ void _test_race_between_skip_and_read() {
     if (result.ipc_status == IPC_OK) {
       size_t v;
       memcpy(&v, e.payload, e.size);
-      assert(v == val);
+      CHECK(v == val);
     } else {
-      assert(result.ipc_status == IPC_EMPTY || result.ipc_status == IPC_ERR_LOCKED);
+      bool valid_status = (result.ipc_status == IPC_EMPTY || result.ipc_status == IPC_ERR_LOCKED);
+      CHECK(valid_status);
     }
     free(e.payload);
   });
@@ -228,24 +230,9 @@ void _test_race_between_skip_and_read() {
   free(buf);
 }
 
-void test_race_between_skip_and_read() {
+TEST_CASE("race between skip and read") {
   for (int i = 0; i < 1000; i++) {
     _test_race_between_skip_and_read();
   }
 }
 
-int main() {
-  run_test("single writer & single reader", &test_single_writer_single_reader);
-  run_test("multiple writer & single reader",
-           &test_multiple_writer_single_reader);
-  run_test("multiple writer & multiple reader",
-           &test_multiple_writer_multiple_reader);
-  run_test("multiple delayed writer & multiple reader",
-           &test_delayed_multiple_writer_multiple_reader);
-
-  run_test("race between skip and read", &test_race_between_skip_and_read);
-
-  
-
-  return 0;
-}
