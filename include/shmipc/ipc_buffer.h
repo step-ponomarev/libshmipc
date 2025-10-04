@@ -2,6 +2,7 @@
 
 #include <shmipc/ipc_common.h>
 #include <shmipc/ipc_export.h>
+#include <stdbool.h>
 
 SHMIPC_BEGIN_DECLS
 
@@ -57,7 +58,7 @@ SHMIPC_API IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer,
                                                const IpcEntryId id);
 
 typedef struct IpcBufferSkipForceError {
-  IpcEntryId entry_id;
+  bool _unit;
 } IpcBufferSkipForceError;
 IPC_RESULT(IpcBufferSkipForceResult, IpcEntryId, IpcBufferSkipForceError)
 SHMIPC_API IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer);

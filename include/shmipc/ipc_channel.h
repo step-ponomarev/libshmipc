@@ -86,7 +86,7 @@ SHMIPC_API IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel,
                                                  const IpcEntryId id);
 
 typedef struct IpcChannelSkipForceError {
-  IpcEntryId entry_id;
+  bool _unit;
 } IpcChannelSkipForceError;
 IPC_RESULT(IpcChannelSkipForceResult, IpcEntryId, IpcChannelSkipForceError)
 SHMIPC_API IpcChannelSkipForceResult

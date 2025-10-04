@@ -298,7 +298,7 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
 }
 
 IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
-  IpcBufferSkipForceError error = {.entry_id = 0};
+  IpcBufferSkipForceError error = {._unit = false};
 
   if (buffer == NULL) {
     return IpcBufferSkipForceResult_error_body(
