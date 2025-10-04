@@ -212,7 +212,6 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
 
 IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
   IpcBufferPeekError error = {.entry_id = 0};
-
   if (buffer == NULL) {
     return IpcBufferPeekResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
@@ -279,7 +278,7 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
       return IpcBufferSkipResult_error_body(IPC_ERR_LOCKED, "locked", error);
     }
 
-    flag = header->flag;
+    flag = _read_flag(&header->flag);
     if (atomic_compare_exchange_strong(&header->flag, &flag, FLAG_LOCKED)) {
       break;
     }
@@ -461,10 +460,14 @@ static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
   const uint64_t buf_size = atomic_load(&buffer->header->data_size);
   const uint64_t rel_head = RELATIVE(head, buf_size);
 
-  const Flag first_flag = _read_flag(buffer->data + rel_head);
+  Flag first_flag = _read_flag(buffer->data + rel_head);
   EntryHeader *header = (first_flag == FLAG_WRAP_AROUND)
                             ? (EntryHeader *)buffer->data
                             : (EntryHeader *)(buffer->data + rel_head);
+
+  if (first_flag == FLAG_WRAP_AROUND) {
+    first_flag = _read_flag(&header->flag);
+  }
 
   // always set dest
   *dest = header;

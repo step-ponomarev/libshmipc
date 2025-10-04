@@ -424,6 +424,7 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
 static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
   IpcChannelReadError error = {.entry_id = 0};
 
+
   if (channel == NULL) {
     return IpcChannelReadResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", error);
@@ -476,6 +477,8 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
 
     const IpcBufferReadResult read_result =
         ipc_buffer_read(channel->buffer, dest);
+
+
     if (IpcBufferReadResult_is_error(read_result)) {
       if (read_result.ipc_status == IPC_ERR_TOO_SMALL) {
         continue;
@@ -486,7 +489,7 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
                                              read_result.error.detail, error);
     }
 
-    return IpcChannelReadResult_ok(IPC_OK);
+    return IpcChannelReadResult_ok(read_result.ipc_status);
   }
 }
 

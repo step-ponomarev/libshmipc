@@ -51,7 +51,6 @@ void consume(IpcBuffer *buf, const size_t expected,
 
     IpcBufferReadResult tx = ipc_buffer_read(buf, &e);
     if (IpcBufferReadResult_is_error(tx)) {
-      printf("read error: %d + size: %lu \n", tx.ipc_status, e.size);
       continue;
     }
 
@@ -237,14 +236,16 @@ void test_race_between_skip_and_read() {
 
 int main() {
   run_test("single writer & single reader", &test_single_writer_single_reader);
-  // run_test("multiple writer & single reader",
-  //          &test_multiple_writer_single_reader);
-  // run_test("multiple writer & multiple reader",
-  //          &test_multiple_writer_multiple_reader);
-  // run_test("multiple delayed writer & multiple reader",
-  //          &test_delayed_multiple_writer_multiple_reader);
+  run_test("multiple writer & single reader",
+           &test_multiple_writer_single_reader);
+  run_test("multiple writer & multiple reader",
+           &test_multiple_writer_multiple_reader);
+  run_test("multiple delayed writer & multiple reader",
+           &test_delayed_multiple_writer_multiple_reader);
 
-  // run_test("race between skip and read", &test_race_between_skip_and_read);
+  run_test("race between skip and read", &test_race_between_skip_and_read);
+
+  
 
   return 0;
 }
