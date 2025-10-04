@@ -34,51 +34,11 @@ typedef struct EntryHeader {
   uint64_t entry_size;
 } EntryHeader;
 
-static inline uint64_t _find_max_power_of_2(const uint64_t max) {
-  uint64_t res = 1;
-  while (res < max)
-    res <<= 1;
-  return res == max ? max : (res >> 1);
-}
-
-static inline Flag _read_flag(const void *addr) {
-  const _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
-  return atomic_load_explicit(atomic_flag, memory_order_acquire);
-}
-
-static inline void _set_flag(void *addr, const Flag flag) {
-  _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
-  atomic_store_explicit(atomic_flag, flag, memory_order_release);
-}
-
-static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
-                                           const uint64_t head,
-                                           EntryHeader **dest) {
-  if (head == atomic_load(&buffer->header->tail)) {
-    return IPC_EMPTY;
-  }
-
-  const uint64_t buf_size = atomic_load(&buffer->header->data_size);
-  const uint64_t rel_head = RELATIVE(head, buf_size);
-
-  const Flag first_flag = _read_flag(buffer->data + rel_head);
-  EntryHeader *header = (first_flag == FLAG_WRAP_AROUND)
-                            ? (EntryHeader *)buffer->data
-                            : (EntryHeader *)(buffer->data + rel_head);
-
-  // always set dest
-  *dest = header;
-
-  if (first_flag == FLAG_NOT_READY) {
-    return IPC_ERR_NOT_READY;
-  }
-
-  if (first_flag == FLAG_LOCKED) {
-    return IPC_ERR_LOCKED;
-  }
-
-  return (head != header->seq) ? IPC_ERR_CORRUPTED : IPC_OK;
-}
+static uint64_t _find_max_power_of_2(const uint64_t max);
+static Flag _read_flag(const void *addr);
+static void _set_flag(void *addr, const Flag flag);
+static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
+                                    const uint64_t head, EntryHeader **dest);
 
 uint64_t ipc_buffer_align_size(size_t size) {
   return (size < 2 ? 2 : size) + sizeof(IpcBufferHeader);
@@ -213,7 +173,7 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
 
   const size_t dst_cap = dest->size;
   uint64_t head;
-  
+
   for (;;) {
     head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
 
@@ -237,7 +197,7 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
           IPC_ERR_TOO_SMALL, "destination buffer is too small", error);
     }
 
-    //read/write race guard, read before move head
+    // read/write race guard, read before move head
     memcpy(dest->payload, ((uint8_t *)header) + sizeof(EntryHeader),
            header->payload_size);
     if (atomic_compare_exchange_strong(
@@ -275,7 +235,8 @@ IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
     }
 
     error.entry_id = head;
-    return IpcBufferPeekResult_error_body(status, "unreadable buffer state", error);
+    return IpcBufferPeekResult_error_body(status, "unreadable buffer state",
+                                          error);
   }
 
   dest->id = head;
@@ -347,7 +308,8 @@ IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
 
   uint64_t head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
   EntryHeader *header = NULL;
-  IpcStatus status = _read_entry_header((struct IpcBuffer *)buffer, head, &header);
+  IpcStatus status =
+      _read_entry_header((struct IpcBuffer *)buffer, head, &header);
   if (status == IPC_EMPTY) {
     return IpcBufferSkipForceResult_ok(IPC_EMPTY, head);
   }
@@ -419,7 +381,8 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
           error);
     }
   } while (!atomic_compare_exchange_strong(
-      &((struct IpcBuffer *)buffer)->header->tail, &tail, tail + total_required_entry_size));
+      &((struct IpcBuffer *)buffer)->header->tail, &tail,
+      tail + total_required_entry_size));
 
   uint64_t offset = rel_tail;
   if (wrapped) {
@@ -469,4 +432,50 @@ IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
   _set_flag((uint8_t *)&header->flag, FLAG_READY);
 
   return IpcBufferCommitEntryResult_ok(IPC_OK);
+}
+
+static inline uint64_t _find_max_power_of_2(const uint64_t max) {
+  uint64_t res = 1;
+  while (res < max)
+    res <<= 1;
+  return res == max ? max : (res >> 1);
+}
+
+static inline Flag _read_flag(const void *addr) {
+  const _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
+  return atomic_load_explicit(atomic_flag, memory_order_acquire);
+}
+
+static inline void _set_flag(void *addr, const Flag flag) {
+  _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
+  atomic_store_explicit(atomic_flag, flag, memory_order_release);
+}
+
+static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
+                                           const uint64_t head,
+                                           EntryHeader **dest) {
+  if (head == atomic_load(&buffer->header->tail)) {
+    return IPC_EMPTY;
+  }
+
+  const uint64_t buf_size = atomic_load(&buffer->header->data_size);
+  const uint64_t rel_head = RELATIVE(head, buf_size);
+
+  const Flag first_flag = _read_flag(buffer->data + rel_head);
+  EntryHeader *header = (first_flag == FLAG_WRAP_AROUND)
+                            ? (EntryHeader *)buffer->data
+                            : (EntryHeader *)(buffer->data + rel_head);
+
+  // always set dest
+  *dest = header;
+
+  if (first_flag == FLAG_NOT_READY) {
+    return IPC_ERR_NOT_READY;
+  }
+
+  if (first_flag == FLAG_LOCKED) {
+    return IPC_ERR_LOCKED;
+  }
+
+  return (head != header->seq) ? IPC_ERR_CORRUPTED : IPC_OK;
 }

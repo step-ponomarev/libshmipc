@@ -10,13 +10,9 @@ struct IpcChannel {
   IpcChannelConfiguration config;
 };
 
-/* Internals */
 static IpcChannelReadResult _read(IpcChannel *, IpcEntry *,
                                   const struct timespec *);
 static IpcChannelReadResult _try_read(IpcChannel *, IpcEntry *);
-
-/* Раньше возвращали BooleanResult; теперь — простой bool.
- * Детали ошибок формируются в местах вызова, чтобы не менять логику. */
 static bool _sleep_and_expand_delay(struct timespec *, const long);
 static bool _is_valid_config(const IpcChannelConfiguration);
 static bool _is_timeout_valid(const struct timespec *);
