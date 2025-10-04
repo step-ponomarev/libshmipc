@@ -70,17 +70,14 @@ void consume_channel(IpcChannel* channel, size_t expected,
         }
 
         IpcChannelReadResult rx = ipc_channel_read(channel, &entry);
-        if (rx.ipc_status != IPC_OK) {
-            if (dest->size() == expected) {
-                break;
-            }
-            continue;
+        if (rx.ipc_status == IPC_OK) {
+            size_t res;
+            memcpy(&res, entry.payload, entry.size);
+            dest->insert(res);
+            free(entry.payload);
+        } else if (dest->size() == expected) {
+            break;
         }
-
-        size_t res;
-        memcpy(&res, entry.payload, entry.size);
-        dest->insert(res);
-        free(entry.payload);
     }
 }
 
