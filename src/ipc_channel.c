@@ -1,5 +1,6 @@
 #include "ipc_utils.h"
 #include "shmipc/ipc_buffer.h"
+#include "shmipc/ipc_common.h"
 #include <shmipc/ipc_channel.h>
 #include <stdlib.h>
 
@@ -110,7 +111,7 @@ IpcChannelConnectResult ipc_channel_connect(void *mem,
 }
 
 IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel) {
-  IpcChannelDestroyError error;
+  IpcChannelDestroyError error = {._unit = false};
 
   if (channel == NULL) {
     return IpcChannelDestroyResult_error_body(
@@ -163,34 +164,34 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
 }
 
 IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest) {
+  IpcChannelTryReadError error = {.entry_id = 0};
+
   if (channel == NULL) {
-    IpcChannelTryReadError body = {.entry_id = 0};
     return IpcChannelTryReadResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", error);
   }
 
   if (channel->buffer == NULL) {
-    IpcChannelTryReadError body = {.entry_id = 0};
     return IpcChannelTryReadResult_error_body(
-        IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", body);
+        IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
   }
 
   if (dest == NULL) {
-    IpcChannelTryReadError body = {.entry_id = 0};
     return IpcChannelTryReadResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is NULL", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is NULL", error);
   }
 
   IpcEntry read_entry = {.id = 0, .payload = NULL, .size = 0};
-  const IpcChannelReadResult rx = _try_read(channel, &read_entry);
-  if (rx.ipc_status != IPC_OK) {
+  const IpcChannelReadResult read_result = _try_read(channel, &read_entry);
+  if (read_result.ipc_status != IPC_OK) {
     free(read_entry.payload);
-    // Конвертируем IpcChannelReadResult в IpcChannelTryReadResult
-    if (IpcChannelReadResult_is_error(rx)) {
-      IpcChannelTryReadError body = {.entry_id = rx.error.body.entry_id};
-      return IpcChannelTryReadResult_error_body(rx.ipc_status, rx.error.detail, body);
+    if (IpcChannelReadResult_is_error(read_result)) {
+      error.entry_id = read_result.error.body.entry_id;
+      return IpcChannelTryReadResult_error_body(
+          read_result.ipc_status, read_result.error.detail, error);
     }
-    return IpcChannelTryReadResult_ok(rx.ipc_status);
+
+    return IpcChannelTryReadResult_ok(read_result.ipc_status);
   }
 
   dest->payload = read_entry.payload;
@@ -420,76 +421,70 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
 }
 
 static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
+  IpcChannelReadError error = {.entry_id = 0};
+
   if (channel == NULL) {
-    IpcChannelReadError body = {.entry_id = 0};
     return IpcChannelReadResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", error);
   }
 
   if (channel->buffer == NULL) {
-    IpcChannelReadError body = {.entry_id = 0};
     return IpcChannelReadResult_error_body(
-        IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", body);
+        IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
   }
 
   if (dest == NULL) {
-    IpcChannelReadError body = {.entry_id = 0};
     return IpcChannelReadResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: data is NULL", body);
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: data is NULL", error);
   }
 
   for (;;) {
     IpcEntry peek_entry;
-    const IpcBufferPeekResult pr =
+    const IpcBufferPeekResult peek_result =
         ipc_buffer_peek(channel->buffer, &peek_entry);
-    if (pr.ipc_status != IPC_OK) {
-      if (IpcBufferPeekResult_is_error(pr)) {
-        IpcChannelReadError body = {.entry_id = peek_entry.id};
-        return IpcChannelReadResult_error_body(pr.ipc_status, pr.error.detail,
-                                               body);
-      }
-      /* EMPTY/NOT_READY/LOCKED — просто возвращаем статус как ok-result */
-      return IpcChannelReadResult_ok(pr.ipc_status);
+
+    if (IpcBufferPeekResult_is_error(peek_result)) {
+      error.entry_id = peek_entry.id;
+      return IpcChannelReadResult_error_body(peek_result.ipc_status,
+                                             peek_result.error.detail, error);
     }
 
-    /* ensure capacity */
+    if (peek_result.ipc_status != IPC_OK) {
+      return IpcChannelReadResult_ok(peek_result.ipc_status);
+    }
+
     if (dest->payload == NULL) {
       dest->payload = malloc(peek_entry.size);
       if (dest->payload == NULL) {
-        IpcChannelReadError body = {.entry_id = peek_entry.id};
+        error.entry_id = peek_entry.id;
         return IpcChannelReadResult_error_body(
-            IPC_ERR_SYSTEM, "system error: allocation failed", body);
+            IPC_ERR_SYSTEM, "system error: allocation failed", error);
       }
+
       dest->size = peek_entry.size;
     } else if (dest->size < peek_entry.size) {
       void *new_buf = realloc(dest->payload, peek_entry.size);
       if (new_buf == NULL) {
-        IpcChannelReadError body = {.entry_id = peek_entry.id};
+        error.entry_id = peek_entry.id;
         return IpcChannelReadResult_error_body(
-            IPC_ERR_SYSTEM, "system error: allocation failed", body);
+            IPC_ERR_SYSTEM, "system error: allocation failed", error);
       }
       dest->payload = new_buf;
       dest->size = peek_entry.size;
     }
 
-    const IpcBufferReadResult rr = ipc_buffer_read(channel->buffer, dest);
-    if (IpcBufferReadResult_is_error(rr) &&
-        rr.ipc_status == IPC_ERR_TOO_SMALL) {
-      /* гонка: payload вырос между peek и read; попробуем ещё раз, расширив
-       * буфер выше */
-      continue;
-    }
-
-    if (rr.ipc_status != IPC_OK) {
-      if (IpcBufferReadResult_is_error(rr)) {
-        IpcChannelReadError body = {.entry_id = dest->id};
-        return IpcChannelReadResult_error_body(rr.ipc_status, rr.error.detail,
-                                               body);
+    const IpcBufferReadResult read_result =
+        ipc_buffer_read(channel->buffer, dest);
+    if (IpcBufferReadResult_is_error(read_result)) {
+      if (read_result.ipc_status == IPC_ERR_TOO_SMALL) {
+        continue;
       }
-      return IpcChannelReadResult_ok(rr.ipc_status);
+
+      error.entry_id = dest->id;
+      return IpcChannelReadResult_error_body(read_result.ipc_status,
+                                             read_result.error.detail, error);
     }
 
-    /* success */
     return IpcChannelReadResult_ok(IPC_OK);
   }
 }

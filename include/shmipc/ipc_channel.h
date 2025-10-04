@@ -33,6 +33,7 @@ SHMIPC_API IpcChannelConnectResult
 ipc_channel_connect(void *mem, const IpcChannelConfiguration config);
 
 typedef struct IpcChannelDestroyError {
+  bool _unit;
 } IpcChannelDestroyError;
 IPC_RESULT_UNIT(IpcChannelDestroyResult, IpcChannelDestroyError)
 SHMIPC_API IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel);
