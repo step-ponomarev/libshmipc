@@ -51,7 +51,9 @@ public:
     
     BufferWrapper& operator=(BufferWrapper&& other) noexcept {
         if (this != &other) {
-            if (buffer_) free(buffer_);
+            if (buffer_) {
+                free(buffer_);
+            }
             buffer_ = other.buffer_;
             mem_ = std::move(other.mem_);
             other.buffer_ = nullptr;
@@ -81,6 +83,7 @@ public:
     
     IpcChannel* get() const { return channel_; }
     IpcChannel* operator->() const { return channel_; }
+    const uint8_t* get_mem() const { return mem_.data(); }
     
     ChannelWrapper(const ChannelWrapper&) = delete;
     ChannelWrapper& operator=(const ChannelWrapper&) = delete;
@@ -91,7 +94,9 @@ public:
     
     ChannelWrapper& operator=(ChannelWrapper&& other) noexcept {
         if (this != &other) {
-            if (channel_) ipc_channel_destroy(channel_);
+            if (channel_) {
+                ipc_channel_destroy(channel_);
+            }
             channel_ = other.channel_;
             mem_ = std::move(other.mem_);
             other.channel_ = nullptr;
@@ -134,7 +139,9 @@ public:
     
     EntryWrapper& operator=(EntryWrapper&& other) noexcept {
         if (this != &other) {
-            if (payload_) free(payload_);
+            if (payload_) {
+                free(payload_);
+            }
             payload_ = other.payload_;
             size_ = other.size_;
             other.payload_ = nullptr;
@@ -239,7 +246,6 @@ void CHECK_ERROR_WITH_FIELDS(const IpcBufferSkipForceResult& result, IpcStatus e
     CHECK(result.error.body._unit == expected_unit);
 }
 
-// IpcBufferReserveEntryResult utilities
 void CHECK_OK(const IpcBufferReserveEntryResult& result) {
     CHECK(IpcBufferReserveEntryResult_is_ok(result));
 }
@@ -260,7 +266,6 @@ void CHECK_ERROR_WITH_FIELDS(const IpcBufferReserveEntryResult& result, IpcStatu
     CHECK(result.error.body.free_space == expected_free_space);
 }
 
-// IpcBufferCommitEntryResult utilities
 void CHECK_OK(const IpcBufferCommitEntryResult& result) {
     CHECK(IpcBufferCommitEntryResult_is_ok(result));
 }
@@ -313,6 +318,44 @@ void CHECK_ERROR(const IpcChannelResult& result, IpcStatus expected_status) {
     CHECK(result.ipc_status == expected_status);
 }
 
+void CHECK_OK(const IpcChannelConnectResult& result) {
+    CHECK(IpcChannelConnectResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcChannelConnectResult& result, IpcStatus expected_status) {
+    CHECK(IpcChannelConnectResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
+void CHECK_OK(const IpcChannelDestroyResult& result) {
+    CHECK(IpcChannelDestroyResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcChannelDestroyResult& result, IpcStatus expected_status) {
+    CHECK(IpcChannelDestroyResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
+
+void CHECK_OK(const IpcChannelReadWithTimeoutResult& result) {
+    CHECK(IpcChannelReadWithTimeoutResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcChannelReadWithTimeoutResult& result, IpcStatus expected_status) {
+    CHECK(IpcChannelReadWithTimeoutResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
+
+void CHECK_OK(const IpcChannelSkipForceResult& result) {
+    CHECK(IpcChannelSkipForceResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcChannelSkipForceResult& result, IpcStatus expected_status) {
+    CHECK(IpcChannelSkipForceResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
 void CHECK_OK(const IpcChannelWriteResult& result) {
     CHECK(IpcChannelWriteResult_is_ok(result));
 }
@@ -339,6 +382,25 @@ void CHECK_ERROR(const IpcChannelPeekResult& result, IpcStatus expected_status) 
     CHECK(IpcChannelPeekResult_is_error(result));
     CHECK(result.ipc_status == expected_status);
 }
+
+void CHECK_OK(const IpcChannelTryReadResult& result) {
+    CHECK(IpcChannelTryReadResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcChannelTryReadResult& result, IpcStatus expected_status) {
+    CHECK(IpcChannelTryReadResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
+void CHECK_OK(const IpcChannelSkipResult& result) {
+    CHECK(IpcChannelSkipResult_is_ok(result));
+}
+
+void CHECK_ERROR(const IpcChannelSkipResult& result, IpcStatus expected_status) {
+    CHECK(IpcChannelSkipResult_is_error(result));
+    CHECK(result.ipc_status == expected_status);
+}
+
 
 template<typename T>
 void write_data(IpcBuffer* buffer, const T& data) {
@@ -415,4 +477,4 @@ void fill_buffer(IpcBuffer* buffer, size_t count) {
     }
 }
 
-} // namespace test_utils
+} 

@@ -73,8 +73,6 @@ TEST_CASE("race between skip and read") {
     }
 }
 
-// ==================== Advanced Concurrency Tests ====================
-// These tests verify thread safety and concurrent operations
 
 TEST_CASE("multiple threads reserve and commit") {
     test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
@@ -85,7 +83,7 @@ TEST_CASE("multiple threads reserve and commit") {
     std::atomic<size_t> failed_reserves{0};
     std::vector<std::thread> threads;
     
-    // Helper function to write one entry
+    
     auto write_entry = [&](size_t thread_id, size_t entry_id) -> bool {
         void* dest;
         IpcBufferReserveEntryResult reserve_result = 
@@ -104,7 +102,7 @@ TEST_CASE("multiple threads reserve and commit") {
         return IpcBufferCommitEntryResult_is_ok(commit_result);
     };
     
-    // Start threads
+    
     for (size_t t = 0; t < num_threads; ++t) {
         threads.emplace_back([&, t] {
             size_t success = 0;
@@ -123,12 +121,12 @@ TEST_CASE("multiple threads reserve and commit") {
         });
     }
     
-    // Wait for completion
+    
     for (auto& thread : threads) {
         thread.join();
     }
     
-    // Verify results
+    
     CHECK(successful_commits.load() > 0);
     CHECK(failed_reserves.load() > 0);
     CHECK(successful_commits.load() + failed_reserves.load() == num_threads * entries_per_thread);
@@ -140,7 +138,7 @@ TEST_CASE("race between reserve and commit") {
     
     std::atomic<size_t> successful_operations{0};
     
-    // Writer thread: reserve and commit entries
+    
     std::thread writer([&] {
         for (size_t i = 0; i < iterations; ++i) {
             void* dest;
@@ -161,7 +159,7 @@ TEST_CASE("race between reserve and commit") {
         }
     });
     
-    // Reader thread: try to read committed entries
+    
     std::thread reader([&] {
         test_utils::EntryWrapper entry(sizeof(size_t));
         for (size_t i = 0; i < iterations; ++i) {
@@ -183,7 +181,7 @@ TEST_CASE("race between reserve and commit") {
 TEST_CASE("multiple threads peek") {
     test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
     
-    // Fill buffer with test data
+    
     for (size_t i = 0; i < 5; ++i) {
         void* dest;
         IpcBufferReserveEntryResult reserve_result = 
@@ -200,7 +198,7 @@ TEST_CASE("multiple threads peek") {
     std::atomic<size_t> successful_peeks{0};
     std::vector<std::thread> threads;
     
-    // Start peek threads
+    
     for (size_t t = 0; t < num_threads; ++t) {
         threads.emplace_back([&] {
             test_utils::EntryWrapper entry(sizeof(size_t));
@@ -218,7 +216,7 @@ TEST_CASE("multiple threads peek") {
         });
     }
     
-    // Wait for completion
+    
     for (auto& thread : threads) {
         thread.join();
     }
@@ -230,13 +228,13 @@ TEST_CASE("race between peek and read") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const size_t iterations = 1000;
     
-    // Write test data
+    
     test_utils::write_data(buffer.get(), 42);
     
     std::atomic<size_t> peek_count{0};
     std::atomic<size_t> read_count{0};
     
-    // Thread 1: Peek entries
+    
     std::thread peek_thread([&] {
         test_utils::EntryWrapper entry(sizeof(size_t));
         for (size_t i = 0; i < iterations; ++i) {
@@ -249,7 +247,7 @@ TEST_CASE("race between peek and read") {
         }
     });
     
-    // Thread 2: Read entries
+    
     std::thread read_thread([&] {
         test_utils::EntryWrapper entry(sizeof(size_t));
         for (size_t i = 0; i < iterations; ++i) {
@@ -265,15 +263,15 @@ TEST_CASE("race between peek and read") {
     peek_thread.join();
     read_thread.join();
     
-    // Should have some successful peeks and reads
+    
     CHECK(peek_count.load() > 0);
-    CHECK(read_count.load() >= 0); // Reads might be 0 if peek consumed all data
+    CHECK(read_count.load() >= 0); 
 }
 
 TEST_CASE("multiple threads skip_force") {
     test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
     
-    // Write multiple entries using reserve/commit to avoid write failures
+    
     for (size_t i = 0; i < 10; ++i) {
         void* dest;
         IpcBufferReserveEntryResult reserve_result = 
@@ -285,14 +283,14 @@ TEST_CASE("multiple threads skip_force") {
         }
     }
     
-    const size_t num_threads = 3; // Reduced number of threads
+    const size_t num_threads = 3; 
     std::atomic<size_t> successful_skips{0};
     std::vector<std::thread> threads;
     
     for (size_t t = 0; t < num_threads; ++t) {
         threads.emplace_back([&] {
             size_t thread_skips = 0;
-            for (size_t i = 0; i < 10; ++i) { // Reduced iterations
+            for (size_t i = 0; i < 10; ++i) { 
                 IpcBufferSkipForceResult result = ipc_buffer_skip_force(buffer.get());
                 
                 if (IpcBufferSkipForceResult_is_ok(result)) {
@@ -310,7 +308,7 @@ TEST_CASE("multiple threads skip_force") {
         thread.join();
     }
     
-    // Should have some successful skips
+    
     CHECK(successful_skips.load() >= 0);
 }
 
@@ -318,13 +316,13 @@ TEST_CASE("race between skip_force and read") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const size_t iterations = 1000;
     
-    // Write test data
+    
     test_utils::write_data(buffer.get(), 42);
     
     std::atomic<size_t> skip_count{0};
     std::atomic<size_t> read_count{0};
     
-    // Thread 1: Skip entries
+    
     std::thread skip_thread([&] {
         for (size_t i = 0; i < iterations; ++i) {
             IpcBufferSkipForceResult result = ipc_buffer_skip_force(buffer.get());
@@ -335,7 +333,7 @@ TEST_CASE("race between skip_force and read") {
         }
     });
     
-    // Thread 2: Read entries
+    
     std::thread read_thread([&] {
         test_utils::EntryWrapper entry(sizeof(size_t));
         for (size_t i = 0; i < iterations; ++i) {
@@ -351,7 +349,7 @@ TEST_CASE("race between skip_force and read") {
     skip_thread.join();
     read_thread.join();
     
-    // Should have some successful skips and reads
+    
     CHECK(skip_count.load() >= 0);
     CHECK(read_count.load() >= 0);
 }
@@ -395,20 +393,18 @@ TEST_CASE("buffer overflow under concurrent load") {
         thread.join();
     }
     
-    // Should have some successful writes and some failures due to buffer overflow
+    
     CHECK(successful_writes.load() > 0);
     CHECK(failed_writes.load() > 0);
     
-    // Total attempts should equal expected
+    
     CHECK(successful_writes.load() + failed_writes.load() == num_threads * writes_per_thread);
 }
 
-// ==================== EXTREME STRESS TESTS ====================
-// These tests push the system to its limits to verify reliability
 
 TEST_CASE("extreme stress - massive concurrent operations") {
-    // Create large buffer for stress testing
-    const uint64_t buffer_size = ipc_buffer_align_size(64 * 1024); // 64KB
+    
+    const uint64_t buffer_size = ipc_buffer_align_size(64 * 1024); 
     std::vector<uint8_t> mem(buffer_size);
     const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem.data(), buffer_size);
     IpcBuffer *buffer = buffer_result.result;
@@ -420,12 +416,12 @@ TEST_CASE("extreme stress - massive concurrent operations") {
     std::atomic<bool> stop_flag{false};
     std::vector<std::thread> threads;
     
-    // Helper function for mixed operations
+    
     auto perform_operation = [&](size_t thread_id, size_t op_id) -> bool {
         int op_type = (thread_id + op_id) % 4;
         
         switch (op_type) {
-            case 0: { // Write
+            case 0: { 
                 void* dest;
                 IpcBufferReserveEntryResult reserve_result = 
                     ipc_buffer_reserve_entry(buffer, sizeof(size_t), &dest);
@@ -441,19 +437,19 @@ TEST_CASE("extreme stress - massive concurrent operations") {
                 }
                 return false;
             }
-            case 1: { // Read
+            case 1: { 
                 test_utils::EntryWrapper entry(sizeof(size_t));
                 IpcEntry entry_ref = entry.get();
                 IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
                 return IpcBufferReadResult_is_ok(result);
             }
-            case 2: { // Peek
+            case 2: { 
                 test_utils::EntryWrapper entry(sizeof(size_t));
                 IpcEntry entry_ref = entry.get();
                 IpcBufferPeekResult result = ipc_buffer_peek(buffer, &entry_ref);
                 return IpcBufferPeekResult_is_ok(result);
             }
-            case 3: { // Skip
+            case 3: { 
                 IpcBufferSkipForceResult result = ipc_buffer_skip_force(buffer);
                 return IpcBufferSkipForceResult_is_ok(result);
             }
@@ -461,7 +457,7 @@ TEST_CASE("extreme stress - massive concurrent operations") {
         return false;
     };
     
-    // Start stress threads
+    
     for (size_t t = 0; t < num_threads; ++t) {
         threads.emplace_back([&, t] {
             for (size_t i = 0; i < operations_per_thread && !stop_flag.load(); ++i) {
@@ -469,7 +465,7 @@ TEST_CASE("extreme stress - massive concurrent operations") {
                     successful_operations.fetch_add(1);
                 }
                 
-                // Occasional delay to increase contention
+                
                 if (i % 100 == 0) {
                     std::this_thread::sleep_for(std::chrono::microseconds(1));
                 }
@@ -477,23 +473,23 @@ TEST_CASE("extreme stress - massive concurrent operations") {
         });
     }
     
-    // Run for a while then stop
+    
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     stop_flag.store(true);
     
-    // Wait for completion
+    
     for (auto& thread : threads) {
         thread.join();
     }
     
-    // Verify system handled the stress
+    
     CHECK(successful_operations.load() > 0);
     
     free(buffer);
 }
 
 TEST_CASE("extreme stress - buffer overflow chaos") {
-    // Use small buffer to force frequent overflows
+    
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     
     const size_t num_threads = 15;
@@ -504,7 +500,7 @@ TEST_CASE("extreme stress - buffer overflow chaos") {
     std::atomic<bool> stop_flag{false};
     std::vector<std::thread> threads;
     
-    // Helper function to try writing one entry
+    
     auto try_write = [&](size_t thread_id, size_t op_id) -> bool {
         void* dest;
         IpcBufferReserveEntryResult reserve_result = 
@@ -530,7 +526,7 @@ TEST_CASE("extreme stress - buffer overflow chaos") {
         }
     };
     
-    // Start aggressive write threads
+    
     for (size_t t = 0; t < num_threads; ++t) {
         threads.emplace_back([&, t] {
             for (size_t i = 0; i < operations_per_thread && !stop_flag.load(); ++i) {
@@ -539,16 +535,16 @@ TEST_CASE("extreme stress - buffer overflow chaos") {
         });
     }
     
-    // Let chaos ensue for a while
+    
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     stop_flag.store(true);
     
-    // Wait for completion
+    
     for (auto& thread : threads) {
         thread.join();
     }
     
-    // Verify overflow behavior
+    
     CHECK(overflow_count.load() > 0);
     CHECK(success_count.load() > 0);
     CHECK(overflow_count.load() + success_count.load() <= num_threads * operations_per_thread);
@@ -569,7 +565,7 @@ TEST_CASE("extreme stress - rapid fill and drain cycles") {
         std::vector<std::thread> writers;
         std::vector<std::thread> readers;
         
-        // Phase 1: Rapidly fill buffer
+        
         for (size_t w = 0; w < writers_per_cycle; ++w) {
             writers.emplace_back([&, w] {
                 for (size_t i = 0; i < items_per_writer; ++i) {
@@ -592,15 +588,15 @@ TEST_CASE("extreme stress - rapid fill and drain cycles") {
             });
         }
         
-        // Wait for writers to finish
+        
         for (auto& writer : writers) {
             writer.join();
         }
         
-        // Phase 2: Rapidly drain buffer
+        
         for (size_t r = 0; r < readers_per_cycle; ++r) {
             readers.emplace_back([&] {
-                for (size_t i = 0; i < items_per_writer * 2; ++i) { // Try to read more than written
+                for (size_t i = 0; i < items_per_writer * 2; ++i) { 
                     test_utils::EntryWrapper entry(sizeof(size_t));
                     IpcEntry entry_ref = entry.get();
                     IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &entry_ref);
@@ -608,22 +604,22 @@ TEST_CASE("extreme stress - rapid fill and drain cycles") {
                     if (IpcBufferReadResult_is_ok(result)) {
                         total_read.fetch_add(1);
                     } else if (result.ipc_status == IPC_EMPTY) {
-                        break; // Buffer is empty, stop trying
+                        break; 
                     }
                 }
             });
         }
         
-        // Wait for readers to finish
+        
         for (auto& reader : readers) {
             reader.join();
         }
         
-        // Small delay between cycles
+        
         std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
     
-    // Should have processed many items
+    
     CHECK(total_written.load() > 100);
     CHECK(total_read.load() > 0);
 }
@@ -644,11 +640,11 @@ TEST_CASE("extreme stress - system stability under chaos") {
         threads.emplace_back([&, t] {
             for (size_t i = 0; i < operations_per_thread; ++i) {
                 try {
-                    // Random operation selection
+                    
                     int op = (t + i) % 3;
                     
                     switch (op) {
-                        case 0: { // Write
+                        case 0: { 
                             void* dest;
                             IpcBufferReserveEntryResult reserve_result = 
                                 ipc_buffer_reserve_entry(buffer.get(), sizeof(int), &dest);
@@ -666,7 +662,7 @@ TEST_CASE("extreme stress - system stability under chaos") {
                             }
                             break;
                         }
-                        case 1: { // Read
+                        case 1: { 
                             test_utils::EntryWrapper entry(sizeof(int));
                             IpcEntry entry_ref = entry.get();
                             IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &entry_ref);
@@ -676,7 +672,7 @@ TEST_CASE("extreme stress - system stability under chaos") {
                             }
                             break;
                         }
-                        case 2: { // Peek
+                        case 2: { 
                             test_utils::EntryWrapper entry(sizeof(int));
                             IpcEntry entry_ref = entry.get();
                             IpcBufferPeekResult result = ipc_buffer_peek(buffer.get(), &entry_ref);
@@ -698,7 +694,7 @@ TEST_CASE("extreme stress - system stability under chaos") {
         thread.join();
     }
     
-    // Verify system remained stable
+    
     CHECK(system_stable.load());
     CHECK(successful_operations.load() > 0);
 }

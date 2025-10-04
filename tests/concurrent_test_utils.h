@@ -203,7 +203,7 @@ void test_race_between_skip_and_read_channel() {
     std::atomic<bool> skip_done = false;
     std::atomic<bool> read_done = false;
 
-    IpcEntry e; // for reader
+    IpcEntry e; 
 
     std::thread t1([&] {
         IpcChannelSkipResult result = ipc_channel_skip(channel.get(), entry.offset);
@@ -236,4 +236,4 @@ void test_race_between_skip_and_read_channel() {
     CHECK(read_done.load());
 }
 
-} // namespace concurrent_test_utils
+} 
