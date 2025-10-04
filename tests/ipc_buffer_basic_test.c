@@ -33,8 +33,8 @@ void test_sigle_entry() {
 
   IpcEntry entry = {.payload = malloc(sizeof(eval)), .size = sizeof(eval)};
 
-  const IpcBufferReadResult tx_result = ipc_buffer_read(buffer, &entry);
-  assert(IpcBufferReadResult_is_ok(tx_result));
+  const IpcBufferReadResult result = ipc_buffer_read(buffer, &entry);
+  assert(IpcBufferReadResult_is_ok(result));
   assert(entry.size == sizeof(eval));
 
   int res;
@@ -179,7 +179,7 @@ void test_skip() {
 
   const IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer, &entry);
   assert(peek_res.ipc_status == IPC_OK);
-  assert(ipc_buffer_skip(buffer, entry.id).ipc_status == IPC_OK);
+  assert(ipc_buffer_skip(buffer, entry.offset).ipc_status == IPC_OK);
   assert(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_EMPTY);
 
   free(buffer);
@@ -198,11 +198,11 @@ void test_double_skip() {
 
   const IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer, &entry);
   assert(peek_res.ipc_status == IPC_OK);
-  assert(ipc_buffer_skip(buffer, entry.id).ipc_status == IPC_OK);
+  assert(ipc_buffer_skip(buffer, entry.offset).ipc_status == IPC_OK);
 
-  const IpcBufferSkipResult skip_result = ipc_buffer_skip(buffer, entry.id);
+  const IpcBufferSkipResult skip_result = ipc_buffer_skip(buffer, entry.offset);
   assert(IpcBufferSkipResult_is_error(skip_result));
-  assert(skip_result.ipc_status == IPC_ERR_TRANSACTION_MISMATCH);
+  assert(skip_result.ipc_status == IPC_ERR_OFFSET_MISMATCH);
   assert(ipc_buffer_peek(buffer, &entry).ipc_status == IPC_EMPTY);
 
   free(buffer);
@@ -236,13 +236,13 @@ void test_skip_with_incorrect_id() {
 
   IpcEntry entry;
 
-  const IpcBufferPeekResult tx = ipc_buffer_peek(buffer, &entry);
-  assert(tx.ipc_status == IPC_OK);
+  const IpcBufferPeekResult result = ipc_buffer_peek(buffer, &entry);
+  assert(result.ipc_status == IPC_OK);
 
   IpcEntry entry2;
-  const IpcBufferPeekResult tx2 = ipc_buffer_peek(buffer, &entry2);
-  assert(tx2.ipc_status == IPC_OK);
-  assert(entry.id == entry2.id);
+  const IpcBufferPeekResult result2 = ipc_buffer_peek(buffer, &entry2);
+  assert(result2.ipc_status == IPC_OK);
+  assert(entry.offset == entry2.offset);
 
   assert(entry.size == entry2.size);
 
@@ -307,9 +307,9 @@ void test_reserve_commit_read() {
   const int expected_val = 12;
   int *data;
 
-  const IpcBufferReserveEntryResult tx =
+  const IpcBufferReserveEntryResult result =
       ipc_buffer_reserve_entry(buffer, sizeof(expected_val), ((void **)&data));
-  assert(tx.ipc_status == IPC_OK);
+  assert(result.ipc_status == IPC_OK);
 
   IpcEntry entry = {.payload = malloc(sizeof(expected_val)),
                     .size = sizeof(expected_val)};
@@ -317,7 +317,7 @@ void test_reserve_commit_read() {
   assert(ipc_buffer_read(buffer, &entry).ipc_status == IPC_ERR_NOT_READY);
 
   *data = expected_val;
-  assert(ipc_buffer_commit_entry(buffer, tx.result).ipc_status == IPC_OK);
+  assert(ipc_buffer_commit_entry(buffer, result.result).ipc_status == IPC_OK);
   assert(ipc_buffer_read(buffer, &entry).ipc_status == IPC_OK);
   assert(entry.size == sizeof(expected_val));
 
@@ -337,9 +337,9 @@ void test_reserve_double_commit() {
   const int expected_val = 12;
   int *data;
 
-  const IpcBufferReserveEntryResult tx =
+  const IpcBufferReserveEntryResult result =
       ipc_buffer_reserve_entry(buffer, sizeof(expected_val), ((void **)&data));
-  assert(tx.ipc_status == IPC_OK);
+  assert(result.ipc_status == IPC_OK);
 
   IpcEntry entry = {.payload = malloc(sizeof(expected_val)),
                     .size = sizeof(expected_val)};
@@ -347,9 +347,9 @@ void test_reserve_double_commit() {
   assert(ipc_buffer_read(buffer, &entry).ipc_status == IPC_ERR_NOT_READY);
 
   *data = expected_val;
-  assert(ipc_buffer_commit_entry(buffer, tx.result).ipc_status == IPC_OK);
+  assert(ipc_buffer_commit_entry(buffer, result.result).ipc_status == IPC_OK);
   assert(IpcBufferCommitEntryResult_is_error(
-      ipc_buffer_commit_entry(buffer, tx.result)));
+      ipc_buffer_commit_entry(buffer, result.result)));
   assert(ipc_buffer_read(buffer, &entry).ipc_status == IPC_OK);
   assert(entry.size == sizeof(expected_val));
 
@@ -368,12 +368,12 @@ void test_multiple_reserve_commit_read() {
 
   for (int i = 0; i < 10; ++i) {
     int *ptr;
-    const IpcBufferReserveEntryResult tx =
+    const IpcBufferReserveEntryResult result =
         ipc_buffer_reserve_entry(buffer, sizeof(int), ((void **)&ptr));
 
-    assert(tx.ipc_status == IPC_OK);
+    assert(result.ipc_status == IPC_OK);
     *ptr = i;
-    assert(ipc_buffer_commit_entry(buffer, tx.result).ipc_status == IPC_OK);
+    assert(ipc_buffer_commit_entry(buffer, result.result).ipc_status == IPC_OK);
   }
 
   int *buf = malloc(sizeof(int));

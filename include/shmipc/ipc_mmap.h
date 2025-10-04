@@ -11,7 +11,7 @@ typedef struct IpcMemorySegment {
   void *memory;
 } IpcMemorySegment;
 
-typedef struct IpcMmapCreateError {
+typedef struct IpcMmapError {
   const char *name;
   uint64_t requested_size;
   uint64_t aligned_size;
@@ -19,10 +19,8 @@ typedef struct IpcMmapCreateError {
   uint64_t existing_size;
   bool existed;
   int sys_errno;
-} IpcMmapCreateError;
-
-IPC_RESULT(IpcMemorySegmentResult, IpcMemorySegment *, IpcMmapCreateError)
-
+} IpcMmapError;
+IPC_RESULT(IpcMemorySegmentResult, IpcMemorySegment *, IpcMmapError)
 SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name, uint64_t size);
 
 typedef struct IpcMmapUnmapError {
@@ -30,18 +28,14 @@ typedef struct IpcMmapUnmapError {
   uint64_t size;
   int sys_errno;
 } IpcMmapUnmapError;
-
 IPC_RESULT_UNIT(IpcMmapUnmapResult, IpcMmapUnmapError)
-
 SHMIPC_API IpcMmapUnmapResult ipc_unmap(IpcMemorySegment *segment);
 
 typedef struct IpcMmapUnlinkError {
   const char *name;
   int sys_errno;
 } IpcMmapUnlinkError;
-
 IPC_RESULT_UNIT(IpcMmapUnlinkResult, IpcMmapUnlinkError)
-
 SHMIPC_API IpcMmapUnlinkResult ipc_unlink(IpcMemorySegment *segment);
 
 SHMIPC_END_DECLS

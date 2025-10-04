@@ -153,24 +153,24 @@ void _test_race_between_skip_and_read() {
   IpcEntry e; // for reader
 
   std::thread t1([&] {
-    IpcChannelSkipResult result = ipc_channel_skip(channel, entry.id);
+    IpcChannelSkipResult result = ipc_channel_skip(channel, entry.offset);
     skip_done.store(true);
     
     assert(result.ipc_status == IPC_OK || result.ipc_status == IPC_ERR_LOCKED ||
-           result.ipc_status == IPC_ERR_TRANSACTION_MISMATCH ||
+           result.ipc_status == IPC_ERR_OFFSET_MISMATCH ||
            result.ipc_status == IPC_EMPTY);
   });
 
   std::thread t2([&] {
-    IpcChannelTryReadResult tx = ipc_channel_try_read(channel, &e);
+    IpcChannelTryReadResult result = ipc_channel_try_read(channel, &e);
     read_done.store(true);
-    if (tx.ipc_status == IPC_OK) {
+    if (result.ipc_status == IPC_OK) {
       size_t v;
       memcpy(&v, e.payload, e.size);
       assert(v == val);
       free(e.payload);
     } else {
-      assert(tx.ipc_status == IPC_EMPTY || tx.ipc_status == IPC_ERR_LOCKED);
+      assert(result.ipc_status == IPC_EMPTY || result.ipc_status == IPC_ERR_LOCKED);
     }
   });
 

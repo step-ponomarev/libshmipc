@@ -20,7 +20,7 @@ typedef enum {
   IPC_ERR_NO_SPACE_CONTIGUOUS = -7,
   IPC_ERR_NOT_READY = -8,
   IPC_ERR_LOCKED = -9,
-  IPC_ERR_TRANSACTION_MISMATCH = -10,
+  IPC_ERR_OFFSET_MISMATCH = -10,
   IPC_ERR_TIMEOUT = -11,
   IPC_ERR_RETRY_LIMIT = -12,
   IPC_ERR_CORRUPTED = -13,
@@ -116,10 +116,8 @@ typedef enum {
     return e.hasBody;                                                          \
   }
 
-typedef uint64_t IpcEntryId;
-
 typedef struct IpcEntry {
-  IpcEntryId id;
+  uint64_t offset;
   void *payload;
   size_t size;
 } IpcEntry;

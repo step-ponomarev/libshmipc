@@ -191,14 +191,14 @@ void test_read_retry_limit_reacehed() {
   const int expected = -11;
 
   void *dest;
-  IpcBufferReserveEntryResult tx =
+  IpcBufferReserveEntryResult result =
       ipc_buffer_reserve_entry(buf, sizeof(expected), &dest);
   memcpy(dest, &expected, sizeof(expected));
 
   IpcEntry entry;
   assert(ipc_channel_read(channel, &entry).ipc_status == IPC_ERR_RETRY_LIMIT);
 
-  ipc_buffer_commit_entry(buf, tx.result);
+  ipc_buffer_commit_entry(buf, result.result);
   assert(ipc_channel_read(channel, &entry).ipc_status == IPC_OK);
 
   int res;
@@ -225,10 +225,10 @@ void test_skip_corrupted_entry() {
 
   ipc_buffer_reserve_entry(buf, sizeof(expected), &dest);
 
-  IpcBufferReserveEntryResult commited_tx =
+  IpcBufferReserveEntryResult committed_result =
       ipc_buffer_reserve_entry(buf, sizeof(expected), &dest);
   memcpy(dest, &expected, sizeof(expected));
-  ipc_buffer_commit_entry(buf, commited_tx.result);
+  ipc_buffer_commit_entry(buf, committed_result.result);
 
   IpcEntry entry;
   IpcChannelReadResult read_res = ipc_channel_read(channel, &entry);
@@ -236,12 +236,12 @@ void test_skip_corrupted_entry() {
 
   IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
   assert(IpcChannelPeekResult_is_error(pk));
-  assert(ipc_channel_skip(channel, pk.error.body.entry_id).ipc_status ==
+  assert(ipc_channel_skip(channel, pk.error.body.offset).ipc_status ==
          IPC_OK);
 
   read_res = ipc_channel_read(channel, &entry);
   assert(read_res.ipc_status == IPC_OK);
-  assert(entry.id == commited_tx.result);
+  assert(entry.offset == committed_result.result);
 
   int res;
   memcpy(&res, entry.payload, sizeof(expected));
@@ -310,19 +310,19 @@ void test_channel_read_before_commit_via_channel() {
   const int expected = 42;
 
   void *dest;
-  IpcBufferReserveEntryResult tx_res =
+  IpcBufferReserveEntryResult result =
       ipc_buffer_reserve_entry(buf, sizeof(int), &dest);
-  assert(tx_res.ipc_status == IPC_OK);
+  assert(result.ipc_status == IPC_OK);
   *((int *)dest) = expected;
 
   IpcEntry entry;
-  IpcChannelReadResult tx_read = ipc_channel_read(channel, &entry);
-  assert(tx_read.ipc_status == IPC_ERR_RETRY_LIMIT);
+  IpcChannelReadResult read_result = ipc_channel_read(channel, &entry);
+  assert(read_result.ipc_status == IPC_ERR_RETRY_LIMIT);
 
-  assert(ipc_buffer_commit_entry(buf, tx_res.result).ipc_status == IPC_OK);
+  assert(ipc_buffer_commit_entry(buf, result.result).ipc_status == IPC_OK);
 
-  tx_read = ipc_channel_read(channel, &entry);
-  assert(tx_read.ipc_status == IPC_OK);
+  read_result = ipc_channel_read(channel, &entry);
+  assert(read_result.ipc_status == IPC_OK);
 
   int v;
   memcpy(&v, entry.payload, sizeof(v));
@@ -343,13 +343,13 @@ void test_channel_double_commit() {
   IpcBuffer *buf = buffer_result.result;
 
   void *dest;
-  IpcBufferReserveEntryResult tx =
+  IpcBufferReserveEntryResult result =
       ipc_buffer_reserve_entry(buf, sizeof(int), &dest);
-  assert(tx.ipc_status == IPC_OK);
+  assert(result.ipc_status == IPC_OK);
   *(int *)dest = 42;
-  assert(ipc_buffer_commit_entry(buf, tx.result).ipc_status == IPC_OK);
+  assert(ipc_buffer_commit_entry(buf, result.result).ipc_status == IPC_OK);
   assert(IpcBufferCommitEntryResult_is_error(
-      ipc_buffer_commit_entry(buf, tx.result)));
+      ipc_buffer_commit_entry(buf, result.result)));
 
   IpcEntry entry;
   IpcChannelReadResult read1 = ipc_channel_read(channel, &entry);

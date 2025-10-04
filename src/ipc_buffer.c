@@ -101,7 +101,7 @@ IpcBufferAttachResult ipc_buffer_attach(void *mem) {
 
 IpcBufferWriteResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
                                       const size_t size) {
-  IpcBufferWriteError error = {.entry_id = 0,
+  IpcBufferWriteError error = {.offset = 0,
                                .requested_size = size,
                                .available_contiguous = 0,
                                .buffer_size = 0};
@@ -137,20 +137,20 @@ IpcBufferWriteResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
     error.buffer_size = cap;
     error.available_contiguous = free_space;
     if (IpcBufferReserveEntryResult_is_error_has_body(reserve_result.error)) {
-      error.entry_id = reserve_result.error.body.entry_id;
+      error.offset = reserve_result.error.body.offset;
     }
 
     return IpcBufferWriteResult_error_body(reserve_result.ipc_status,
                                            reserve_result.error.detail, error);
   }
 
-  const IpcEntryId entry_id = reserve_result.result;
+  const uint64_t entry_offset = reserve_result.result;
   memcpy(payload, data, size);
 
   const IpcBufferCommitEntryResult commin_result =
-      ipc_buffer_commit_entry(buffer, entry_id);
+      ipc_buffer_commit_entry(buffer, entry_offset);
   if (IpcBufferCommitEntryResult_is_error(commin_result)) {
-    error.entry_id = entry_id;
+    error.offset = entry_offset;
     return IpcBufferWriteResult_error_body(commin_result.ipc_status,
                                            "commit failed", error);
   }
@@ -159,7 +159,7 @@ IpcBufferWriteResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
 }
 
 IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
-  IpcBufferReadError error = {.entry_id = 0};
+  IpcBufferReadError error = {.offset = 0};
 
   if (buffer == NULL) {
     return IpcBufferReadResult_error_body(
@@ -185,13 +185,13 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
         return IpcBufferReadResult_ok(IPC_EMPTY);
       }
 
-      error.entry_id = head;
+      error.offset = head;
       return IpcBufferReadResult_error_body(status, "unreadable entry state",
                                             error);
     }
 
     if (dst_cap < header->payload_size) {
-      error.entry_id = head;
+      error.offset = head;
       error.required_size = header->payload_size;
       return IpcBufferReadResult_error_body(
           IPC_ERR_TOO_SMALL, "destination buffer is too small", error);
@@ -203,7 +203,7 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
     if (atomic_compare_exchange_strong(
             &((struct IpcBuffer *)buffer)->header->head, &head,
             head + header->entry_size)) {
-      dest->id = head;
+      dest->offset = head;
       dest->size = header->payload_size;
       return IpcBufferReadResult_ok(IPC_OK);
     }
@@ -211,7 +211,7 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
 }
 
 IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
-  IpcBufferPeekError error = {.entry_id = 0};
+  IpcBufferPeekError error = {.offset = 0};
   if (buffer == NULL) {
     return IpcBufferPeekResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
@@ -233,20 +233,20 @@ IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
       return IpcBufferPeekResult_ok(IPC_EMPTY);
     }
 
-    error.entry_id = head;
+    error.offset = head;
     return IpcBufferPeekResult_error_body(status, "unreadable buffer state",
                                           error);
   }
 
-  dest->id = head;
+  dest->offset = head;
   dest->size = header->payload_size;
   dest->payload = (uint8_t *)header + sizeof(EntryHeader);
 
   return IpcBufferPeekResult_ok(IPC_OK);
 }
 
-IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
-  IpcBufferSkipError error = {.entry_id = id};
+IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const uint64_t offset) {
+  IpcBufferSkipError error = {.offset = offset};
 
   if (buffer == NULL) {
     return IpcBufferSkipResult_error_body(
@@ -259,11 +259,11 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
 
   for (;;) {
     head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
-    if (head != id) {
-      error.entry_id = head;
+    if (head != offset) {
+      error.offset = head;
       return IpcBufferSkipResult_error_body(
-          IPC_ERR_TRANSACTION_MISMATCH,
-          "Transaction ID mismatch: expected different ID than current head",
+          IPC_ERR_OFFSET_MISMATCH,
+          "Offset mismatch: expected different offset than current head",
           error);
     }
 
@@ -274,7 +274,7 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
     }
 
     if (status == IPC_ERR_LOCKED) {
-      error.entry_id = head;
+      error.offset = head;
       return IpcBufferSkipResult_error_body(IPC_ERR_LOCKED, "locked", error);
     }
 
@@ -287,14 +287,14 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const IpcEntryId id) {
   if (!atomic_compare_exchange_strong(
           &((struct IpcBuffer *)buffer)->header->head, &head,
           head + header->entry_size)) {
-    error.entry_id = head;
+    error.offset = head;
     return IpcBufferSkipResult_error_body(
-        IPC_ERR_TRANSACTION_MISMATCH,
-        "Transaction ID mismatch: expected different ID than current head",
+        IPC_ERR_OFFSET_MISMATCH,
+        "Offset mismatch: expected different offset than current head",
         error);
   }
 
-  return IpcBufferSkipResult_ok(IPC_OK, id);
+  return IpcBufferSkipResult_ok(IPC_OK, offset);
 }
 
 IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
@@ -322,7 +322,7 @@ IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
 
 IpcBufferReserveEntryResult
 ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
-  IpcBufferReserveEntryError error = {.entry_id = 0};
+  IpcBufferReserveEntryError error = {.offset = 0};
 
   if (buffer == NULL) {
     return IpcBufferReserveEntryResult_error_body(
@@ -372,7 +372,7 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
     const uint64_t free_space = buf_size - used;
 
     if (free_space < total_required_entry_size) {
-      error.entry_id = tail;
+      error.offset = tail;
       error.required_size = total_required_entry_size;
       error.free_space = free_space;
       return IpcBufferReserveEntryResult_error_body(
@@ -401,8 +401,8 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
 }
 
 IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
-                                                   const IpcEntryId id) {
-  IpcBufferCommitEntryError error = {.entry_id = id};
+                                                   const uint64_t offset) {
+  IpcBufferCommitEntryError error = {.offset = offset};
   if (buffer == NULL) {
     return IpcBufferCommitEntryResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
@@ -410,11 +410,11 @@ IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
 
   EntryHeader *header = (EntryHeader *)(((struct IpcBuffer *)buffer)->data);
   const IpcStatus status =
-      _read_entry_header((struct IpcBuffer *)buffer, id, &header);
+      _read_entry_header((struct IpcBuffer *)buffer, offset, &header);
 
   // if not set NOT_READY flag yet, race condition guard
   if (status != IPC_ERR_NOT_READY && status != IPC_ERR_CORRUPTED) {
-    error.entry_id = id;
+    error.offset = offset;
 
     if (status == IPC_ERR_LOCKED) {
       return IpcBufferCommitEntryResult_error_body(
@@ -427,7 +427,7 @@ IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
         error);
   }
 
-  header->seq = id;
+  header->seq = offset;
   _set_flag((uint8_t *)&header->flag, FLAG_READY);
 
   return IpcBufferCommitEntryResult_ok(IPC_OK);

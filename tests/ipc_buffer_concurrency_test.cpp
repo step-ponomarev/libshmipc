@@ -14,15 +14,15 @@
 void delayed_produce(IpcBuffer *buf, const size_t from, const size_t to) {
   for (size_t i = from; i < to;) {
     void *dest;
-    IpcBufferReserveEntryResult tx =
+    IpcBufferReserveEntryResult result =
         ipc_buffer_reserve_entry(buf, sizeof(i), &dest);
-    if (tx.ipc_status != IPC_OK) {
+    if (result.ipc_status != IPC_OK) {
       continue;
     }
 
     std::this_thread::sleep_for(std::chrono::microseconds(10));
     memcpy(dest, &i, sizeof(i));
-    ipc_buffer_commit_entry(buf, tx.result);
+    ipc_buffer_commit_entry(buf, result.result);
 
     i++;
   }
@@ -49,8 +49,8 @@ void consume(IpcBuffer *buf, const size_t expected,
       break;
     }
 
-    IpcBufferReadResult tx = ipc_buffer_read(buf, &e);
-    if (IpcBufferReadResult_is_error(tx)) {
+    IpcBufferReadResult result = ipc_buffer_read(buf, &e);
+    if (IpcBufferReadResult_is_error(result)) {
       continue;
     }
 
@@ -196,14 +196,14 @@ void _test_race_between_skip_and_read() {
   assert(peek_res.ipc_status == IPC_OK);
 
   std::thread t1([&] {
-    IpcBufferSkipResult result = ipc_buffer_skip(buf, entry.id);
+    IpcBufferSkipResult result = ipc_buffer_skip(buf, entry.offset);
 
     if (IpcBufferSkipResult_is_ok(result)) {
       assert(result.ipc_status == IPC_OK ||
              result.ipc_status == IPC_EMPTY);
     } else {
       assert(result.ipc_status == IPC_ERR_LOCKED ||
-             result.ipc_status == IPC_ERR_TRANSACTION_MISMATCH);
+             result.ipc_status == IPC_ERR_OFFSET_MISMATCH);
     }
   });
 
@@ -211,14 +211,14 @@ void _test_race_between_skip_and_read() {
     IpcEntry e;
     e.payload = malloc(sizeof(size_t));
     e.size = sizeof(size_t);
-    IpcBufferReadResult tx = ipc_buffer_read(buf, &e);
+    IpcBufferReadResult result = ipc_buffer_read(buf, &e);
 
-    if (tx.ipc_status == IPC_OK) {
+    if (result.ipc_status == IPC_OK) {
       size_t v;
       memcpy(&v, e.payload, e.size);
       assert(v == val);
     } else {
-      assert(tx.ipc_status == IPC_EMPTY || tx.ipc_status == IPC_ERR_LOCKED);
+      assert(result.ipc_status == IPC_EMPTY || result.ipc_status == IPC_ERR_LOCKED);
     }
     free(e.payload);
   });

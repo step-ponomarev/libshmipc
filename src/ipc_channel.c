@@ -129,7 +129,7 @@ IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel) {
 
 IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
                                         const size_t size) {
-  IpcChannelWriteError error = {.entry_id = 0,
+  IpcChannelWriteError error = {.offset = 0,
                                 .requested_size = (size_t)size,
                                 .available_contiguous = 0,
                                 .buffer_size = 0};
@@ -149,7 +149,7 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
   if (IpcBufferWriteResult_is_error(write_result)) {
     if (IpcBufferWriteResult_is_error_has_body(write_result.error)) {
       const IpcBufferWriteError b = write_result.error.body;
-      error.entry_id = b.entry_id;
+      error.offset = b.offset;
       error.requested_size = b.requested_size;
       error.available_contiguous = b.available_contiguous;
       error.buffer_size = b.buffer_size;
@@ -164,7 +164,7 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
 
 IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel,
                                              IpcEntry *dest) {
-  IpcChannelTryReadError error = {.entry_id = 0};
+  IpcChannelTryReadError error = {.offset = 0};
 
   if (channel == NULL) {
     return IpcChannelTryReadResult_error_body(
@@ -181,12 +181,12 @@ IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel,
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is NULL", error);
   }
 
-  IpcEntry read_entry = {.id = 0, .payload = NULL, .size = 0};
+  IpcEntry read_entry = {.offset = 0, .payload = NULL, .size = 0};
   const IpcChannelReadResult read_result = _try_read(channel, &read_entry);
   if (read_result.ipc_status != IPC_OK) {
     free(read_entry.payload);
     if (IpcChannelReadResult_is_error(read_result)) {
-      error.entry_id = read_result.error.body.entry_id;
+      error.offset = read_result.error.body.offset;
       return IpcChannelTryReadResult_error_body(
           read_result.ipc_status, read_result.error.detail, error);
     }
@@ -196,7 +196,7 @@ IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel,
 
   dest->payload = read_entry.payload;
   dest->size = read_entry.size;
-  dest->id = read_entry.id;
+  dest->offset = read_entry.offset;
 
   return IpcChannelTryReadResult_ok(IPC_OK);
 }
@@ -214,7 +214,7 @@ ipc_channel_read_with_timeout(IpcChannel *channel, IpcEntry *dest,
   }
 
   IpcChannelReadWithTimeoutError body = {
-      .entry_id = read_result.error.body.entry_id,
+      .offset = read_result.error.body.offset,
       .timeout_used = timeout != NULL ? *timeout : (struct timespec){0, 0}};
 
   return IpcChannelReadWithTimeoutResult_error_body(
@@ -223,7 +223,7 @@ ipc_channel_read_with_timeout(IpcChannel *channel, IpcEntry *dest,
 
 IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel,
                                       IpcEntry *dest) {
-  IpcChannelPeekError error = {.entry_id = 0};
+  IpcChannelPeekError error = {.offset = 0};
   if (channel == NULL) {
     return IpcChannelPeekResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", error);
@@ -242,7 +242,7 @@ IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel,
   const IpcBufferPeekResult peek_result =
       ipc_buffer_peek(channel->buffer, dest);
   if (IpcBufferPeekResult_is_error(peek_result)) {
-    error.entry_id = peek_result.error.body.entry_id;
+    error.offset = peek_result.error.body.offset;
     return IpcChannelPeekResult_error_body(peek_result.ipc_status,
                                            peek_result.error.detail, error);
   }
@@ -251,8 +251,8 @@ IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel,
 }
 
 IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel,
-                                      const IpcEntryId id) {
-  IpcChannelSkipError error = {.entry_id = id};
+                                      const uint64_t offset) {
+  IpcChannelSkipError error = {.offset = offset};
   if (channel == NULL) {
     return IpcChannelSkipResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", error);
@@ -263,9 +263,9 @@ IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel,
         IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
   }
 
-  const IpcBufferSkipResult skip_result = ipc_buffer_skip(channel->buffer, id);
+  const IpcBufferSkipResult skip_result = ipc_buffer_skip(channel->buffer, offset);
   if (IpcBufferSkipResult_is_error(skip_result)) {
-    error.entry_id = skip_result.error.body.entry_id;
+    error.offset = skip_result.error.body.offset;
     return IpcChannelSkipResult_error_body(skip_result.ipc_status,
                                            skip_result.error.detail, error);
   }
@@ -298,7 +298,7 @@ IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel) {
 
 static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
                                   const struct timespec *timeout) {
-  IpcChannelReadError error = {.entry_id = 0};
+  IpcChannelReadError error = {.offset = 0};
   if (channel == NULL) {
     return IpcChannelReadResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", error);
@@ -337,11 +337,11 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
   struct timespec delay = {.tv_sec = 0,
                            .tv_nsec = channel->config.start_sleep_ns};
 
-  uint64_t prev_seen_id = UINT64_MAX;
+  uint64_t prev_seen_offset = UINT64_MAX;
   bool prev_inited = false;
   size_t round_trips = 0;
 
-  IpcEntry read_entry = {.id = 0, .payload = NULL, .size = 0};
+  IpcEntry read_entry = {.offset = 0, .payload = NULL, .size = 0};
 
   for (;;) {
     IpcEntry peek_entry;
@@ -349,7 +349,7 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
         ipc_buffer_peek(channel->buffer, &peek_entry);
     if (IpcBufferPeekResult_is_error(peek_result) && !_is_retry_status(peek_result.ipc_status)) {
       free(read_entry.payload);
-      error.entry_id = peek_entry.id;
+      error.offset = peek_entry.offset;
       return IpcChannelReadResult_error_body(peek_result.ipc_status, peek_result.error.detail,
         error);
     }
@@ -358,7 +358,7 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
       struct timespec curr_time;
       if (clock_gettime(CLOCK_MONOTONIC, &curr_time) != 0) {
         free(read_entry.payload);
-        error.entry_id = peek_entry.id;
+        error.offset = peek_entry.offset;
         return IpcChannelReadResult_error_body(
             IPC_ERR_SYSTEM, "system error: clock_gettime failed", error);
       }
@@ -366,25 +366,25 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
       const uint64_t curr_ns = ipc_timespec_to_nanos(&curr_time);
       if (curr_ns - start_ns > timeout_ns) {
         free(read_entry.payload);
-        error.entry_id = peek_entry.id;
+        error.offset = peek_entry.offset;
         return IpcChannelReadResult_error_body(IPC_ERR_TIMEOUT,
                                                "timeout: read timed out", error);
       }
     } else {
       const IpcStatus status = peek_result.ipc_status;
-      const uint64_t curr_id = peek_entry.id;
+      const uint64_t curr_offset = peek_entry.offset;
 
-      if (prev_inited && curr_id == prev_seen_id && status != IPC_OK) {
+      if (prev_inited && curr_offset == prev_seen_offset && status != IPC_OK) {
         round_trips++;
       } else {
         round_trips = 0;
       }
-      prev_seen_id = curr_id;
+      prev_seen_offset = curr_offset;
       prev_inited = true;
 
       if (round_trips == channel->config.max_round_trips) {
         free(read_entry.payload);
-        error.entry_id = peek_entry.id;
+        error.offset = peek_entry.offset;
         return IpcChannelReadResult_error_body(
             IPC_ERR_RETRY_LIMIT, "limit is reached: retry limit reached", error);
       }
@@ -393,7 +393,7 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
     if (_is_retry_status(peek_result.ipc_status)) {
       if (!_sleep_and_expand_delay(&delay, channel->config.max_sleep_ns)) {
         free(read_entry.payload);
-        error.entry_id = peek_entry.id;
+        error.offset = peek_entry.offset;
         return IpcChannelReadResult_error_body(
             IPC_ERR_SYSTEM, "system error: nanosleep failed", error);
       }
@@ -409,14 +409,14 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
     if (read_result.ipc_status == IPC_OK) {
       dest->payload = read_entry.payload;
       dest->size = read_entry.size;
-      dest->id = read_entry.id;
+      dest->offset = read_entry.offset;
       return read_result;
     }
   }
 }
 
 static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
-  IpcChannelReadError error = {.entry_id = 0};
+  IpcChannelReadError error = {.offset = 0};
 
   if (channel == NULL) {
     return IpcChannelReadResult_error_body(
@@ -439,7 +439,7 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
         ipc_buffer_peek(channel->buffer, &peek_entry);
 
     if (IpcBufferPeekResult_is_error(peek_result)) {
-      error.entry_id = peek_entry.id;
+      error.offset = peek_entry.offset;
       return IpcChannelReadResult_error_body(peek_result.ipc_status,
                                              peek_result.error.detail, error);
     }
@@ -451,7 +451,7 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
     if (dest->payload == NULL) {
       dest->payload = malloc(peek_entry.size);
       if (dest->payload == NULL) {
-        error.entry_id = peek_entry.id;
+        error.offset = peek_entry.offset;
         return IpcChannelReadResult_error_body(
             IPC_ERR_SYSTEM, "system error: allocation failed", error);
       }
@@ -460,7 +460,7 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
     } else if (dest->size < peek_entry.size) {
       void *new_buf = realloc(dest->payload, peek_entry.size);
       if (new_buf == NULL) {
-        error.entry_id = peek_entry.id;
+        error.offset = peek_entry.offset;
         return IpcChannelReadResult_error_body(
             IPC_ERR_SYSTEM, "system error: allocation failed", error);
       }
@@ -476,7 +476,7 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
         continue;
       }
 
-      error.entry_id = dest->id;
+      error.offset = dest->offset;
       return IpcChannelReadResult_error_body(read_result.ipc_status,
                                              read_result.error.detail, error);
     }
