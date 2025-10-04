@@ -1,11 +1,6 @@
-// channel.c
 #include "ipc_utils.h"
 #include "shmipc/ipc_buffer.h"
-#include "shmipc/ipc_common.h"
 #include <shmipc/ipc_channel.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdlib.h>
 
 #define WAIT_EXPAND_FACTOR 2
