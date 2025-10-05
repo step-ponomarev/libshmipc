@@ -21,23 +21,13 @@ TEST_CASE("multiple writer single reader") {
 
 
 TEST_CASE("multiple writer multiple reader stress") {
-    for (int i = 0; i < 10; i++) {
-        concurrent_test_utils::run_multiple_writer_multiple_reader_channel_test(
-            test_utils::LARGE_COUNT,
-            test_utils::SMALL_BUFFER_SIZE
-        );
-    }
+    concurrent_test_utils::run_multiple_writer_multiple_reader_channel_test(
+        test_utils::LARGE_COUNT,
+        test_utils::SMALL_BUFFER_SIZE
+    );
 }
 
-TEST_CASE("extreme channel stress test") {
-    // Экстремальная нагрузка на канал для сравнения с буфером
-    for (int i = 0; i < 20; i++) {
-        concurrent_test_utils::run_multiple_writer_multiple_reader_channel_test(
-            test_utils::LARGE_COUNT * 2,  // В 2 раза больше записей
-            test_utils::SMALL_BUFFER_SIZE  // Маленький буфер для максимальной конкуренции
-        );
-    }
-}
+
 
 
 

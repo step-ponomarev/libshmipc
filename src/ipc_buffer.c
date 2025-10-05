@@ -400,7 +400,7 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
 
   *dest = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
 
-  return IpcBufferReserveEntryResult_ok(IPC_OK, wrapped ? 0 : tail);
+  return IpcBufferReserveEntryResult_ok(IPC_OK, tail);
 }
 
 IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
@@ -445,12 +445,12 @@ static inline uint64_t _find_max_power_of_2(const uint64_t max) {
 
 static inline Flag _read_flag(const void *addr) {
   const _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
-  return atomic_load_explicit(atomic_flag, memory_order_acquire);
+  return atomic_load(atomic_flag);
 }
 
 static inline void _set_flag(void *addr, const Flag flag) {
   _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
-  atomic_store_explicit(atomic_flag, flag, memory_order_release);
+  atomic_store(atomic_flag, flag);
 }
 
 static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,

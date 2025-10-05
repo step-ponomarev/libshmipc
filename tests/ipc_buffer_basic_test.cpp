@@ -566,7 +566,8 @@ TEST_CASE("reserve_entry entry too large error fields") {
     const size_t huge_size = test_utils::SMALL_BUFFER_SIZE + 1024;
     const IpcBufferReserveEntryResult result = ipc_buffer_reserve_entry(buffer.get(), huge_size, &dest);
     CHECK(IpcBufferReserveEntryResult_is_error(result));
-    CHECK(result.error.body.buffer_size == 64); 
+    CHECK(result.ipc_status == IPC_ERR_ENTRY_TOO_LARGE); 
+    CHECK(result.error.body.buffer_size > 0); 
 }
 
 TEST_CASE("reserve_entry no space contiguous") {

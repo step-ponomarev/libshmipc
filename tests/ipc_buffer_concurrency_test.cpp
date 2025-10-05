@@ -46,15 +46,10 @@ TEST_CASE("multiple writer multiple reader stress") {
     }
 }
 
-
-
-
 TEST_CASE("delayed multiple writer multiple reader") {
-    concurrent_test_utils::run_multiple_writer_multiple_reader_test(
-        concurrent_test_utils::delayed_produce_buffer,
-        concurrent_test_utils::consume_buffer,
-        test_utils::SMALL_BUFFER_SIZE
-    );
+  concurrent_test_utils::run_multiple_writer_multiple_reader_test(
+      concurrent_test_utils::delayed_produce_buffer,
+      concurrent_test_utils::consume_buffer, test_utils::SMALL_BUFFER_SIZE);
 }
 
 TEST_CASE("race between skip and read") {
@@ -62,8 +57,6 @@ TEST_CASE("race between skip and read") {
         concurrent_test_utils::test_race_between_skip_and_read_buffer();
     }
 }
-
-
 
 TEST_CASE("multiple threads reserve and commit") {
     test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);

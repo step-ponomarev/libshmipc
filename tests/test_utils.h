@@ -15,8 +15,8 @@ template<typename T>
 class ConcurrentSet;
 
 namespace test_utils {
-constexpr size_t SMALL_BUFFER_SIZE = 128;
-constexpr size_t MEDIUM_BUFFER_SIZE = 256;
+constexpr size_t SMALL_BUFFER_SIZE = 256;
+constexpr size_t MEDIUM_BUFFER_SIZE = 512;
 constexpr size_t LARGE_BUFFER_SIZE = 1024;
 constexpr size_t DEFAULT_COUNT = 100000;
 constexpr size_t LARGE_COUNT = 50000;
@@ -545,5 +545,4 @@ void verify_channel_creation(IpcChannel* channel) {
         throw std::runtime_error("Failed to write to channel");
     }
 }
-
 } 

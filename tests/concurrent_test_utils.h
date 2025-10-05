@@ -63,7 +63,7 @@ void consume_buffer(IpcBuffer *buffer,
       size_t res;
       memcpy(&res, entry_ref.payload, entry_ref.size);
       collector.collect(res);
-    } else if (result.ipc_status == IPC_EMPTY && finished) {
+    } else if (finished) {
       break;
     }
   }
@@ -82,7 +82,7 @@ void consume_channel(IpcChannel *channel,
       memcpy(&res, entry.payload, entry.size);
       collector.collect(res);
       free(entry.payload);
-    } else if (result.ipc_status == IPC_EMPTY && finished) {
+    } else if (finished) {
       break;
     }
   }
