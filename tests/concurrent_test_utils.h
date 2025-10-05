@@ -1,9 +1,16 @@
 #pragma once
 
-#include "concurrent_set.hpp"
+#include "doctest/doctest.h"
+#include "shmipc/ipc_channel.h"
+#include "shmipc/ipc_common.h"
+#include "unsafe_collector.hpp"
+#include "concurrency_manager.hpp"
 #include "test_utils.h"
+#include <stdbool.h>
 #include <thread>
 #include <memory>
+#include <atomic>
+#include <chrono>
 
 namespace concurrent_test_utils {
 
@@ -42,60 +49,61 @@ void produce_channel(IpcChannel* channel, size_t from, size_t to) {
     }
 }
 
-void consume_buffer(IpcBuffer* buffer, size_t expected, 
-                   std::shared_ptr<concurrent_set<size_t>> dest) {
-    test_utils::EntryWrapper entry(sizeof(size_t));
-    
-    while (true) {
-        if (dest->size() == expected) {
-            break;
-        }
+void consume_buffer(IpcBuffer *buffer,
+                     UnsafeCollector<size_t> &collector,
+                     ConcurrencyManager<size_t>& manager) {
+  test_utils::EntryWrapper entry(sizeof(size_t));
+  IpcEntry entry_ref = entry.get();
 
-        IpcEntry entry_ref = entry.get();
-        IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
-        if (result.ipc_status == IPC_OK) {
-            size_t res;
-            memcpy(&res, entry_ref.payload, entry_ref.size);
-            dest->insert(res);
-        }
+  bool finished = false;
+  while (true) {
+    finished = manager.all_producers_finished();
+    IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
+    if (result.ipc_status == IPC_OK) {
+      size_t res;
+      memcpy(&res, entry_ref.payload, entry_ref.size);
+      collector.collect(res);
+    } else if (result.ipc_status == IPC_EMPTY && finished) {
+      break;
     }
+  }
 }
 
-void consume_channel(IpcChannel* channel, size_t expected,
-                     std::shared_ptr<concurrent_set<size_t>> dest) {
-    IpcEntry entry;
-    while (true) {
-        if (dest->size() == expected) {
-            break;
-        }
-
-        IpcChannelReadResult rx = ipc_channel_read(channel, &entry);
-        if (rx.ipc_status == IPC_OK) {
-            size_t res;
-            memcpy(&res, entry.payload, entry.size);
-            dest->insert(res);
-            free(entry.payload);
-        } else if (dest->size() == expected) {
-            break;
-        }
+void consume_channel(IpcChannel *channel,
+                     UnsafeCollector<size_t> &collector,
+                     ConcurrencyManager<size_t>& manager) {
+  IpcEntry entry;
+  bool finished = false;
+  while (true) {
+    finished = manager.all_producers_finished();
+    IpcChannelTryReadResult result = ipc_channel_try_read(channel, &entry);
+    if (result.ipc_status == IPC_OK) {
+      size_t res;
+      memcpy(&res, entry.payload, entry.size);
+      collector.collect(res);
+      free(entry.payload);
+    } else if (result.ipc_status == IPC_EMPTY && finished) {
+      break;
     }
+  }
 }
 
 template<typename ProducerFunc, typename ConsumerFunc>
 void run_single_writer_single_reader_test(ProducerFunc producer, ConsumerFunc consumer,
                                          size_t count, size_t buffer_size) {
     test_utils::BufferWrapper buffer(buffer_size);
-    auto dest = std::make_shared<concurrent_set<size_t>>();
+    UnsafeCollector<size_t> collector;
+    ConcurrencyManager<size_t> manager;
 
-    std::thread producer_thread(producer, buffer.get(), 0, count);
-    std::thread consumer_thread(consumer, buffer.get(), count, dest);
+    manager.add_producer(producer, buffer.get(), 0, count);
+    manager.add_consumer(consumer, buffer.get(), std::ref(collector), std::ref(manager.get_manager()));
 
-    producer_thread.join();
-    consumer_thread.join();
+    manager.run_and_wait();
 
-    CHECK(dest->size() == count);
+    auto collected = collector.get_all_collected();
+    CHECK(collected.size() == count);
     for (size_t i = 0; i < count; i++) {
-        CHECK(dest->contains(i));
+        CHECK(collected.contains(i));
     }
 }
 
@@ -103,50 +111,160 @@ template<typename ProducerFunc, typename ConsumerFunc>
 void run_multiple_writer_single_reader_test(ProducerFunc producer, ConsumerFunc consumer,
                                            size_t total, size_t buffer_size) {
     test_utils::BufferWrapper buffer(buffer_size);
-    auto dest = std::make_shared<concurrent_set<size_t>>();
+    UnsafeCollector<size_t> collector;
+    ConcurrencyManager<size_t> manager;
 
-    std::thread p1(producer, buffer.get(), 0, total / 3);
-    std::thread p2(producer, buffer.get(), total / 3, 2 * total / 3);
-    std::thread p3(producer, buffer.get(), 2 * total / 3, total);
+    // Добавляем продюсеров
+    manager.add_producer(producer, buffer.get(), 0, total / 3);
+    manager.add_producer(producer, buffer.get(), total / 3, 2 * total / 3);
+    manager.add_producer(producer, buffer.get(), 2 * total / 3, total);
 
-    std::thread consumer_thread(consumer, buffer.get(), total, dest);
+    // Добавляем консьюмера
+    manager.add_consumer(consumer, buffer.get(), std::ref(collector), std::ref(manager.get_manager()));
 
-    p1.join();
-    p2.join();
-    p3.join();
-    consumer_thread.join();
-
-    CHECK(dest->size() == total);
+    // Запускаем и ждем завершения
+    manager.run_and_wait();
+    
+    auto collected = collector.get_all_collected();
+    CHECK(collected.size() == total);
     for (size_t i = 0; i < total; i++) {
-        CHECK(dest->contains(i));
+        CHECK(collected.contains(i));
     }
 }
 
 template<typename ProducerFunc, typename ConsumerFunc>
 void run_multiple_writer_multiple_reader_test(ProducerFunc producer, ConsumerFunc consumer,
-                                             size_t total, size_t buffer_size) {
+                                             size_t buffer_size) {
+    const size_t total = test_utils::LARGE_COUNT;
     test_utils::BufferWrapper buffer(buffer_size);
-    auto dest = std::make_shared<concurrent_set<size_t>>();
+    UnsafeCollector<size_t> collector1, collector2, collector3;
+    ConcurrencyManager<size_t> manager;
 
-    std::thread p1(producer, buffer.get(), 0, total / 3);
-    std::thread p2(producer, buffer.get(), total / 3, 2 * total / 3);
-    std::thread p3(producer, buffer.get(), 2 * total / 3, total);
+    manager.add_producer(producer, buffer.get(), 0, total / 3);
+    manager.add_producer(producer, buffer.get(), total / 3, 2 * total / 3);
+    manager.add_producer(producer, buffer.get(), 2 * total / 3, total);
 
-    std::thread c1(consumer, buffer.get(), total, dest);
-    std::thread c2(consumer, buffer.get(), total, dest);
-    std::thread c3(consumer, buffer.get(), total, dest);
+    manager.add_consumer(consumer, buffer.get(), std::ref(collector1), std::ref(manager.get_manager()));
+    manager.add_consumer(consumer, buffer.get(), std::ref(collector2), std::ref(manager.get_manager()));
+    manager.add_consumer(consumer, buffer.get(), std::ref(collector3), std::ref(manager.get_manager()));
 
-    p1.join();
-    p2.join();
-    p3.join();
-    c1.join();
-    c2.join();
-    c3.join();
-
-    CHECK(dest->size() == total);
+    // Запускаем и ждем завершения
+    manager.run_and_wait();
+    
+    // Объединяем результаты всех коллекторов
+    auto collected1 = collector1.get_all_collected();
+    auto collected2 = collector2.get_all_collected();
+    auto collected3 = collector3.get_all_collected();
+    
+    std::unordered_set<size_t> all_collected;
+    all_collected.insert(collected1.begin(), collected1.end());
+    all_collected.insert(collected2.begin(), collected2.end());
+    all_collected.insert(collected3.begin(), collected3.end());
+    
+    CHECK(all_collected.size() == total);
     for (size_t i = 0; i < total; i++) {
-        CHECK(dest->contains(i));
+        CHECK(all_collected.contains(i));
     }
+}
+
+// Функции для каналов
+void run_single_writer_single_reader_channel_test(size_t count, size_t buffer_size) {
+    const uint64_t size = ipc_channel_align_size(buffer_size);
+    std::vector<uint8_t> mem(size);
+    const IpcChannelResult channel_result = ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
+    IpcChannel *channel = channel_result.result;
+    
+    UnsafeCollector<size_t> collector;
+    ConcurrencyManager<size_t> manager;
+
+    // Добавляем продюсера
+    manager.add_producer(produce_channel, channel, 0, count);
+    
+    // Добавляем консьюмера
+    manager.add_consumer(consume_channel, channel, std::ref(collector), std::ref(manager.get_manager()));
+
+    // Запускаем и ждем завершения
+    manager.run_and_wait();
+
+    auto collected = collector.get_all_collected();
+    CHECK(collected.size() == count);
+    for (size_t i = 0; i < count; i++) {
+        CHECK(collected.contains(i));
+    }
+    
+    ipc_channel_destroy(channel);
+}
+
+void run_multiple_writer_single_reader_channel_test(size_t total, size_t buffer_size) {
+    const uint64_t size = ipc_channel_align_size(buffer_size);
+    std::vector<uint8_t> mem(size);
+    const IpcChannelResult channel_result = ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
+    IpcChannel *channel = channel_result.result;
+    
+    UnsafeCollector<size_t> collector;
+    ConcurrencyManager<size_t> manager;
+
+    // Добавляем продюсеров
+    manager.add_producer(produce_channel, channel, 0, total / 3);
+    manager.add_producer(produce_channel, channel, total / 3, 2 * total / 3);
+    manager.add_producer(produce_channel, channel, 2 * total / 3, total);
+
+    // Добавляем консьюмера
+    manager.add_consumer(consume_channel, channel, std::ref(collector), std::ref(manager.get_manager()));
+
+    // Запускаем и ждем завершения
+    manager.run_and_wait();
+
+    auto collected = collector.get_all_collected();
+    CHECK(collected.size() == total);
+    for (size_t i = 0; i < total; i++) {
+        CHECK(collected.contains(i));
+    }
+    
+    ipc_channel_destroy(channel);
+}
+
+void run_multiple_writer_multiple_reader_channel_test(size_t total, size_t buffer_size) {
+    const uint64_t size = ipc_channel_align_size(buffer_size);
+    std::vector<uint8_t> mem(size);
+    const IpcChannelResult channel_result = ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
+    IpcChannel *channel = channel_result.result;
+    
+    UnsafeCollector<size_t> collector1, collector2, collector3;
+    ConcurrencyManager<size_t> manager;
+
+    // Добавляем продюсеров
+    manager.add_producer(produce_channel, channel, 0, total / 3);
+    manager.add_producer(produce_channel, channel, total / 3, 2 * total / 3);
+    manager.add_producer(produce_channel, channel, 2 * total / 3, total);
+
+    // Добавляем консьюмеров с отдельными коллекторами
+    manager.add_consumer(consume_channel, channel, std::ref(collector1), std::ref(manager.get_manager()));
+    manager.add_consumer(consume_channel, channel, std::ref(collector2), std::ref(manager.get_manager()));
+    manager.add_consumer(consume_channel, channel, std::ref(collector3), std::ref(manager.get_manager()));
+
+    // Запускаем и ждем завершения
+    manager.run_and_wait();
+
+    IpcEntry entry;
+    IpcChannelPeekResult peek_res = ipc_channel_peek(channel, &entry);
+    CHECK(peek_res.ipc_status == IPC_EMPTY);
+
+    auto collected1 = collector1.get_all_collected();
+    auto collected2 = collector2.get_all_collected();
+    auto collected3 = collector3.get_all_collected();
+    
+    std::unordered_set<size_t> all_collected;
+    all_collected.insert(collected1.begin(), collected1.end());
+    all_collected.insert(collected2.begin(), collected2.end());
+    all_collected.insert(collected3.begin(), collected3.end());
+    
+    CHECK(all_collected.size() == total);
+    for (size_t i = 0; i < total; i++) {
+        CHECK(all_collected.contains(i));
+    }
+    
+    ipc_channel_destroy(channel);
 }
 
 void test_race_between_skip_and_read_buffer() {

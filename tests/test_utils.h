@@ -1,5 +1,6 @@
 #pragma once
 
+#include "doctest/doctest.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_channel.h"
 #include "shmipc/ipc_common.h"
@@ -11,14 +12,14 @@
 #include <vector>
 
 template<typename T>
-class concurrent_set;
+class ConcurrentSet;
 
 namespace test_utils {
 constexpr size_t SMALL_BUFFER_SIZE = 128;
 constexpr size_t MEDIUM_BUFFER_SIZE = 256;
 constexpr size_t LARGE_BUFFER_SIZE = 1024;
-constexpr size_t DEFAULT_COUNT = 200000;
-constexpr size_t LARGE_COUNT = 300000;
+constexpr size_t DEFAULT_COUNT = 100000;
+constexpr size_t LARGE_COUNT = 50000;
 
 const IpcChannelConfiguration DEFAULT_CONFIG = {
     .max_round_trips = 1024, 

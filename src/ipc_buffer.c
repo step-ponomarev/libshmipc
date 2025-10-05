@@ -124,7 +124,6 @@ IpcBufferWriteResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
   IpcBufferReserveEntryResult reserve_result =
       ipc_buffer_reserve_entry(buffer, size, &payload);
   if (IpcBufferReserveEntryResult_is_error(reserve_result)) {
-    /* заполняем детали ошибки */
     const uint64_t cap =
         atomic_load(&((struct IpcBuffer *)buffer)->header->data_size);
     const uint64_t head =
@@ -155,7 +154,7 @@ IpcBufferWriteResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
                                            "commit failed", error);
   }
 
-  return IpcBufferWriteResult_ok(IPC_OK);
+  return IpcBufferWriteResult_ok(commin_result.ipc_status);
 }
 
 IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
@@ -385,7 +384,6 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
 
   uint64_t offset = rel_tail;
   if (wrapped) {
-    _set_flag(((struct IpcBuffer *)buffer)->data + offset, FLAG_WRAP_AROUND);
     offset = 0;
   }
 
@@ -393,11 +391,16 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
       (EntryHeader *)(((struct IpcBuffer *)buffer)->data + offset);
   header->entry_size = total_required_entry_size;
   header->payload_size = size;
-  _set_flag((uint8_t *)&header->flag, FLAG_NOT_READY);
+  if (wrapped) {
+    header->flag = FLAG_NOT_READY;
+    _set_flag(((struct IpcBuffer *)buffer)->data + rel_tail, FLAG_WRAP_AROUND);
+  } else {
+    _set_flag(&header->flag, FLAG_NOT_READY);
+  }
 
   *dest = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
 
-  return IpcBufferReserveEntryResult_ok(IPC_OK, tail);
+  return IpcBufferReserveEntryResult_ok(IPC_OK, wrapped ? 0 : tail);
 }
 
 IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
@@ -466,7 +469,7 @@ static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
                             : (EntryHeader *)(buffer->data + rel_head);
 
   if (first_flag == FLAG_WRAP_AROUND) {
-    first_flag = _read_flag(&header->flag);
+    first_flag = header->flag;
   }
 
   // always set dest
