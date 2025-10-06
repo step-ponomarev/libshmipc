@@ -67,8 +67,8 @@ private:
 class ChannelWrapper {
 public:
     explicit ChannelWrapper(size_t size, const IpcChannelConfiguration& config = DEFAULT_CONFIG) 
-        : mem_(size) {
-        const IpcChannelResult result = ipc_channel_create(mem_.data(), size, config);
+        : mem_(ipc_channel_align_size(size)) {
+        const IpcChannelResult result = ipc_channel_create(mem_.data(), ipc_channel_align_size(size), config);
         CHECK(IpcChannelResult_is_ok(result));
         channel_ = result.result;
     }
