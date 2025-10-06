@@ -24,10 +24,7 @@ struct IpcBuffer {
   IpcBufferHeader *header;
   uint8_t *data;
 };
-// typedef struct CommitFlags {
-//   Flag flag;
-//   uint64_t seq;
-// } CommitFlags;
+
 typedef struct EntryHeader {
   _Atomic Flag flag;
   _Atomic uint64_t seq;
