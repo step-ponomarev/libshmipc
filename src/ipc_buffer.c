@@ -8,13 +8,11 @@
 
 #define IPC_DATA_ALIGN 8
 #define MIN_BUFFER_SIZE                                                        \
-  (sizeof(IpcBufferHeader) + 2) // 2 bytes min buffer size despite header
+  (sizeof(IpcBufferHeader) + IPC_DATA_ALIGN) // 2 bytes min buffer size despite header
 
 typedef uint8_t Flag;
 static const Flag FLAG_NOT_READY = 0;
 static const Flag FLAG_READY = 1;
-static const Flag FLAG_WRAP_AROUND = 2;
-static const Flag FLAG_LOCKED = 3;
 
 typedef struct IpcBufferHeader {
   _Atomic uint64_t head;
@@ -26,10 +24,13 @@ struct IpcBuffer {
   IpcBufferHeader *header;
   uint8_t *data;
 };
-
+// typedef struct CommitFlags {
+//   Flag flag;
+//   uint64_t seq;
+// } CommitFlags;
 typedef struct EntryHeader {
   _Atomic Flag flag;
-  uint64_t seq;
+  _Atomic uint64_t seq;
   uint64_t payload_size;
   uint64_t entry_size;
 } EntryHeader;
@@ -37,11 +38,14 @@ typedef struct EntryHeader {
 static uint64_t _find_max_power_of_2(const uint64_t max);
 static Flag _read_flag(const void *addr);
 static void _set_flag(void *addr, const Flag flag);
+static uint64_t _read_seq(const void *addr);
+static void _set_seq(void *addr, const uint64_t seq);
 static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
                                     const uint64_t head, EntryHeader **dest);
+static IpcStatus _write_placeholder(struct IpcBuffer *buffer, uint64_t tail);
 
 uint64_t ipc_buffer_align_size(size_t size) {
-  return (size < 2 ? 2 : size) + sizeof(IpcBufferHeader);
+  return (size < IPC_DATA_ALIGN ? IPC_DATA_ALIGN : size) + sizeof(IpcBufferHeader);
 }
 
 IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
@@ -54,7 +58,6 @@ IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
   }
 
   if (size < MIN_BUFFER_SIZE) {
-
     return IpcBufferCreateResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer size too small",
         error);
@@ -179,6 +182,12 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
     EntryHeader *header = NULL;
     const IpcStatus status =
         _read_entry_header((struct IpcBuffer *)buffer, head, &header);
+        
+    if (status == IPC_PLACEHOLDER) {
+      ipc_buffer_skip(buffer, head);
+      continue;
+    }
+
     if (status != IPC_OK) {
       if (status == IPC_EMPTY) {
         return IpcBufferReadResult_ok(IPC_EMPTY);
@@ -199,6 +208,7 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
     // read/write race guard, read before move head
     memcpy(dest->payload, ((uint8_t *)header) + sizeof(EntryHeader),
            header->payload_size);
+
     if (atomic_compare_exchange_strong(
             &((struct IpcBuffer *)buffer)->header->head, &head,
             head + header->entry_size)) {
@@ -209,7 +219,7 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
   }
 }
 
-IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
+IpcBufferPeekResult ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
   IpcBufferPeekError error = {.offset = 0};
   if (buffer == NULL) {
     return IpcBufferPeekResult_error_body(
@@ -221,12 +231,20 @@ IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer, IpcEntry *dest) {
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is NULL", error);
   }
 
-  const uint64_t head =
-      atomic_load(&((const struct IpcBuffer *)buffer)->header->head);
-
+  uint64_t head;
   EntryHeader *header = NULL;
-  const IpcStatus status =
-      _read_entry_header((const struct IpcBuffer *)buffer, head, &header);
+  IpcStatus status;
+  for (;;) {
+    head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
+    status = _read_entry_header((struct IpcBuffer *)buffer, head, &header);
+
+    if (status != IPC_PLACEHOLDER) {
+      break;
+    }
+
+    ipc_buffer_skip(buffer, head);
+  }
+
   if (status != IPC_OK) {
     if (status == IPC_EMPTY) {
       return IpcBufferPeekResult_ok(IPC_EMPTY);
@@ -252,9 +270,13 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const uint64_t offset) {
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
 
+  if (offset % IPC_DATA_ALIGN != 0) {
+    return IpcBufferSkipResult_error_body(
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: offset must be multiple of 8", error);
+  }
+
   uint64_t head;
   EntryHeader *header = NULL;
-  Flag flag;
 
   for (;;) {
     head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
@@ -268,32 +290,30 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const uint64_t offset) {
 
     const IpcStatus status =
         _read_entry_header((struct IpcBuffer *)buffer, head, &header);
+
+    if (status == IPC_PLACEHOLDER) {
+      atomic_compare_exchange_strong(
+        &((struct IpcBuffer *)buffer)->header->head, &head,
+        head + header->entry_size);
+      continue;
+    }
+
     if (status == IPC_EMPTY) {
       return IpcBufferSkipResult_ok(IPC_EMPTY, head);
     }
 
-    if (status == IPC_ERR_LOCKED) {
+    if (!atomic_compare_exchange_strong(
+            &((struct IpcBuffer *)buffer)->header->head, &head,
+            head + header->entry_size)) {
       error.offset = head;
-      return IpcBufferSkipResult_error_body(IPC_ERR_LOCKED, "locked", error);
+      return IpcBufferSkipResult_error_body(
+          IPC_ERR_OFFSET_MISMATCH,
+          "Offset mismatch: expected different offset than current head",
+          error);
     }
 
-    flag = _read_flag(&header->flag);
-    if (atomic_compare_exchange_strong(&header->flag, &flag, FLAG_LOCKED)) {
-      break;
-    }
+    return IpcBufferSkipResult_ok(IPC_OK, offset);
   }
-
-  if (!atomic_compare_exchange_strong(
-          &((struct IpcBuffer *)buffer)->header->head, &head,
-          head + header->entry_size)) {
-    error.offset = head;
-    return IpcBufferSkipResult_error_body(
-        IPC_ERR_OFFSET_MISMATCH,
-        "Offset mismatch: expected different offset than current head",
-        error);
-  }
-
-  return IpcBufferSkipResult_ok(IPC_OK, offset);
 }
 
 IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
@@ -304,10 +324,20 @@ IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
 
-  uint64_t head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
+  uint64_t head;
   EntryHeader *header = NULL;
-  IpcStatus status =
-      _read_entry_header((struct IpcBuffer *)buffer, head, &header);
+  IpcStatus status;
+  for (;;) {
+    head = atomic_load(&((struct IpcBuffer *)buffer)->header->head);
+    status = _read_entry_header((struct IpcBuffer *)buffer, head, &header);
+
+    if (status != IPC_PLACEHOLDER) {
+      break;
+    }
+
+    ipc_buffer_skip(buffer, head);
+  }
+
   if (status == IPC_EMPTY) {
     return IpcBufferSkipForceResult_ok(IPC_EMPTY, head);
   }
@@ -350,55 +380,43 @@ ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
         error);
   }
 
-  uint64_t tail, rel_tail, space_to_wrap, total_required_entry_size;
-  bool wrapped = false;
-
+  uint64_t tail, rel_tail;
   do {
     tail = atomic_load(&((struct IpcBuffer *)buffer)->header->tail);
     rel_tail = RELATIVE(tail, buf_size);
-    space_to_wrap = buf_size - rel_tail;
 
-    wrapped = space_to_wrap < full_entry_size;
-    total_required_entry_size = full_entry_size;
-    if (wrapped) {
-      total_required_entry_size =
-          ALIGN_UP(space_to_wrap + sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
-    }
-
+    const uint64_t space_to_wrap = buf_size - rel_tail;
     const uint64_t head =
         atomic_load(&((struct IpcBuffer *)buffer)->header->head);
     const uint64_t used = tail - head;
     const uint64_t free_space = buf_size - used;
 
-    if (free_space < total_required_entry_size) {
+    if (free_space < full_entry_size) {
       error.offset = tail;
-      error.required_size = total_required_entry_size;
+      error.required_size = full_entry_size;
       error.free_space = free_space;
       return IpcBufferReserveEntryResult_error_body(
           IPC_ERR_NO_SPACE_CONTIGUOUS, "not enough contiguous space in buffer",
           error);
     }
+
+    // no space for current entry + header of next placeholder
+    if (space_to_wrap < full_entry_size + sizeof(EntryHeader)) {
+      _write_placeholder(buffer, tail);
+      continue;
+    }
   } while (!atomic_compare_exchange_strong(
       &((struct IpcBuffer *)buffer)->header->tail, &tail,
-      tail + total_required_entry_size));
-
-  uint64_t offset = rel_tail;
-  if (wrapped) {
-    offset = 0;
-  }
+      tail + full_entry_size));
 
   EntryHeader *header =
-      (EntryHeader *)(((struct IpcBuffer *)buffer)->data + offset);
-  header->entry_size = total_required_entry_size;
+      (EntryHeader *)(((struct IpcBuffer *)buffer)->data + rel_tail);
+  header->entry_size = full_entry_size;
   header->payload_size = size;
-  if (wrapped) {
-    header->flag = FLAG_NOT_READY;
-    _set_flag(((struct IpcBuffer *)buffer)->data + rel_tail, FLAG_WRAP_AROUND);
-  } else {
-    _set_flag(&header->flag, FLAG_NOT_READY);
-  }
+  _set_flag(&header->flag, FLAG_NOT_READY);
 
   *dest = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
+
 
   return IpcBufferReserveEntryResult_ok(IPC_OK, tail);
 }
@@ -411,12 +429,17 @@ IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
 
+  if (offset % IPC_DATA_ALIGN != 0) {
+    return IpcBufferCommitEntryResult_error_body(
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: offset must be multiple of 8", error);
+  }
+
   EntryHeader *header = (EntryHeader *)(((struct IpcBuffer *)buffer)->data);
   const IpcStatus status =
       _read_entry_header((struct IpcBuffer *)buffer, offset, &header);
 
   // if not set NOT_READY flag yet, race condition guard
-  if (status != IPC_ERR_NOT_READY && status != IPC_ERR_CORRUPTED) {
+  if (status != IPC_ERR_NOT_READY) {
     error.offset = offset;
 
     if (status == IPC_ERR_LOCKED) {
@@ -430,8 +453,9 @@ IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
         error);
   }
 
-  header->seq = offset;
-  _set_flag((uint8_t *)&header->flag, FLAG_READY);
+  _set_seq((void *)(&header->seq), offset);
+  // header->seq = offset;
+  _set_flag((void *)(&header->flag), FLAG_READY);
 
   return IpcBufferCommitEntryResult_ok(IPC_OK);
 }
@@ -445,12 +469,42 @@ static inline uint64_t _find_max_power_of_2(const uint64_t max) {
 
 static inline Flag _read_flag(const void *addr) {
   const _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
-  return atomic_load(atomic_flag);
+  return atomic_load_explicit(atomic_flag, memory_order_acquire);
 }
 
 static inline void _set_flag(void *addr, const Flag flag) {
   _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
-  atomic_store(atomic_flag, flag);
+  atomic_store_explicit(atomic_flag, flag, memory_order_release);
+}
+
+static uint64_t _read_seq(const void *addr) {
+  const _Atomic uint64_t *seq = (_Atomic uint64_t *)addr;
+  return atomic_load_explicit(seq, memory_order_acquire);
+}
+static void _set_seq(void *addr, const uint64_t seq) {
+  _Atomic uint64_t *seq_ptr = (_Atomic uint64_t *)addr;
+  atomic_store_explicit(seq_ptr, seq, memory_order_release);
+}
+
+static IpcStatus _write_placeholder(struct IpcBuffer *buffer, uint64_t tail) {
+  const uint64_t rel_tail = RELATIVE(tail, buffer->header->data_size);
+
+  const uint64_t buf_size = ((struct IpcBuffer *)buffer)->header->data_size;
+  const uint64_t space_to_wrap = buf_size - rel_tail;
+
+  if (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
+                                      tail + space_to_wrap)) {
+    return IPC_ERR_OFFSET_MISMATCH;
+  }
+
+  EntryHeader *header =
+      (EntryHeader *)(((struct IpcBuffer *)buffer)->data + rel_tail);
+  header->payload_size = 0;
+  header->entry_size = space_to_wrap;
+  _set_seq((void *)(&header->seq), tail);
+  _set_flag((void *)(&header->flag), FLAG_READY);
+
+  return IPC_OK;
 }
 
 static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
@@ -464,13 +518,7 @@ static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
   const uint64_t rel_head = RELATIVE(head, buf_size);
 
   Flag first_flag = _read_flag(buffer->data + rel_head);
-  EntryHeader *header = (first_flag == FLAG_WRAP_AROUND)
-                            ? (EntryHeader *)buffer->data
-                            : (EntryHeader *)(buffer->data + rel_head);
-
-  if (first_flag == FLAG_WRAP_AROUND) {
-    first_flag = header->flag;
-  }
+  EntryHeader *header = (EntryHeader *)(buffer->data + rel_head);
 
   // always set dest
   *dest = header;
@@ -479,9 +527,10 @@ static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
     return IPC_ERR_NOT_READY;
   }
 
-  if (first_flag == FLAG_LOCKED) {
-    return IPC_ERR_LOCKED;
+  const uint64_t seq = _read_seq((void *)(&header->seq));
+  if (header->payload_size == 0) {
+    return (head != seq) ? IPC_ERR_CORRUPTED : IPC_PLACEHOLDER;
   }
 
-  return (head != header->seq) ? IPC_ERR_CORRUPTED : IPC_OK;
+  return (head != seq) ? IPC_ERR_CORRUPTED : IPC_OK;
 }

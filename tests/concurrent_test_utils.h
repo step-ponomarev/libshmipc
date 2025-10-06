@@ -7,10 +7,7 @@
 #include "concurrency_manager.hpp"
 #include "test_utils.h"
 #include <stdbool.h>
-#include <thread>
 #include <memory>
-#include <atomic>
-#include <chrono>
 
 namespace concurrent_test_utils {
 
@@ -63,7 +60,7 @@ void consume_buffer(IpcBuffer *buffer,
       size_t res;
       memcpy(&res, entry_ref.payload, entry_ref.size);
       collector.collect(res);
-    } else if (finished) {
+    } else if (finished && result.ipc_status == IPC_EMPTY) {
       break;
     }
   }
@@ -82,7 +79,7 @@ void consume_channel(IpcChannel *channel,
       memcpy(&res, entry.payload, entry.size);
       collector.collect(res);
       free(entry.payload);
-    } else if (finished) {
+    } else if (finished && result.ipc_status == IPC_EMPTY) {
       break;
     }
   }
@@ -161,10 +158,15 @@ void run_multiple_writer_multiple_reader_test(ProducerFunc producer, ConsumerFun
     all_collected.insert(collected2.begin(), collected2.end());
     all_collected.insert(collected3.begin(), collected3.end());
     
-    CHECK(all_collected.size() == total);
+    
+    bool is_ok = all_collected.size() == total;
     for (size_t i = 0; i < total; i++) {
-        CHECK(all_collected.contains(i));
+        if (!all_collected.contains(i)) {
+            is_ok = false;
+        }
     }
+
+    CHECK(is_ok);
 }
 
 // Функции для каналов
@@ -350,5 +352,4 @@ void test_race_between_skip_and_read_channel() {
     CHECK(skip_done.load());
     CHECK(read_done.load());
 }
-
-} 
+}

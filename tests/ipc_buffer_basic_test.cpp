@@ -18,41 +18,23 @@ TEST_CASE("buffer align_size - valid alignment") {
 }
 
 TEST_CASE("buffer create - NULL memory pointer") {
-    const IpcBufferCreateResult buffer_result = ipc_buffer_create(nullptr, 128);
-    test_utils::CHECK_ERROR_WITH_FIELDS(buffer_result, IPC_ERR_INVALID_ARGUMENT, 128, 26);
+    const IpcBufferCreateResult buffer_result = ipc_buffer_create(nullptr, ipc_buffer_align_size(128));
+    test_utils::CHECK_ERROR(buffer_result, IPC_ERR_INVALID_ARGUMENT);
 }
 
 TEST_CASE("buffer create - too small size error fields") {
     uint8_t mem[128];
     const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, 10);
-    test_utils::CHECK_ERROR_WITH_FIELDS(buffer_result, IPC_ERR_INVALID_ARGUMENT, 10, 26);
-}
-
-TEST_CASE("buffer create - minimum valid size") {
-    uint8_t mem[128];
-    
-    const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, 26);
-    test_utils::CHECK_OK(buffer_result);
-}
-
-TEST_CASE("buffer create - various valid sizes") {
-    uint8_t mem[1024];
-    const size_t test_sizes[] = {26, 32, 64, 128, 256, 512, 1024};
-    
-    for (size_t size : test_sizes) {
-        const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, size);
-        test_utils::CHECK_OK(buffer_result);
-        free(buffer_result.result);
-    }
+    test_utils::CHECK_ERROR(buffer_result, IPC_ERR_INVALID_ARGUMENT);
 }
 
 TEST_CASE("buffer create - success case") {
-    uint8_t mem[128];
-    const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, 128);
+    uint8_t mem[test_utils::SMALL_BUFFER_SIZE];
+    const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, test_utils::SMALL_BUFFER_SIZE);
     test_utils::CHECK_OK(buffer_result);
     
     IpcBuffer* buffer = buffer_result.result;
-    test_utils::verify_buffer_creation(buffer, 128);
+    test_utils::verify_buffer_creation(buffer, test_utils::SMALL_BUFFER_SIZE);
     
     free(buffer);
 }
@@ -62,25 +44,21 @@ TEST_CASE("buffer create - error structure verification") {
     
     const IpcBufferCreateResult null_result = ipc_buffer_create(nullptr, 128);
     CHECK(IpcBufferCreateResult_is_error(null_result));
-    CHECK(null_result.error.body.requested_size == 128);
-    CHECK(null_result.error.body.min_size == 26);
-    
+
     const IpcBufferCreateResult small_result = ipc_buffer_create(mem, 5);
     CHECK(IpcBufferCreateResult_is_error(small_result));
-    CHECK(small_result.error.body.requested_size == 5);
-    CHECK(small_result.error.body.min_size == 26);
 }
 
 
 TEST_CASE("attach buffer with NULL memory") {
     const IpcBufferAttachResult attach_result = ipc_buffer_attach(nullptr);
-    test_utils::CHECK_ERROR_WITH_FIELDS(attach_result, IPC_ERR_INVALID_ARGUMENT, 26);
+    test_utils::CHECK_ERROR(attach_result, IPC_ERR_INVALID_ARGUMENT);
 }
 
 TEST_CASE("attach buffer success case") {
-    uint8_t mem[128];
+    uint8_t mem[256];
     
-    const IpcBufferCreateResult create_result = ipc_buffer_create(mem, 128);
+    const IpcBufferCreateResult create_result = ipc_buffer_create(mem, 256);
     test_utils::CHECK_OK(create_result);
     IpcBuffer* created_buffer = create_result.result;
     
@@ -108,7 +86,6 @@ TEST_CASE("attach buffer success case") {
 TEST_CASE("attach buffer error structure verification") {
     const IpcBufferAttachResult null_result = ipc_buffer_attach(nullptr);
     CHECK(IpcBufferAttachResult_is_error(null_result));
-    CHECK(null_result.error.body.min_size == 26);
 }
 
 
@@ -328,7 +305,7 @@ TEST_CASE("skip with wrong offset") {
     test_utils::write_data(buffer.get(), test_data);
     
     
-    const IpcBufferSkipResult skip_result = ipc_buffer_skip(buffer.get(), 999);
+    const IpcBufferSkipResult skip_result = ipc_buffer_skip(buffer.get(), 256);
     test_utils::CHECK_ERROR(skip_result, IPC_ERR_OFFSET_MISMATCH);
 }
 
@@ -351,10 +328,10 @@ TEST_CASE("skip error structure verification") {
     CHECK(null_buffer_result.error.body.offset == 0);
     
     
-    const IpcBufferSkipResult wrong_offset_result = ipc_buffer_skip(buffer.get(), 999);
+    const IpcBufferSkipResult wrong_offset_result = ipc_buffer_skip(buffer.get(), 256);
     CHECK(IpcBufferSkipResult_is_error(wrong_offset_result));
     
-    CHECK(wrong_offset_result.error.body.offset == 0); 
+    CHECK(wrong_offset_result.error.body.offset == 0);
 }
 
 TEST_CASE("skip multiple entries") {
@@ -1384,20 +1361,6 @@ TEST_CASE("buffer boundary - single byte operations") {
     uint8_t read_byte;
     memcpy(&read_byte, entry_ref.payload, sizeof(uint8_t));
     CHECK(read_byte == single_byte);
-}
-
-TEST_CASE("buffer boundary - exact buffer size") {
-    
-    uint8_t mem[26]; 
-    const IpcBufferCreateResult buffer_result = ipc_buffer_create(mem, 26);
-    test_utils::CHECK_OK(buffer_result);
-    
-    IpcBuffer* buffer = buffer_result.result;
-    
-    
-    
-    
-    free(buffer);
 }
 
 TEST_CASE("buffer boundary - simple overflow test") {

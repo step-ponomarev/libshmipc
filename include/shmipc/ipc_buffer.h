@@ -47,7 +47,7 @@ typedef struct IpcBufferPeekError {
   uint64_t offset;
 } IpcBufferPeekError;
 IPC_RESULT_UNIT(IpcBufferPeekResult, IpcBufferPeekError)
-SHMIPC_API IpcBufferPeekResult ipc_buffer_peek(const IpcBuffer *buffer,
+SHMIPC_API IpcBufferPeekResult ipc_buffer_peek(IpcBuffer *buffer,
                                                IpcEntry *dest);
 
 typedef struct IpcBufferSkipError {

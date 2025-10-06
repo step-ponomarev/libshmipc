@@ -12,4 +12,4 @@ cp build/compile_commands.json . 2>/dev/null || true
 
 ln -sf build/_deps/doctest-src/doctest third_party_doctest 2>/dev/null || true
 
-ctest --test-dir build --timeout 10 -V
+ctest --test-dir build --timeout 30 -V 

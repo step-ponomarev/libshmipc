@@ -52,15 +52,15 @@ TEST_CASE("channel create - invalid config - zero max_sleep_ns") {
 }
 
 TEST_CASE("channel create - invalid config - start_sleep_ns > max_sleep_ns") {
-    uint8_t mem[128];
+    uint8_t mem[test_utils::SMALL_BUFFER_SIZE];
     IpcChannelConfiguration invalid_config = {1024, 100000, 1000};
-    const IpcChannelResult result = ipc_channel_create(mem, 128, invalid_config);
+    const IpcChannelResult result = ipc_channel_create(mem, test_utils::SMALL_BUFFER_SIZE, invalid_config);
     test_utils::CHECK_ERROR(result, IPC_ERR_INVALID_ARGUMENT);
 }
 
 TEST_CASE("channel create - success case") {
-    uint8_t mem[128];
-    const IpcChannelResult result = ipc_channel_create(mem, 128, test_utils::DEFAULT_CONFIG);
+    uint8_t mem[test_utils::SMALL_BUFFER_SIZE];
+    const IpcChannelResult result = ipc_channel_create(mem, test_utils::SMALL_BUFFER_SIZE, test_utils::DEFAULT_CONFIG);
     test_utils::CHECK_OK(result);
     
     IpcChannel* channel = result.result;
@@ -70,18 +70,17 @@ TEST_CASE("channel create - success case") {
 }
 
 TEST_CASE("channel create - error structure verification") {
-    
-    const IpcChannelResult null_result = ipc_channel_create(nullptr, 128, test_utils::DEFAULT_CONFIG);
+    const IpcChannelResult null_result = ipc_channel_create(nullptr, test_utils::SMALL_BUFFER_SIZE, test_utils::DEFAULT_CONFIG);
     CHECK(IpcChannelResult_is_error(null_result));
-    CHECK(null_result.error.body.requested_size == 128);
+    CHECK(null_result.error.body.requested_size == test_utils::SMALL_BUFFER_SIZE);
     CHECK(null_result.error.body.min_size > 0);
     
     
-    uint8_t mem[128];
+    uint8_t mem[test_utils::SMALL_BUFFER_SIZE];
     IpcChannelConfiguration invalid_config = {0, 1000, 100000};
-    const IpcChannelResult config_result = ipc_channel_create(mem, 128, invalid_config);
+    const IpcChannelResult config_result = ipc_channel_create(mem, test_utils::SMALL_BUFFER_SIZE, invalid_config);
     CHECK(IpcChannelResult_is_error(config_result));
-    CHECK(config_result.error.body.requested_size == 128);
+    CHECK(config_result.error.body.requested_size == test_utils::SMALL_BUFFER_SIZE);
     CHECK(config_result.error.body.min_size > 0);
 }
 
@@ -457,7 +456,7 @@ TEST_CASE("channel skip - wrong offset") {
     const int test_data = 42;
     test_utils::write_data(channel.get(), test_data);
     
-    const IpcChannelSkipResult skip_result = ipc_channel_skip(channel.get(), 999);
+    const IpcChannelSkipResult skip_result = ipc_channel_skip(channel.get(), 256);
     test_utils::CHECK_ERROR(skip_result, IPC_ERR_OFFSET_MISMATCH);
 }
 
@@ -479,7 +478,7 @@ TEST_CASE("channel skip - error structure verification") {
     CHECK(null_channel_result.error.body.offset == 0);
     
     
-    const IpcChannelSkipResult wrong_offset_result = ipc_channel_skip(channel.get(), 999);
+    const IpcChannelSkipResult wrong_offset_result = ipc_channel_skip(channel.get(), 256);
     CHECK(IpcChannelSkipResult_is_error(wrong_offset_result));
     CHECK(wrong_offset_result.error.body.offset == 0);
 }

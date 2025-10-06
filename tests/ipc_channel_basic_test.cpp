@@ -192,7 +192,7 @@ TEST_CASE("read retry limit reached") {
 }
 
 TEST_CASE("skip corrupted entry") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_align_size(256);
     std::vector<uint8_t> mem(size);
 
     IpcChannelResult channel_result =
