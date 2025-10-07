@@ -506,7 +506,7 @@ static inline bool _is_error_status(const IpcStatus status) {
 
 static inline bool _is_retry_status(const IpcStatus status) {
   return status == IPC_ERR_NOT_READY || status == IPC_EMPTY ||
-         status == IPC_ERR_LOCKED || status == IPC_ERR_CORRUPTED;
+         status == IPC_ERR_CORRUPTED;
 }
 
 static inline bool _is_valid_config(const IpcChannelConfiguration config) {

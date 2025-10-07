@@ -331,7 +331,7 @@ TEST_CASE("skip error structure verification") {
     const IpcBufferSkipResult wrong_offset_result = ipc_buffer_skip(buffer.get(), 256);
     CHECK(IpcBufferSkipResult_is_error(wrong_offset_result));
     
-    CHECK(wrong_offset_result.error.body.offset == 0);
+    CHECK(wrong_offset_result.error.body.offset == 0); 
 }
 
 TEST_CASE("skip multiple entries") {
