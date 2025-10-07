@@ -29,8 +29,6 @@ TEST_CASE("multiple writer multiple reader stress") {
 
 
 
-
-
 TEST_CASE("race between skip and read") {
     for (int i = 0; i < 1000; i++) {
         concurrent_test_utils::test_race_between_skip_and_read_channel();

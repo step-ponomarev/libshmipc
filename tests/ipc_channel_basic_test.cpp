@@ -343,3 +343,66 @@ TEST_CASE("channel double commit") {
 
     ipc_channel_destroy(channel);
 }
+
+TEST_CASE("channel data - different sizes") {
+    const uint64_t size = ipc_channel_align_size(2048);
+    std::vector<uint8_t> mem(size);
+    
+    IpcChannelResult channel_result = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+    IpcChannel *channel = channel_result.result;
+    
+    struct TestData {
+        size_t size;
+        uint8_t pattern;
+        const char* description;
+    };
+    
+    std::vector<TestData> test_cases = {
+        {1, 0xAA, "single byte"},
+        {4, 0xBB, "4 bytes (int)"},
+        {8, 0xCC, "8 bytes (long long)"},
+        {16, 0xDD, "16 bytes"},
+        {32, 0xEE, "32 bytes"},
+        {64, 0xFF, "64 bytes"},
+        {128, 0x11, "128 bytes"},
+        {256, 0x22, "256 bytes"}
+    };
+    
+    std::vector<std::vector<uint8_t>> written_data;
+    for (const auto& test_case : test_cases) {
+        std::vector<uint8_t> data(test_case.size, test_case.pattern);
+        written_data.push_back(data);
+        
+        IpcChannelWriteResult write_result = 
+            ipc_channel_write(channel, data.data(), data.size());
+        
+        if (IpcChannelWriteResult_is_ok(write_result)) {
+        } else {
+            written_data.pop_back();
+            break;
+        }
+    }
+    
+    for (size_t i = 0; i < written_data.size(); ++i) {
+        IpcEntry entry;
+        IpcChannelReadResult read_result = ipc_channel_read(channel, &entry);
+        
+        CHECK(read_result.ipc_status == IPC_OK);
+        CHECK(entry.size == written_data[i].size());
+        
+        CHECK(memcmp(entry.payload, written_data[i].data(), written_data[i].size()) == 0);
+        
+        const uint8_t expected_pattern = test_cases[i].pattern;
+        for (size_t j = 0; j < entry.size; ++j) {
+            CHECK(static_cast<uint8_t*>(entry.payload)[j] == expected_pattern);
+        }
+        
+        free(entry.payload);
+    }
+    
+    IpcEntry entry;
+    IpcChannelTryReadResult read_result = ipc_channel_try_read(channel, &entry);
+    CHECK(read_result.ipc_status == IPC_EMPTY);
+    
+    ipc_channel_destroy(channel);
+}

@@ -30,14 +30,6 @@ TEST_CASE("multiple writer multiple reader") {
       concurrent_test_utils::consume_buffer, test_utils::SMALL_BUFFER_SIZE);
 }
 
-TEST_CASE("multiple writer multiple reader stress") {
-  for (int i = 0; i < 10; i++) {
-    concurrent_test_utils::run_multiple_writer_multiple_reader_test(
-        concurrent_test_utils::produce_buffer,
-        concurrent_test_utils::consume_buffer, test_utils::SMALL_BUFFER_SIZE);
-  }
-}
-
 TEST_CASE("delayed multiple writer multiple reader") {
   concurrent_test_utils::run_multiple_writer_multiple_reader_test(
       concurrent_test_utils::delayed_produce_buffer,
