@@ -1,44 +1,199 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
-#include "shmipc/ipc_buffer.h"
-#include "test_utils.h"
-#include "concurrency_manager.hpp"
 #include "concurrent_test_utils.h"
+#include "test_utils.h"
 #include "unsafe_collector.hpp"
-#include <memory>
-#include <set>
+#include "concurrency_manager.hpp"
+#include <unordered_set>
 #include <thread>
-#include <vector>
 
 TEST_CASE("single writer single reader") {
-  concurrent_test_utils::run_single_writer_single_reader_test(
-      concurrent_test_utils::produce_buffer,
-      concurrent_test_utils::consume_buffer, test_utils::LARGE_COUNT,
-      test_utils::SMALL_BUFFER_SIZE);
+  test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+  UnsafeCollector<size_t> collector;
+  ConcurrencyManager<size_t> manager;
+
+  manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 0, test_utils::LARGE_COUNT);
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector), std::ref(manager.get_manager()));
+
+  manager.run_and_wait();
+
+  auto collected = collector.get_all_collected();
+  CHECK(collected.size() == test_utils::LARGE_COUNT);
+  for (size_t i = 0; i < test_utils::LARGE_COUNT; i++) {
+      CHECK(collected.contains(i));
+  }
 }
 
 TEST_CASE("multiple writer single reader") {
-  concurrent_test_utils::run_multiple_writer_single_reader_test(
-      concurrent_test_utils::produce_buffer,
-      concurrent_test_utils::consume_buffer, test_utils::LARGE_COUNT,
-      test_utils::SMALL_BUFFER_SIZE);
+  test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+  UnsafeCollector<size_t> collector;
+  ConcurrencyManager<size_t> manager;
+
+  // Добавляем продюсеров
+  manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 0, test_utils::LARGE_COUNT / 3);
+  manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), test_utils::LARGE_COUNT / 3, 2 * test_utils::LARGE_COUNT / 3);
+  manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 2 * test_utils::LARGE_COUNT / 3, test_utils::LARGE_COUNT);
+
+  // Добавляем консьюмера
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector), std::ref(manager.get_manager()));
+
+  // Запускаем и ждем завершения
+  manager.run_and_wait();
+  
+  auto collected = collector.get_all_collected();
+  CHECK(collected.size() == test_utils::LARGE_COUNT);
+  for (size_t i = 0; i < test_utils::LARGE_COUNT; i++) {
+      CHECK(collected.contains(i));
+  }
 }
 
 TEST_CASE("multiple writer multiple reader") {
-  concurrent_test_utils::run_multiple_writer_multiple_reader_test(
-      concurrent_test_utils::produce_buffer,
-      concurrent_test_utils::consume_buffer, test_utils::SMALL_BUFFER_SIZE);
+  const size_t total = test_utils::LARGE_COUNT;
+  test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+  UnsafeCollector<size_t> collector1, collector2, collector3;
+  ConcurrencyManager<size_t> manager;
+
+  manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 0, total / 3);
+  manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), total / 3, 2 * total / 3);
+  manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 2 * total / 3, total);
+
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector1), std::ref(manager.get_manager()));
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector2), std::ref(manager.get_manager()));
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector3), std::ref(manager.get_manager()));
+
+  // Запускаем и ждем завершения
+  manager.run_and_wait();
+  
+  // Объединяем результаты всех коллекторов
+  auto collected1 = collector1.get_all_collected();
+  auto collected2 = collector2.get_all_collected();
+  auto collected3 = collector3.get_all_collected();
+  
+  std::unordered_set<size_t> all_collected;
+  all_collected.insert(collected1.begin(), collected1.end());
+  all_collected.insert(collected2.begin(), collected2.end());
+  all_collected.insert(collected3.begin(), collected3.end());
+  
+  bool is_ok = all_collected.size() == total;
+  for (size_t i = 0; i < total; i++) {
+      if (!all_collected.contains(i)) {
+          is_ok = false;
+      }
+  }
+
+  CHECK(is_ok);
+}
+
+TEST_CASE("multiple writer multiple reader stress") {
+  for (int i = 0; i < 10; i++) {
+    const size_t total = test_utils::LARGE_COUNT;
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    UnsafeCollector<size_t> collector1, collector2, collector3;
+    ConcurrencyManager<size_t> manager;
+
+    manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 0, total / 3);
+    manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), total / 3, 2 * total / 3);
+    manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 2 * total / 3, total);
+
+    manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector1), std::ref(manager.get_manager()));
+    manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector2), std::ref(manager.get_manager()));
+    manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector3), std::ref(manager.get_manager()));
+
+    manager.run_and_wait();
+    
+    auto collected1 = collector1.get_all_collected();
+    auto collected2 = collector2.get_all_collected();
+    auto collected3 = collector3.get_all_collected();
+    
+    std::unordered_set<size_t> all_collected;
+    all_collected.insert(collected1.begin(), collected1.end());
+    all_collected.insert(collected2.begin(), collected2.end());
+    all_collected.insert(collected3.begin(), collected3.end());
+    
+    bool is_ok = all_collected.size() == total;
+    for (size_t i = 0; i < total; i++) {
+        if (!all_collected.contains(i)) {
+            is_ok = false;
+        }
+    }
+
+    CHECK(is_ok);
+  }
 }
 
 TEST_CASE("delayed multiple writer multiple reader") {
-  concurrent_test_utils::run_multiple_writer_multiple_reader_test(
-      concurrent_test_utils::delayed_produce_buffer,
-      concurrent_test_utils::consume_buffer, test_utils::SMALL_BUFFER_SIZE);
+  const size_t total = test_utils::LARGE_COUNT;
+  test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+  UnsafeCollector<size_t> collector1, collector2, collector3;
+  ConcurrencyManager<size_t> manager;
+
+  manager.add_producer(concurrent_test_utils::delayed_produce_buffer, buffer.get(), 0, total / 3);
+  manager.add_producer(concurrent_test_utils::delayed_produce_buffer, buffer.get(), total / 3, 2 * total / 3);
+  manager.add_producer(concurrent_test_utils::delayed_produce_buffer, buffer.get(), 2 * total / 3, total);
+
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector1), std::ref(manager.get_manager()));
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector2), std::ref(manager.get_manager()));
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector3), std::ref(manager.get_manager()));
+
+  manager.run_and_wait();
+  
+  auto collected1 = collector1.get_all_collected();
+  auto collected2 = collector2.get_all_collected();
+  auto collected3 = collector3.get_all_collected();
+  
+  std::unordered_set<size_t> all_collected;
+  all_collected.insert(collected1.begin(), collected1.end());
+  all_collected.insert(collected2.begin(), collected2.end());
+  all_collected.insert(collected3.begin(), collected3.end());
+  
+  bool is_ok = all_collected.size() == total;
+  for (size_t i = 0; i < total; i++) {
+      if (!all_collected.contains(i)) {
+          is_ok = false;
+      }
+  }
+
+  CHECK(is_ok);
 }
 
 TEST_CASE("race between skip and read") {
   for (int i = 0; i < 1000; i++) {
-    concurrent_test_utils::test_race_between_skip_and_read_buffer();
+    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    const size_t val = 42;
+    test_utils::write_data(buffer.get(), val);
+
+    IpcEntry entry;
+    IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer.get(), &entry);
+    CHECK(peek_res.ipc_status == IPC_OK);
+
+    std::thread t1([&] {
+        IpcBufferSkipResult result = ipc_buffer_skip(buffer.get(), entry.offset);
+        if (IpcBufferSkipResult_is_ok(result)) {
+            bool valid_status = (result.ipc_status == IPC_OK || result.ipc_status == IPC_EMPTY);
+            CHECK(valid_status);
+        } else {
+            bool valid_status = (result.ipc_status == IPC_ERR_OFFSET_MISMATCH || result.ipc_status == IPC_ERR_LOCKED);
+            CHECK(valid_status);
+        }
+    });
+
+    std::thread t2([&] {
+        test_utils::EntryWrapper e(sizeof(size_t));
+        IpcEntry e_ref = e.get();
+        IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &e_ref);
+
+        if (result.ipc_status == IPC_OK) {
+            size_t v;
+            memcpy(&v, e_ref.payload, e_ref.size);
+            CHECK(v == val);
+        } else {
+            bool valid_status = (result.ipc_status == IPC_EMPTY);
+            CHECK(valid_status);
+        }
+    });
+
+    t1.join();
+    t2.join();
   }
 }
 
