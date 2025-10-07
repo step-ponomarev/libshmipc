@@ -10,7 +10,7 @@
 #define MIN_BUFFER_SIZE                                                        \
   (sizeof(IpcBufferHeader) +                                                   \
    IPC_DATA_ALIGN) // 8 bytes min buffer size despite header
-#define ULOCK_HEAD(h) (((h) & (~(0x1))))
+#define UNLOCK_HEAD(h) (((h) & (~(0x1))))
 #define LOCK_HEAD(h) ((h) | 1)
 
 typedef uint8_t Flag;
@@ -184,7 +184,8 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
         _read_entry_header((struct IpcBuffer *)buffer, head, &header);
 
     if (status == IPC_ERR_LOCKED) {
-      continue;
+      error.offset = UNLOCK_HEAD(head);
+      return IpcBufferReadResult_error_body(status, "entry is locked", error);
     }
 
     if (status == IPC_PLACEHOLDER) {
@@ -249,7 +250,7 @@ IpcBufferPeekResult ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
   EntryHeader *header = NULL;
   IpcStatus status;
   for (;;) {
-    head = ULOCK_HEAD(_read_head(buffer));
+    head = UNLOCK_HEAD(_read_head(buffer));
     status = _read_entry_header((struct IpcBuffer *)buffer, head, &header);
 
     if (status != IPC_PLACEHOLDER) {
@@ -306,7 +307,9 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const uint64_t offset) {
         _read_entry_header((struct IpcBuffer *)buffer, head, &header);
 
     if (status == IPC_ERR_LOCKED) {
-      continue;
+      error.offset = UNLOCK_HEAD(head);
+      return IpcBufferSkipResult_error_body(
+          IPC_ERR_LOCKED, "entry is locked", error);
     }
 
     if (status == IPC_PLACEHOLDER) {
@@ -346,7 +349,7 @@ IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
   EntryHeader *header = NULL;
   IpcStatus status;
   for (;;) {
-    head = ULOCK_HEAD(_read_head(buffer));
+    head = UNLOCK_HEAD(_read_head(buffer));
     status = _read_entry_header((struct IpcBuffer *)buffer, head, &header);
 
     if (status != IPC_PLACEHOLDER) {
@@ -519,7 +522,7 @@ static inline bool _is_aligned(const uint64_t offset) {
 static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
                                            const uint64_t head,
                                            EntryHeader **dest) {
-  const uint64_t aligned_head = ULOCK_HEAD(head);
+  const uint64_t aligned_head = UNLOCK_HEAD(head);
   if (aligned_head == atomic_load(&buffer->header->tail)) {
     return IPC_EMPTY;
   }

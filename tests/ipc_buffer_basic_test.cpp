@@ -1415,3 +1415,69 @@ TEST_CASE("buffer boundary - reserve commit with maximum size") {
         CHECK(memcmp(entry_ref.payload, pattern.data(), max_reserve_size) == 0);
     }
 }
+
+TEST_CASE("buffer data - different sizes") {
+    test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
+    
+    // Тестируем данные разных размеров
+    struct TestData {
+        size_t size;
+        uint8_t pattern;
+        const char* description;
+    };
+    
+    std::vector<TestData> test_cases = {
+        {1, 0xAA, "single byte"},
+        {4, 0xBB, "4 bytes (int)"},
+        {8, 0xCC, "8 bytes (long long)"},
+        {16, 0xDD, "16 bytes"},
+        {32, 0xEE, "32 bytes"},
+        {64, 0xFF, "64 bytes"},
+        {128, 0x11, "128 bytes"},
+        {256, 0x22, "256 bytes"},
+        {512, 0x33, "512 bytes"}
+    };
+    
+    // Записываем данные разных размеров
+    std::vector<std::vector<uint8_t>> written_data;
+    for (const auto& test_case : test_cases) {
+        std::vector<uint8_t> data(test_case.size, test_case.pattern);
+        written_data.push_back(data);
+        
+        IpcBufferWriteResult write_result = 
+            ipc_buffer_write(buffer.get(), data.data(), data.size());
+        
+        if (IpcBufferWriteResult_is_ok(write_result)) {
+            // Успешно записали
+        } else {
+            // Если не помещается, пропускаем этот размер
+            written_data.pop_back();
+            break;
+        }
+    }
+    
+    // Читаем и проверяем данные
+    for (size_t i = 0; i < written_data.size(); ++i) {
+        test_utils::EntryWrapper entry(written_data[i].size());
+        IpcEntry entry_ref = entry.get();
+        IpcBufferReadResult read_result = ipc_buffer_read(buffer.get(), &entry_ref);
+        
+        CHECK(read_result.ipc_status == IPC_OK);
+        CHECK(entry_ref.size == written_data[i].size());
+        
+        // Проверяем содержимое
+        CHECK(memcmp(entry_ref.payload, written_data[i].data(), written_data[i].size()) == 0);
+        
+        // Проверяем, что все байты имеют правильный паттерн
+        const uint8_t expected_pattern = test_cases[i].pattern;
+        for (size_t j = 0; j < entry_ref.size; ++j) {
+            CHECK(static_cast<uint8_t*>(entry_ref.payload)[j] == expected_pattern);
+        }
+    }
+    
+    // Проверяем, что буфер пуст после чтения всех данных
+    test_utils::EntryWrapper entry(1);
+    IpcEntry entry_ref = entry.get();
+    IpcBufferReadResult read_result = ipc_buffer_read(buffer.get(), &entry_ref);
+    CHECK(read_result.ipc_status == IPC_EMPTY);
+}

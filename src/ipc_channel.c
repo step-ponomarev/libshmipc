@@ -501,12 +501,12 @@ static inline bool _sleep_and_expand_delay(struct timespec *delay,
 }
 
 static inline bool _is_error_status(const IpcStatus status) {
-  return !_is_retry_status(status) && status != IPC_OK;
+  return status != IPC_OK && !_is_retry_status(status);
 }
 
 static inline bool _is_retry_status(const IpcStatus status) {
   return status == IPC_ERR_NOT_READY || status == IPC_EMPTY ||
-         status == IPC_ERR_CORRUPTED;
+         status == IPC_ERR_CORRUPTED || status == IPC_ERR_LOCKED;
 }
 
 static inline bool _is_valid_config(const IpcChannelConfiguration config) {

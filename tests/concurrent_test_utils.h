@@ -284,7 +284,7 @@ void test_race_between_skip_and_read_buffer() {
             bool valid_status = (result.ipc_status == IPC_OK || result.ipc_status == IPC_EMPTY);
             CHECK(valid_status);
         } else {
-            bool valid_status = (result.ipc_status == IPC_ERR_OFFSET_MISMATCH);
+            bool valid_status = (result.ipc_status == IPC_ERR_OFFSET_MISMATCH || result.ipc_status == IPC_ERR_LOCKED);
             CHECK(valid_status);
         }
     });
@@ -328,7 +328,8 @@ void test_race_between_skip_and_read_channel() {
         
         bool valid_status = (result.ipc_status == IPC_OK || 
                             result.ipc_status == IPC_ERR_OFFSET_MISMATCH ||
-                            result.ipc_status == IPC_EMPTY);
+                            result.ipc_status == IPC_EMPTY 
+                            || result.ipc_status == IPC_ERR_LOCKED);
         CHECK(valid_status);
     });
 
