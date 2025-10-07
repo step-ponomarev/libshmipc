@@ -9,8 +9,8 @@
 #define IPC_DATA_ALIGN 8
 #define MIN_BUFFER_SIZE                                                        \
   (sizeof(IpcBufferHeader) +                                                   \
-   IPC_DATA_ALIGN) // 2 bytes min buffer size despite header
-#define ALIGN_HEAD(h) (((h) & (~(0) - 1)))
+   IPC_DATA_ALIGN) // 8 bytes min buffer size despite header
+#define ULOCK_HEAD(h) (((h) & (~(0x1))))
 #define LOCK_HEAD(h) ((h) | 1)
 
 typedef uint8_t Flag;
@@ -39,6 +39,7 @@ static uint64_t _find_max_power_of_2(const uint64_t max);
 static Flag _read_flag(const void *addr);
 static uint64_t _read_head(const struct IpcBuffer *buffer);
 static void _set_flag(void *addr, const Flag flag);
+static bool _is_aligned(const uint64_t offset);
 static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
                                     const uint64_t head, EntryHeader **dest);
 static IpcStatus _write_placeholder(struct IpcBuffer *buffer, uint64_t tail);
@@ -248,7 +249,7 @@ IpcBufferPeekResult ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
   EntryHeader *header = NULL;
   IpcStatus status;
   for (;;) {
-    head = ALIGN_HEAD(_read_head(buffer));
+    head = ULOCK_HEAD(_read_head(buffer));
     status = _read_entry_header((struct IpcBuffer *)buffer, head, &header);
 
     if (status != IPC_PLACEHOLDER) {
@@ -283,7 +284,7 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const uint64_t offset) {
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
 
-  if (offset % IPC_DATA_ALIGN != 0) {
+  if (!_is_aligned(offset)) {
     return IpcBufferSkipResult_error_body(
         IPC_ERR_INVALID_ARGUMENT,
         "invalid argument: offset must be multiple of 8", error);
@@ -345,7 +346,7 @@ IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
   EntryHeader *header = NULL;
   IpcStatus status;
   for (;;) {
-    head = ALIGN_HEAD(_read_head(buffer));
+    head = ULOCK_HEAD(_read_head(buffer));
     status = _read_entry_header((struct IpcBuffer *)buffer, head, &header);
 
     if (status != IPC_PLACEHOLDER) {
@@ -444,7 +445,7 @@ IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
   }
 
-  if (offset % IPC_DATA_ALIGN != 0) {
+  if (!_is_aligned(offset)) {
     return IpcBufferCommitEntryResult_error_body(
         IPC_ERR_INVALID_ARGUMENT,
         "invalid argument: offset must be multiple of 8", error);
@@ -511,10 +512,14 @@ static IpcStatus _write_placeholder(struct IpcBuffer *buffer, uint64_t tail) {
   return IPC_OK;
 }
 
+static inline bool _is_aligned(const uint64_t offset) {
+  return ALIGN_UP(offset, IPC_DATA_ALIGN) == offset;
+}
+
 static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
                                            const uint64_t head,
                                            EntryHeader **dest) {
-  const uint64_t aligned_head = ALIGN_HEAD(head);
+  const uint64_t aligned_head = ULOCK_HEAD(head);
   if (aligned_head == atomic_load(&buffer->header->tail)) {
     return IPC_EMPTY;
   }
@@ -533,13 +538,13 @@ static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
   }
 
   const uint64_t seq = header->seq;
-  if (LOCK_HEAD(head) == seq) {
+  if (seq == head) {
+    return header->payload_size == 0 ? IPC_PLACEHOLDER : IPC_OK;
+  }
+
+  if (head == LOCK_HEAD(seq)) {
     return IPC_ERR_LOCKED;
   }
 
-  if (head != seq) {
-    return IPC_ERR_CORRUPTED;
-  }
-
-  return header->payload_size == 0 ? IPC_PLACEHOLDER : IPC_OK;
+  return IPC_ERR_CORRUPTED;
 }
