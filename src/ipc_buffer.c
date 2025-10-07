@@ -7,11 +7,11 @@
 #include <string.h>
 
 #define IPC_DATA_ALIGN 8
-#define LOCK_DIFF 1
 #define MIN_BUFFER_SIZE                                                        \
   (sizeof(IpcBufferHeader) +                                                   \
    IPC_DATA_ALIGN) // 2 bytes min buffer size despite header
 #define ALIGN_HEAD(h) (((h) & (~(0) - 1)))
+#define LOCK_HEAD(h) ((h) | 1)
 
 typedef uint8_t Flag;
 static const Flag FLAG_NOT_READY = 0;
@@ -211,19 +211,19 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
     // read/write race guard, read before move head
     if (atomic_compare_exchange_strong(
             &((struct IpcBuffer *)buffer)->header->head, &head,
-            head + LOCK_DIFF)) {
+            LOCK_HEAD(head))) {
       break;
     }
   }
 
-  uint64_t current_head = head + LOCK_DIFF;
+  uint64_t expected_current_head = LOCK_HEAD(head);
   memcpy(dest->payload, ((uint8_t *)header) + sizeof(EntryHeader),
          header->payload_size);
   dest->offset = head;
   dest->size = header->payload_size;
 
   if (!atomic_compare_exchange_strong(
-          &((struct IpcBuffer *)buffer)->header->head, &current_head,
+          &((struct IpcBuffer *)buffer)->header->head, &expected_current_head,
           head + header->entry_size)) {
     return IpcBufferReadResult_error_body(
         IPC_ERR_ILLEGAL_STATE, "illegal state: unexpected head offset", error);
@@ -533,7 +533,7 @@ static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
   }
 
   const uint64_t seq = header->seq;
-  if (head == seq + LOCK_DIFF) {
+  if (LOCK_HEAD(head) == seq) {
     return IPC_ERR_LOCKED;
   }
 
