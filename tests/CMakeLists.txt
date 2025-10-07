@@ -13,7 +13,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(doctest)
 
 function(target_test_flags tgt)
-  target_compile_options(${tgt} PRIVATE -O0 -g -UNDEBUG) 
+  target_compile_options(${tgt} PRIVATE -O0 -g -UNDEBUG)
   target_enable_warnings(${tgt})
   target_compile_options(${tgt} PRIVATE
     $<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>
@@ -46,12 +46,7 @@ add_shmipc_test(ipc_channel_basic_test        ipc_channel_basic_test.cpp)
 add_shmipc_test(ipc_mmap_test                 ipc_mmap_test.cpp)
 
 add_shmipc_test(ipc_buffer_concurrency_test   ipc_buffer_concurrency_test.cpp)
-add_shmipc_test(ipc_channel_concurrent_test   ipc_channel_concurrency_test.cpp)
-
-
-# Performance and stress tests are excluded from CI - run manually via scripts/run_performance_tests.sh
-# if(NOT DEFINED ENV{CI})
-#     add_shmipc_test(ipc_channel_performance_test ipc_channel_performance_test.cpp)
-#     add_shmipc_test(ipc_buffer_stress_test        ipc_buffer_stress_test.cpp)
-#     add_shmipc_test(ipc_channel_stress_test      ipc_channel_stress_test.cpp)
-# endif()
+add_shmipc_test(ipc_channel_concurrent_test   ipc_channel_concurrency_test.cpp)  # Temporarily disabled due to compilation issues
+add_shmipc_test(ipc_channel_interprocess_test ipc_channel_interprocess_test.cpp)
+add_shmipc_test(ipc_buffer_stress_test        ipc_buffer_stress_test.cpp)
+add_shmipc_test(ipc_channel_stress_test      ipc_channel_stress_test.cpp)

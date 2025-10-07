@@ -1,8 +1,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "doctest/doctest.h"
 
 #include "concurrency_manager.hpp"
 #include "concurrent_test_utils.h"
-#include "doctest/doctest.h"
 #include "test_utils.h"
 #include "unsafe_collector.hpp"
 #include <atomic>

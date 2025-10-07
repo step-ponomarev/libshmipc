@@ -29,7 +29,7 @@ cmake --build build -j
 echo "Running basic tests..."
 ctest --test-dir build --output-on-failure -j1 --timeout 100
 
-echo "Building performance and stress tests..."
+echo "Building performance tests..."
 cd build
 
 g++ -std=c++20 -O0 -g -UNDEBUG -Wall -Wextra -Wpedantic -Werror \
@@ -39,24 +39,11 @@ g++ -std=c++20 -O0 -g -UNDEBUG -Wall -Wextra -Wpedantic -Werror \
     -Lsrc -lshmipc_static -lpthread \
     -o ipc_channel_performance_test
 
-g++ -std=c++20 -O0 -g -UNDEBUG -Wall -Wextra -Wpedantic -Werror \
-    -I../include -I../src -I../build/_deps/doctest-src \
-    -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 \
-    ../tests/ipc_buffer_stress_test.cpp \
-    -Lsrc -lshmipc_static -lpthread \
-    -o ipc_buffer_stress_test
-
-g++ -std=c++20 -O0 -g -UNDEBUG -Wall -Wextra -Wpedantic -Werror \
-    -I../include -I../src -I../build/_deps/doctest-src \
-    -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 \
-    ../tests/ipc_channel_stress_test.cpp \
-    -Lsrc -lshmipc_static -lpthread \
-    -o ipc_channel_stress_test
-
-echo "Running performance and stress tests..."
+echo "Running performance tests..."
 ./ipc_channel_performance_test
-./ipc_buffer_stress_test
-./ipc_channel_stress_test
+
+echo ""
+echo "Note: Stress tests and interprocess tests are now included in main build and run with ctest"
 
 cd ..
 
