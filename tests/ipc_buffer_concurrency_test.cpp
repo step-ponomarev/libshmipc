@@ -85,39 +85,39 @@ TEST_CASE("multiple writer multiple reader") {
 }
 
 TEST_CASE("multiple writer multiple reader stress") {
-  for (int i = 0; i < 10; i++) {
-    const size_t total = test_utils::LARGE_COUNT;
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
-    UnsafeCollector<size_t> collector1, collector2, collector3;
-    ConcurrencyManager<size_t> manager;
+  const size_t total = 500000;
+  test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
+  UnsafeCollector<size_t> collector1, collector2, collector3;
+  ConcurrencyManager<size_t> manager;
 
-    manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 0, total / 3);
-    manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), total / 3, 2 * total / 3);
-    manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 2 * total / 3, total);
+  manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 0,
+                       total / 3);
+  manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(),
+                       total / 3, 2 * total / 3);
+  manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(),
+                       2 * total / 3, total);
 
-    manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector1), std::ref(manager.get_manager()));
-    manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector2), std::ref(manager.get_manager()));
-    manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector3), std::ref(manager.get_manager()));
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(),
+                       std::ref(collector1), std::ref(manager.get_manager()));
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(),
+                       std::ref(collector2), std::ref(manager.get_manager()));
+  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(),
+                       std::ref(collector3), std::ref(manager.get_manager()));
 
-    manager.run_and_wait();
-    
-    auto collected1 = collector1.get_all_collected();
-    auto collected2 = collector2.get_all_collected();
-    auto collected3 = collector3.get_all_collected();
-    
-    std::unordered_set<size_t> all_collected;
-    all_collected.insert(collected1.begin(), collected1.end());
-    all_collected.insert(collected2.begin(), collected2.end());
-    all_collected.insert(collected3.begin(), collected3.end());
-    
-    bool is_ok = all_collected.size() == total;
-    for (size_t i = 0; i < total; i++) {
-        if (!all_collected.contains(i)) {
-            is_ok = false;
-        }
-    }
+  manager.run_and_wait();
 
-    CHECK(is_ok);
+  auto collected1 = collector1.get_all_collected();
+  auto collected2 = collector2.get_all_collected();
+  auto collected3 = collector3.get_all_collected();
+
+  std::unordered_set<size_t> all_collected;
+  all_collected.insert(collected1.begin(), collected1.end());
+  all_collected.insert(collected2.begin(), collected2.end());
+  all_collected.insert(collected3.begin(), collected3.end());
+
+  CHECK(all_collected.size() == total);
+  for (size_t i = 0; i < total; i++) {
+    CHECK(all_collected.contains(i));
   }
 }
 

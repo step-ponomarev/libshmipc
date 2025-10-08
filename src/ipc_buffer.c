@@ -10,12 +10,8 @@
 #define MIN_BUFFER_SIZE                                                        \
   (sizeof(IpcBufferHeader) +                                                   \
    IPC_DATA_ALIGN) // 8 bytes min buffer size despite header
-#define UNLOCK_HEAD(h) (((h) & (~(0x1))))
-#define LOCK_HEAD(h) ((h) | 1)
-
-typedef uint8_t Flag;
-static const Flag FLAG_NOT_READY = 0;
-static const Flag FLAG_READY = 1;
+#define UNLOCK(offset) (((offset) & (~(0x1))))
+#define LOCK(offset) ((offset) | 1)
 
 typedef struct IpcBufferHeader {
   _Atomic uint64_t head;
@@ -29,20 +25,16 @@ struct IpcBuffer {
 };
 
 typedef struct EntryHeader {
-  _Atomic Flag flag;
   uint64_t seq;
   uint64_t payload_size;
   uint64_t entry_size;
 } EntryHeader;
 
 static uint64_t _find_max_power_of_2(const uint64_t max);
-static Flag _read_flag(const void *addr);
 static uint64_t _read_head(const struct IpcBuffer *buffer);
-static void _set_flag(void *addr, const Flag flag);
 static bool _is_aligned(const uint64_t offset);
 static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
                                     const uint64_t head, EntryHeader **dest);
-static IpcStatus _write_placeholder(struct IpcBuffer *buffer, uint64_t tail);
 
 uint64_t ipc_buffer_align_size(size_t size) {
   return (size < IPC_DATA_ALIGN ? IPC_DATA_ALIGN : size) +
@@ -124,40 +116,73 @@ IpcBufferWriteResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: data size is 0", error);
   }
 
-  void *payload = NULL;
-  IpcBufferReserveEntryResult reserve_result =
-      ipc_buffer_reserve_entry(buffer, size, &payload);
-  if (IpcBufferReserveEntryResult_is_error(reserve_result)) {
-    const uint64_t cap =
-        atomic_load(&((struct IpcBuffer *)buffer)->header->data_size);
-    const uint64_t head = _read_head(buffer);
-    const uint64_t tail =
-        atomic_load(&((struct IpcBuffer *)buffer)->header->tail);
-    const uint64_t used = tail - head;
-    const uint64_t free_space = cap - used;
+  const uint64_t buf_size =
+      atomic_load(&((struct IpcBuffer *)buffer)->header->data_size);
+  uint64_t full_entry_size =
+      ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
+  if (full_entry_size > buf_size) {
+    error.buffer_size = buf_size;
+    return IpcBufferWriteResult_error_body(
+        IPC_ERR_ENTRY_TOO_LARGE, "invalid argument: entry size exceeds buffer",
+        error);
+  }
 
-    error.buffer_size = cap;
-    error.available_contiguous = free_space;
-    if (IpcBufferReserveEntryResult_is_error_has_body(reserve_result.error)) {
-      error.offset = reserve_result.error.body.offset;
+  uint64_t tail, rel_tail, space_to_wrap;
+  bool placeholder = false;
+  do {
+    tail = atomic_load(&((struct IpcBuffer *)buffer)->header->tail);
+    if (tail == LOCK(tail)) {
+      return IpcBufferWriteResult_error_body(IPC_ERR_LOCKED, "already reserved",
+                                             error);
     }
 
-    return IpcBufferWriteResult_error_body(reserve_result.ipc_status,
-                                           reserve_result.error.detail, error);
+    rel_tail = RELATIVE(tail, buf_size);
+
+    space_to_wrap = buf_size - rel_tail;
+    const uint64_t head = UNLOCK(_read_head(buffer));
+    const uint64_t used = tail - head;
+    const uint64_t free_space = buf_size - used;
+
+    if (free_space < full_entry_size) {
+      error.offset = tail;
+      error.required_size = (size_t)(full_entry_size);
+      error.free_space = (size_t)(free_space);
+      return IpcBufferWriteResult_error_body(
+          IPC_ERR_NO_SPACE_CONTIGUOUS, "not enough contiguous space in buffer",
+          error);
+    }
+
+    // no space for current entry + header of next placeholder
+    placeholder = space_to_wrap < full_entry_size + sizeof(EntryHeader);
+  } while (!atomic_compare_exchange_strong(
+      &((struct IpcBuffer *)buffer)->header->tail, &tail, LOCK(tail)));
+
+  EntryHeader *header =
+      (EntryHeader *)(((struct IpcBuffer *)buffer)->data + rel_tail);
+
+  if (placeholder) {
+    header->payload_size = 0;
+    header->entry_size = space_to_wrap;
+    header->seq = tail;
+  } else {
+    header->entry_size = full_entry_size;
+    header->payload_size = size;
+    header->seq = tail;
   }
 
-  const uint64_t entry_offset = reserve_result.result;
-  memcpy(payload, data, size);
+  void *dest = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
+  memcpy(dest, data, size);
 
-  const IpcBufferCommitEntryResult commin_result =
-      ipc_buffer_commit_entry(buffer, entry_offset);
-  if (IpcBufferCommitEntryResult_is_error(commin_result)) {
-    error.offset = entry_offset;
-    return IpcBufferWriteResult_error_body(commin_result.ipc_status,
-                                           "commit failed", error);
+  uint64_t expected_offset = LOCK(tail);
+  if (!atomic_compare_exchange_strong(
+          &((struct IpcBuffer *)buffer)->header->tail, &expected_offset,
+          tail + header->entry_size)) {
+    error.offset = tail;
+    return IpcBufferWriteResult_error_body(
+        IPC_ERR_ILLEGAL_STATE, "illegal state: unexpected tail offset", error);
   }
 
-  return IpcBufferWriteResult_ok(commin_result.ipc_status);
+  return IpcBufferWriteResult_ok(IPC_OK);
 }
 
 IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
@@ -179,12 +204,11 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
 
   for (;;) {
     head = _read_head(buffer);
-
     const IpcStatus status =
         _read_entry_header((struct IpcBuffer *)buffer, head, &header);
 
     if (status == IPC_ERR_LOCKED) {
-      error.offset = UNLOCK_HEAD(head);
+      error.offset = UNLOCK(head);
       return IpcBufferReadResult_error_body(status, "entry is locked", error);
     }
 
@@ -212,13 +236,12 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
 
     // read/write race guard, read before move head
     if (atomic_compare_exchange_strong(
-            &((struct IpcBuffer *)buffer)->header->head, &head,
-            LOCK_HEAD(head))) {
+            &((struct IpcBuffer *)buffer)->header->head, &head, LOCK(head))) {
       break;
     }
   }
 
-  uint64_t expected_current_head = LOCK_HEAD(head);
+  uint64_t expected_current_head = LOCK(head);
   memcpy(dest->payload, ((uint8_t *)header) + sizeof(EntryHeader),
          header->payload_size);
   dest->offset = head;
@@ -250,7 +273,7 @@ IpcBufferPeekResult ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
   EntryHeader *header = NULL;
   IpcStatus status;
   for (;;) {
-    head = UNLOCK_HEAD(_read_head(buffer));
+    head = UNLOCK(_read_head(buffer));
     status = _read_entry_header((struct IpcBuffer *)buffer, head, &header);
 
     if (status != IPC_PLACEHOLDER) {
@@ -307,9 +330,9 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const uint64_t offset) {
         _read_entry_header((struct IpcBuffer *)buffer, head, &header);
 
     if (status == IPC_ERR_LOCKED) {
-      error.offset = UNLOCK_HEAD(head);
-      return IpcBufferSkipResult_error_body(
-          IPC_ERR_LOCKED, "entry is locked", error);
+      error.offset = UNLOCK(head);
+      return IpcBufferSkipResult_error_body(IPC_ERR_LOCKED, "entry is locked",
+                                            error);
     }
 
     if (status == IPC_PLACEHOLDER) {
@@ -349,8 +372,12 @@ IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
   EntryHeader *header = NULL;
   IpcStatus status;
   for (;;) {
-    head = UNLOCK_HEAD(_read_head(buffer));
+    head = _read_head(buffer);
     status = _read_entry_header((struct IpcBuffer *)buffer, head, &header);
+
+    if (status == IPC_ERR_LOCKED) {
+      head = UNLOCK(head);
+    }
 
     if (status != IPC_PLACEHOLDER) {
       break;
@@ -370,109 +397,6 @@ IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
              : IpcBufferSkipForceResult_ok(IPC_ALREADY_SKIPPED, head);
 }
 
-IpcBufferReserveEntryResult
-ipc_buffer_reserve_entry(IpcBuffer *buffer, const size_t size, void **dest) {
-  IpcBufferReserveEntryError error = {.offset = 0};
-
-  if (buffer == NULL) {
-    return IpcBufferReserveEntryResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
-  }
-
-  if (size == 0) {
-    return IpcBufferReserveEntryResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: allocation size is 0",
-        error);
-  }
-
-  if (dest == NULL) {
-    return IpcBufferReserveEntryResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: dest is NULL", error);
-  }
-
-  const uint64_t buf_size =
-      atomic_load(&((struct IpcBuffer *)buffer)->header->data_size);
-  uint64_t full_entry_size =
-      ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
-  if (full_entry_size > buf_size) {
-    error.buffer_size = buf_size;
-    return IpcBufferReserveEntryResult_error_body(
-        IPC_ERR_ENTRY_TOO_LARGE, "invalid argument: entry size exceeds buffer",
-        error);
-  }
-
-  uint64_t tail, rel_tail;
-  do {
-    tail = atomic_load(&((struct IpcBuffer *)buffer)->header->tail);
-    rel_tail = RELATIVE(tail, buf_size);
-
-    const uint64_t space_to_wrap = buf_size - rel_tail;
-    const uint64_t head = _read_head(buffer);
-    const uint64_t used = tail - head;
-    const uint64_t free_space = buf_size - used;
-
-    if (free_space < full_entry_size) {
-      error.offset = tail;
-      error.required_size = full_entry_size;
-      error.free_space = free_space;
-      return IpcBufferReserveEntryResult_error_body(
-          IPC_ERR_NO_SPACE_CONTIGUOUS, "not enough contiguous space in buffer",
-          error);
-    }
-
-    // no space for current entry + header of next placeholder
-    if (space_to_wrap < full_entry_size + sizeof(EntryHeader)) {
-      _write_placeholder(buffer, tail);
-      continue;
-    }
-  } while (!atomic_compare_exchange_strong(
-      &((struct IpcBuffer *)buffer)->header->tail, &tail,
-      tail + full_entry_size));
-
-  EntryHeader *header =
-      (EntryHeader *)(((struct IpcBuffer *)buffer)->data + rel_tail);
-  header->entry_size = full_entry_size;
-  header->payload_size = size;
-  _set_flag(&header->flag, FLAG_NOT_READY);
-
-  *dest = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
-
-  return IpcBufferReserveEntryResult_ok(IPC_OK, tail);
-}
-
-IpcBufferCommitEntryResult ipc_buffer_commit_entry(IpcBuffer *buffer,
-                                                   const uint64_t offset) {
-  IpcBufferCommitEntryError error = {.offset = offset};
-  if (buffer == NULL) {
-    return IpcBufferCommitEntryResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
-  }
-
-  if (!_is_aligned(offset)) {
-    return IpcBufferCommitEntryResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT,
-        "invalid argument: offset must be multiple of 8", error);
-  }
-
-  EntryHeader *header = (EntryHeader *)(((struct IpcBuffer *)buffer)->data);
-  const IpcStatus status =
-      _read_entry_header((struct IpcBuffer *)buffer, offset, &header);
-
-  // if not set NOT_READY flag yet, race condition guard
-  if (status != IPC_ERR_NOT_READY) {
-    error.offset = offset;
-    return IpcBufferCommitEntryResult_error_body(
-        IPC_ERR_ILLEGAL_STATE,
-        "illegal state: unexpected entry status, committed or flag incorrect",
-        error);
-  }
-
-  header->seq = offset;
-  _set_flag((void *)(&header->flag), FLAG_READY);
-
-  return IpcBufferCommitEntryResult_ok(IPC_OK);
-}
-
 static inline uint64_t _read_head(const struct IpcBuffer *buffer) {
   return atomic_load(&buffer->header->head);
 }
@@ -484,68 +408,37 @@ static inline uint64_t _find_max_power_of_2(const uint64_t max) {
   return res == max ? max : (res >> 1);
 }
 
-static inline Flag _read_flag(const void *addr) {
-  const _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
-  return atomic_load_explicit(atomic_flag, memory_order_acquire);
-}
-
-static inline void _set_flag(void *addr, const Flag flag) {
-  _Atomic Flag *atomic_flag = (_Atomic Flag *)addr;
-  atomic_store_explicit(atomic_flag, flag, memory_order_release);
-}
-
-static IpcStatus _write_placeholder(struct IpcBuffer *buffer, uint64_t tail) {
-  const uint64_t rel_tail = RELATIVE(tail, buffer->header->data_size);
-
-  const uint64_t buf_size = ((struct IpcBuffer *)buffer)->header->data_size;
-  const uint64_t space_to_wrap = buf_size - rel_tail;
-
-  if (!atomic_compare_exchange_strong(&buffer->header->tail, &tail,
-                                      tail + space_to_wrap)) {
-    return IPC_ERR_OFFSET_MISMATCH;
-  }
-
-  EntryHeader *header =
-      (EntryHeader *)(((struct IpcBuffer *)buffer)->data + rel_tail);
-  header->payload_size = 0;
-  header->entry_size = space_to_wrap;
-  header->seq = tail;
-  _set_flag((void *)(&header->flag), FLAG_READY);
-
-  return IPC_OK;
-}
-
 static inline bool _is_aligned(const uint64_t offset) {
   return ALIGN_UP(offset, IPC_DATA_ALIGN) == offset;
 }
 
 static inline IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
-                                           const uint64_t head,
+                                           const uint64_t offset,
                                            EntryHeader **dest) {
-  const uint64_t aligned_head = UNLOCK_HEAD(head);
-  if (aligned_head == atomic_load(&buffer->header->tail)) {
+  const uint64_t aligned_head = UNLOCK(offset);
+  const uint64_t tail = atomic_load(&buffer->header->tail);
+  if (aligned_head == tail) {
     return IPC_EMPTY;
+  }
+
+  if (LOCK(offset) == tail) {
+    return IPC_ERR_NOT_READY;
   }
 
   const uint64_t buf_size = atomic_load(&buffer->header->data_size);
   const uint64_t rel_head = RELATIVE(aligned_head, buf_size);
 
-  Flag first_flag = _read_flag(buffer->data + rel_head);
   EntryHeader *header = (EntryHeader *)(buffer->data + rel_head);
 
   // always set dest
   *dest = header;
 
-  if (first_flag == FLAG_NOT_READY) {
-    return IPC_ERR_NOT_READY;
-  }
-
   const uint64_t seq = header->seq;
-  if (seq == head) {
+  if (seq == offset) {
     return header->payload_size == 0 ? IPC_PLACEHOLDER : IPC_OK;
   }
 
-  if (head == LOCK_HEAD(seq)) {
+  if (offset == LOCK(seq)) {
     return IPC_ERR_LOCKED;
   }
 
