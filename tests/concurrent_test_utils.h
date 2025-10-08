@@ -21,22 +21,6 @@ inline void produce_buffer(IpcBuffer *buffer, size_t from, size_t to) {
   }
 }
 
-inline void delayed_produce_buffer(IpcBuffer *buffer, size_t from, size_t to) {
-  for (size_t i = from; i < to;) {
-    void *dest;
-    IpcBufferReserveEntryResult result =
-        ipc_buffer_reserve_entry(buffer, sizeof(i), &dest);
-    if (result.ipc_status != IPC_OK) {
-      continue;
-    }
-
-    std::this_thread::sleep_for(std::chrono::microseconds(10));
-    memcpy(dest, &i, sizeof(i));
-    ipc_buffer_commit_entry(buffer, result.result);
-    i++;
-  }
-}
-
 inline void produce_channel(IpcChannel *channel, size_t from, size_t to) {
   for (size_t i = from; i < to;) {
     IpcChannelWriteResult status =

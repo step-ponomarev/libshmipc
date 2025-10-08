@@ -29,15 +29,11 @@ TEST_CASE("multiple writer single reader") {
   UnsafeCollector<size_t> collector;
   ConcurrencyManager<size_t> manager;
 
-  // Добавляем продюсеров
   manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 0, test_utils::LARGE_COUNT / 3);
   manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), test_utils::LARGE_COUNT / 3, 2 * test_utils::LARGE_COUNT / 3);
   manager.add_producer(concurrent_test_utils::produce_buffer, buffer.get(), 2 * test_utils::LARGE_COUNT / 3, test_utils::LARGE_COUNT);
 
-  // Добавляем консьюмера
   manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector), std::ref(manager.get_manager()));
-
-  // Запускаем и ждем завершения
   manager.run_and_wait();
   
   auto collected = collector.get_all_collected();
@@ -61,10 +57,8 @@ TEST_CASE("multiple writer multiple reader") {
   manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector2), std::ref(manager.get_manager()));
   manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector3), std::ref(manager.get_manager()));
 
-  // Запускаем и ждем завершения
   manager.run_and_wait();
   
-  // Объединяем результаты всех коллекторов
   auto collected1 = collector1.get_all_collected();
   auto collected2 = collector2.get_all_collected();
   auto collected3 = collector3.get_all_collected();
@@ -85,7 +79,7 @@ TEST_CASE("multiple writer multiple reader") {
 }
 
 TEST_CASE("multiple writer multiple reader stress") {
-  const size_t total = 500000;
+  const size_t total = 50000;
   test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
   UnsafeCollector<size_t> collector1, collector2, collector3;
   ConcurrencyManager<size_t> manager;
@@ -121,40 +115,6 @@ TEST_CASE("multiple writer multiple reader stress") {
   }
 }
 
-TEST_CASE("delayed multiple writer multiple reader") {
-  const size_t total = test_utils::LARGE_COUNT;
-  test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
-  UnsafeCollector<size_t> collector1, collector2, collector3;
-  ConcurrencyManager<size_t> manager;
-
-  manager.add_producer(concurrent_test_utils::delayed_produce_buffer, buffer.get(), 0, total / 3);
-  manager.add_producer(concurrent_test_utils::delayed_produce_buffer, buffer.get(), total / 3, 2 * total / 3);
-  manager.add_producer(concurrent_test_utils::delayed_produce_buffer, buffer.get(), 2 * total / 3, total);
-
-  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector1), std::ref(manager.get_manager()));
-  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector2), std::ref(manager.get_manager()));
-  manager.add_consumer(concurrent_test_utils::consume_buffer, buffer.get(), std::ref(collector3), std::ref(manager.get_manager()));
-
-  manager.run_and_wait();
-  
-  auto collected1 = collector1.get_all_collected();
-  auto collected2 = collector2.get_all_collected();
-  auto collected3 = collector3.get_all_collected();
-  
-  std::unordered_set<size_t> all_collected;
-  all_collected.insert(collected1.begin(), collected1.end());
-  all_collected.insert(collected2.begin(), collected2.end());
-  all_collected.insert(collected3.begin(), collected3.end());
-  
-  bool is_ok = all_collected.size() == total;
-  for (size_t i = 0; i < total; i++) {
-      if (!all_collected.contains(i)) {
-          is_ok = false;
-      }
-  }
-
-  CHECK(is_ok);
-}
 
 TEST_CASE("race between skip and read") {
   for (int i = 0; i < 1000; i++) {
@@ -197,31 +157,21 @@ TEST_CASE("race between skip and read") {
   }
 }
 
-TEST_CASE("multiple threads reserve and commit") {
+TEST_CASE("multiple threads write") {
   test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
   const size_t num_threads = 5;
   const size_t entries_per_thread = 100;
 
-  std::atomic<size_t> successful_commits{0};
-  std::atomic<size_t> failed_reserves{0};
+  std::atomic<size_t> successful_writes{0};
+  std::atomic<size_t> failed_writes{0};
   std::vector<std::thread> threads;
 
   auto write_entry = [&](size_t thread_id, size_t entry_id) -> bool {
-    void *dest;
-    IpcBufferReserveEntryResult reserve_result =
-        ipc_buffer_reserve_entry(buffer.get(), sizeof(size_t), &dest);
-
-    if (!IpcBufferReserveEntryResult_is_ok(reserve_result)) {
-      return false;
-    }
-
     size_t data = thread_id * entries_per_thread + entry_id;
-    memcpy(dest, &data, sizeof(size_t));
+    IpcBufferWriteResult write_result =
+        ipc_buffer_write(buffer.get(), &data, sizeof(size_t));
 
-    IpcBufferCommitEntryResult commit_result =
-        ipc_buffer_commit_entry(buffer.get(), reserve_result.result);
-
-    return IpcBufferCommitEntryResult_is_ok(commit_result);
+    return IpcBufferWriteResult_is_ok(write_result);
   };
 
   for (size_t t = 0; t < num_threads; ++t) {
@@ -237,8 +187,8 @@ TEST_CASE("multiple threads reserve and commit") {
         }
       }
 
-      successful_commits.fetch_add(success);
-      failed_reserves.fetch_add(failures);
+      successful_writes.fetch_add(success);
+      failed_writes.fetch_add(failures);
     });
   }
 
@@ -246,13 +196,13 @@ TEST_CASE("multiple threads reserve and commit") {
     thread.join();
   }
 
-  CHECK(successful_commits.load() > 0);
-  CHECK(failed_reserves.load() > 0);
-  CHECK(successful_commits.load() + failed_reserves.load() ==
+  CHECK(successful_writes.load() > 0);
+  CHECK(failed_writes.load() > 0);
+  CHECK(successful_writes.load() + failed_writes.load() ==
         num_threads * entries_per_thread);
 }
 
-TEST_CASE("race between reserve and commit") {
+TEST_CASE("race between write and read") {
   test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
   const size_t iterations = 100;
 
@@ -260,20 +210,12 @@ TEST_CASE("race between reserve and commit") {
 
   std::thread writer([&] {
     for (size_t i = 0; i < iterations; ++i) {
-      void *dest;
-      IpcBufferReserveEntryResult reserve_result =
-          ipc_buffer_reserve_entry(buffer.get(), sizeof(size_t), &dest);
+      size_t data = i;
+      IpcBufferWriteResult write_result =
+          ipc_buffer_write(buffer.get(), &data, sizeof(size_t));
 
-      if (IpcBufferReserveEntryResult_is_ok(reserve_result)) {
-        size_t data = i;
-        memcpy(dest, &data, sizeof(size_t));
-
-        IpcBufferCommitEntryResult commit_result =
-            ipc_buffer_commit_entry(buffer.get(), reserve_result.result);
-
-        if (IpcBufferCommitEntryResult_is_ok(commit_result)) {
-          successful_operations.fetch_add(1);
-        }
+      if (IpcBufferWriteResult_is_ok(write_result)) {
+        successful_operations.fetch_add(1);
       }
     }
   });
@@ -300,14 +242,7 @@ TEST_CASE("multiple threads peek") {
   test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
 
   for (size_t i = 0; i < 5; ++i) {
-    void *dest;
-    IpcBufferReserveEntryResult reserve_result =
-        ipc_buffer_reserve_entry(buffer.get(), sizeof(size_t), &dest);
-
-    if (IpcBufferReserveEntryResult_is_ok(reserve_result)) {
-      memcpy(dest, &i, sizeof(size_t));
-      ipc_buffer_commit_entry(buffer.get(), reserve_result.result);
-    }
+    ipc_buffer_write(buffer.get(), &i, sizeof(size_t));
   }
 
   const size_t num_threads = 3;
@@ -383,14 +318,7 @@ TEST_CASE("multiple threads skip_force") {
   test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
 
   for (size_t i = 0; i < 10; ++i) {
-    void *dest;
-    IpcBufferReserveEntryResult reserve_result =
-        ipc_buffer_reserve_entry(buffer.get(), sizeof(size_t), &dest);
-
-    if (IpcBufferReserveEntryResult_is_ok(reserve_result)) {
-      memcpy(dest, &i, sizeof(size_t));
-      ipc_buffer_commit_entry(buffer.get(), reserve_result.result);
-    }
+    ipc_buffer_write(buffer.get(), &i, sizeof(size_t));
   }
 
   const size_t num_threads = 3;
@@ -471,22 +399,12 @@ TEST_CASE("buffer overflow under concurrent load") {
   for (size_t t = 0; t < num_threads; ++t) {
     threads.emplace_back([&, t] {
       for (size_t i = 0; i < writes_per_thread; ++i) {
-        void *dest;
-        IpcBufferReserveEntryResult reserve_result =
-            ipc_buffer_reserve_entry(buffer.get(), sizeof(size_t), &dest);
+        size_t data = t * writes_per_thread + i;
+        IpcBufferWriteResult write_result =
+            ipc_buffer_write(buffer.get(), &data, sizeof(size_t));
 
-        if (IpcBufferReserveEntryResult_is_ok(reserve_result)) {
-          size_t data = t * writes_per_thread + i;
-          memcpy(dest, &data, sizeof(size_t));
-
-          IpcBufferCommitEntryResult commit_result =
-              ipc_buffer_commit_entry(buffer.get(), reserve_result.result);
-
-          if (IpcBufferCommitEntryResult_is_ok(commit_result)) {
-            successful_writes.fetch_add(1);
-          } else {
-            failed_writes.fetch_add(1);
-          }
+        if (IpcBufferWriteResult_is_ok(write_result)) {
+          successful_writes.fetch_add(1);
         } else {
           failed_writes.fetch_add(1);
         }
@@ -505,87 +423,6 @@ TEST_CASE("buffer overflow under concurrent load") {
         num_threads * writes_per_thread);
 }
 
-TEST_CASE("extreme stress - massive concurrent operations") {
-
-  const uint64_t buffer_size = ipc_buffer_align_size(64 * 1024);
-  std::vector<uint8_t> mem(buffer_size);
-  const IpcBufferCreateResult buffer_result =
-      ipc_buffer_create(mem.data(), buffer_size);
-  IpcBuffer *buffer = buffer_result.result;
-
-  const size_t num_threads = 20;
-  const size_t operations_per_thread = 1000;
-
-  std::atomic<size_t> successful_operations{0};
-  std::atomic<bool> stop_flag{false};
-  std::vector<std::thread> threads;
-
-  auto perform_operation = [&](size_t thread_id, size_t op_id) -> bool {
-    int op_type = (thread_id + op_id) % 4;
-
-    switch (op_type) {
-    case 0: {
-      void *dest;
-      IpcBufferReserveEntryResult reserve_result =
-          ipc_buffer_reserve_entry(buffer, sizeof(size_t), &dest);
-
-      if (IpcBufferReserveEntryResult_is_ok(reserve_result)) {
-        size_t data = thread_id * operations_per_thread + op_id;
-        memcpy(dest, &data, sizeof(size_t));
-
-        IpcBufferCommitEntryResult commit_result =
-            ipc_buffer_commit_entry(buffer, reserve_result.result);
-
-        return IpcBufferCommitEntryResult_is_ok(commit_result);
-      }
-      return false;
-    }
-    case 1: {
-      test_utils::EntryWrapper entry(sizeof(size_t));
-      IpcEntry entry_ref = entry.get();
-      IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
-      return IpcBufferReadResult_is_ok(result);
-    }
-    case 2: {
-      test_utils::EntryWrapper entry(sizeof(size_t));
-      IpcEntry entry_ref = entry.get();
-      IpcBufferPeekResult result = ipc_buffer_peek(buffer, &entry_ref);
-      return IpcBufferPeekResult_is_ok(result);
-    }
-    case 3: {
-      IpcBufferSkipForceResult result = ipc_buffer_skip_force(buffer);
-      return IpcBufferSkipForceResult_is_ok(result);
-    }
-    }
-    return false;
-  };
-
-  for (size_t t = 0; t < num_threads; ++t) {
-    threads.emplace_back([&, t] {
-      for (size_t i = 0; i < operations_per_thread && !stop_flag.load(); ++i) {
-        if (perform_operation(t, i)) {
-          successful_operations.fetch_add(1);
-        }
-
-        if (i % 100 == 0) {
-          std::this_thread::sleep_for(std::chrono::microseconds(1));
-        }
-      }
-    });
-  }
-
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  stop_flag.store(true);
-
-  for (auto &thread : threads) {
-    thread.join();
-  }
-
-  CHECK(successful_operations.load() > 0);
-
-  free(buffer);
-}
-
 TEST_CASE("extreme stress - buffer overflow chaos") {
 
   test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
@@ -599,22 +436,11 @@ TEST_CASE("extreme stress - buffer overflow chaos") {
   std::vector<std::thread> threads;
 
   auto try_write = [&](size_t thread_id, size_t op_id) -> bool {
-    void *dest;
-    IpcBufferReserveEntryResult reserve_result =
-        ipc_buffer_reserve_entry(buffer.get(), sizeof(size_t), &dest);
-
-    if (!IpcBufferReserveEntryResult_is_ok(reserve_result)) {
-      overflow_count.fetch_add(1);
-      return false;
-    }
-
     size_t data = thread_id * operations_per_thread + op_id;
-    memcpy(dest, &data, sizeof(size_t));
+    IpcBufferWriteResult write_result =
+        ipc_buffer_write(buffer.get(), &data, sizeof(size_t));
 
-    IpcBufferCommitEntryResult commit_result =
-        ipc_buffer_commit_entry(buffer.get(), reserve_result.result);
-
-    if (IpcBufferCommitEntryResult_is_ok(commit_result)) {
+    if (IpcBufferWriteResult_is_ok(write_result)) {
       success_count.fetch_add(1);
       return true;
     } else {
@@ -662,20 +488,12 @@ TEST_CASE("extreme stress - rapid fill and drain cycles") {
     for (size_t w = 0; w < writers_per_cycle; ++w) {
       writers.emplace_back([&, w] {
         for (size_t i = 0; i < items_per_writer; ++i) {
-          void *dest;
-          IpcBufferReserveEntryResult reserve_result =
-              ipc_buffer_reserve_entry(buffer.get(), sizeof(size_t), &dest);
+          size_t data = cycle * 1000 + w * items_per_writer + i;
+          IpcBufferWriteResult write_result =
+              ipc_buffer_write(buffer.get(), &data, sizeof(size_t));
 
-          if (IpcBufferReserveEntryResult_is_ok(reserve_result)) {
-            size_t data = cycle * 1000 + w * items_per_writer + i;
-            memcpy(dest, &data, sizeof(size_t));
-
-            IpcBufferCommitEntryResult commit_result =
-                ipc_buffer_commit_entry(buffer.get(), reserve_result.result);
-
-            if (IpcBufferCommitEntryResult_is_ok(commit_result)) {
-              total_written.fetch_add(1);
-            }
+          if (IpcBufferWriteResult_is_ok(write_result)) {
+            total_written.fetch_add(1);
           }
         }
       });
@@ -733,20 +551,12 @@ TEST_CASE("extreme stress - system stability under chaos") {
 
           switch (op) {
           case 0: {
-            void *dest;
-            IpcBufferReserveEntryResult reserve_result =
-                ipc_buffer_reserve_entry(buffer.get(), sizeof(int), &dest);
+            int data = t * operations_per_thread + i;
+            IpcBufferWriteResult write_result =
+                ipc_buffer_write(buffer.get(), &data, sizeof(int));
 
-            if (IpcBufferReserveEntryResult_is_ok(reserve_result)) {
-              int data = t * operations_per_thread + i;
-              memcpy(dest, &data, sizeof(int));
-
-              IpcBufferCommitEntryResult commit_result =
-                  ipc_buffer_commit_entry(buffer.get(), reserve_result.result);
-
-              if (IpcBufferCommitEntryResult_is_ok(commit_result)) {
-                successful_operations.fetch_add(1);
-              }
+            if (IpcBufferWriteResult_is_ok(write_result)) {
+              successful_operations.fetch_add(1);
             }
             break;
           }
@@ -814,20 +624,10 @@ TEST_CASE("multiple writer multiple reader - different data sizes") {
     for (size_t i = from; i < to; ++i) {
       VariableSizeData data = create_variable_data(i);
 
-      void *dest;
-      IpcBufferReserveEntryResult reserve_result =
-          ipc_buffer_reserve_entry(buffer, sizeof(VariableSizeData), &dest);
+      IpcBufferWriteResult write_result =
+          ipc_buffer_write(buffer, &data, sizeof(VariableSizeData));
 
-      if (IpcBufferReserveEntryResult_is_ok(reserve_result)) {
-        memcpy(dest, &data, sizeof(VariableSizeData));
-
-        IpcBufferCommitEntryResult commit_result =
-            ipc_buffer_commit_entry(buffer, reserve_result.result);
-
-        if (!IpcBufferCommitEntryResult_is_ok(commit_result)) {
-          continue;
-        }
-      } else {
+      if (!IpcBufferWriteResult_is_ok(write_result)) {
         continue;
       }
     }

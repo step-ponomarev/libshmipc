@@ -196,24 +196,6 @@ void CHECK_ERROR(const IpcBufferSkipForceResult& result, IpcStatus expected_stat
     CHECK(result.ipc_status == expected_status);
 }
 
-void CHECK_OK(const IpcBufferReserveEntryResult& result) {
-    CHECK(IpcBufferReserveEntryResult_is_ok(result));
-}
-
-void CHECK_ERROR(const IpcBufferReserveEntryResult& result, IpcStatus expected_status) {
-    CHECK(IpcBufferReserveEntryResult_is_error(result));
-    CHECK(result.ipc_status == expected_status);
-}
-
-void CHECK_OK(const IpcBufferCommitEntryResult& result) {
-    CHECK(IpcBufferCommitEntryResult_is_ok(result));
-}
-
-void CHECK_ERROR(const IpcBufferCommitEntryResult& result, IpcStatus expected_status) {
-    CHECK(IpcBufferCommitEntryResult_is_error(result));
-    CHECK(result.ipc_status == expected_status);
-}
-
 void CHECK_OK(const IpcBufferWriteResult& result) {
     CHECK(IpcBufferWriteResult_is_ok(result));
 }
@@ -390,17 +372,6 @@ T peek_data(IpcChannel* channel) {
     T data;
     memcpy(&data, entry.payload, sizeof(T));
     return data;
-}
-
-template<typename T>
-void reserve_and_write(IpcBuffer* buffer, const T& data) {
-    void* dest;
-    const IpcBufferReserveEntryResult result = ipc_buffer_reserve_entry(buffer, sizeof(T), &dest);
-    CHECK(IpcBufferReserveEntryResult_is_ok(result));
-    
-    memcpy(dest, &data, sizeof(T));
-    const IpcBufferCommitEntryResult commit_result = ipc_buffer_commit_entry(buffer, result.result);
-    CHECK(IpcBufferCommitEntryResult_is_ok(commit_result));
 }
 
 void fill_buffer(IpcBuffer* buffer, size_t count) {

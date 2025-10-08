@@ -19,6 +19,7 @@ function(target_test_flags tgt)
     $<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>
   )
   target_fix_posix(${tgt})
+  target_enable_sanitizers(${tgt})
 endfunction()
 
 function(add_shmipc_test name)
@@ -49,4 +50,5 @@ add_shmipc_test(ipc_buffer_concurrency_test   ipc_buffer_concurrency_test.cpp)
 add_shmipc_test(ipc_channel_concurrent_test   ipc_channel_concurrency_test.cpp)  # Temporarily disabled due to compilation issues
 add_shmipc_test(ipc_channel_interprocess_test ipc_channel_interprocess_test.cpp)
 add_shmipc_test(ipc_buffer_stress_test        ipc_buffer_stress_test.cpp)
+add_shmipc_test(ipc_channel_interprocess_stress_test ipc_channel_interprocess_stress_test.cpp)
 add_shmipc_test(ipc_channel_stress_test      ipc_channel_stress_test.cpp)

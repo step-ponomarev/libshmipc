@@ -1,3 +1,4 @@
+#include "shmipc/ipc_common.h"
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 
@@ -20,15 +21,12 @@ TEST_CASE("single writer single reader") {
   UnsafeCollector<size_t> collector;
   ConcurrencyManager<size_t> manager;
 
-  // Добавляем продюсера
   manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
                        test_utils::DEFAULT_COUNT);
 
-  // Добавляем консьюмера
   manager.add_consumer(concurrent_test_utils::consume_channel, channel,
                        std::ref(collector), std::ref(manager.get_manager()));
 
-  // Запускаем и ждем завершения
   manager.run_and_wait();
 
   auto collected = collector.get_all_collected();
@@ -50,7 +48,6 @@ TEST_CASE("multiple writer single reader") {
   UnsafeCollector<size_t> collector;
   ConcurrencyManager<size_t> manager;
 
-  // Добавляем продюсеров
   manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
                        test_utils::LARGE_COUNT / 3);
   manager.add_producer(concurrent_test_utils::produce_channel, channel,
@@ -60,11 +57,9 @@ TEST_CASE("multiple writer single reader") {
                        2 * test_utils::LARGE_COUNT / 3,
                        test_utils::LARGE_COUNT);
 
-  // Добавляем консьюмера
   manager.add_consumer(concurrent_test_utils::consume_channel, channel,
                        std::ref(collector), std::ref(manager.get_manager()));
 
-  // Запускаем и ждем завершения
   manager.run_and_wait();
 
   auto collected = collector.get_all_collected();
@@ -81,22 +76,22 @@ TEST_CASE("multiple writer multiple reader stress") {
   std::vector<uint8_t> mem(size);
   const IpcChannelResult channel_result =
       ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
+
+  const size_t total = 500000;
   IpcChannel *channel = channel_result.result;
 
   UnsafeCollector<size_t> collector1, collector2, collector3;
   ConcurrencyManager<size_t> manager;
 
-  // Добавляем продюсеров
   manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
-                       test_utils::LARGE_COUNT / 3);
+    total / 3);
   manager.add_producer(concurrent_test_utils::produce_channel, channel,
-                       test_utils::LARGE_COUNT / 3,
-                       2 * test_utils::LARGE_COUNT / 3);
+    total / 3,
+                       2 * total / 3);
   manager.add_producer(concurrent_test_utils::produce_channel, channel,
-                       2 * test_utils::LARGE_COUNT / 3,
-                       test_utils::LARGE_COUNT);
+                       2 * total / 3,
+                       total);
 
-  // Добавляем консьюмеров с отдельными коллекторами
   manager.add_consumer(concurrent_test_utils::consume_channel, channel,
                        std::ref(collector1), std::ref(manager.get_manager()));
   manager.add_consumer(concurrent_test_utils::consume_channel, channel,
@@ -104,7 +99,6 @@ TEST_CASE("multiple writer multiple reader stress") {
   manager.add_consumer(concurrent_test_utils::consume_channel, channel,
                        std::ref(collector3), std::ref(manager.get_manager()));
 
-  // Запускаем и ждем завершения
   manager.run_and_wait();
 
   IpcEntry entry;
@@ -120,8 +114,8 @@ TEST_CASE("multiple writer multiple reader stress") {
   all_collected.insert(collected2.begin(), collected2.end());
   all_collected.insert(collected3.begin(), collected3.end());
 
-  CHECK(all_collected.size() == test_utils::LARGE_COUNT);
-  for (size_t i = 0; i < test_utils::LARGE_COUNT; i++) {
+  CHECK(all_collected.size() == total);
+  for (size_t i = 0; i < total; i++) {
     CHECK(all_collected.contains(i));
   }
 
@@ -177,7 +171,6 @@ TEST_CASE("race between skip and read") {
 }
 
 TEST_CASE("extreme stress test - small buffer") {
-  // Используем маленький буфер для создания максимальной конкуренции
   for (int i = 0; i < 5; i++) {
     const uint64_t size = ipc_channel_align_size(test_utils::SMALL_BUFFER_SIZE);
     std::vector<uint8_t> mem(size);

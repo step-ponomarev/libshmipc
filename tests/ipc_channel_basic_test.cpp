@@ -167,20 +167,22 @@ TEST_CASE("read retry limit reached") {
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
 
-    const IpcBufferAttachResult buffer_result = ipc_buffer_attach(mem.data());
-    IpcBuffer *buf = buffer_result.result;
-
     const int expected = -11;
+    CHECK(ipc_channel_write(channel, &expected, sizeof(expected)).ipc_status == IPC_OK);
 
-    void *dest;
-    IpcBufferReserveEntryResult result =
-        ipc_buffer_reserve_entry(buf, sizeof(expected), &dest);
-    memcpy(dest, &expected, sizeof(expected));
+    IpcEntry peek_entry;
+    IpcChannelPeekResult pk = ipc_channel_peek(channel, &peek_entry);
+    CHECK(IpcChannelPeekResult_is_ok(pk));
+
+    uint64_t* seq_ptr = (uint64_t*)((uint8_t*)peek_entry.payload - sizeof(uint64_t) * 3);
+    uint64_t original_seq = *seq_ptr;
+    *seq_ptr = 0xDEADBEEF; // Коррапчим seq
 
     IpcEntry entry;
     CHECK(ipc_channel_read(channel, &entry).ipc_status == IPC_ERR_RETRY_LIMIT);
 
-    ipc_buffer_commit_entry(buf, result.result);
+    *seq_ptr = original_seq;
+
     CHECK(ipc_channel_read(channel, &entry).ipc_status == IPC_OK);
 
     int res;
@@ -199,35 +201,36 @@ TEST_CASE("skip corrupted entry") {
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
 
-    const IpcBufferAttachResult buffer_result = ipc_buffer_attach(mem.data());
-    IpcBuffer *buf = buffer_result.result;
+    const int first_val = 100;
+    const int second_val = -11;
 
-    void *dest;
-    const int expected = -11;
+    CHECK(ipc_channel_write(channel, &first_val, sizeof(first_val)).ipc_status == IPC_OK);
+    CHECK(ipc_channel_write(channel, &second_val, sizeof(second_val)).ipc_status == IPC_OK);
 
-    ipc_buffer_reserve_entry(buf, sizeof(expected), &dest);
-
-    IpcBufferReserveEntryResult committed_result =
-        ipc_buffer_reserve_entry(buf, sizeof(expected), &dest);
-    memcpy(dest, &expected, sizeof(expected));
-    ipc_buffer_commit_entry(buf, committed_result.result);
+    IpcEntry peek_entry;
+    IpcChannelPeekResult pk = ipc_channel_peek(channel, &peek_entry);
+    CHECK(IpcChannelPeekResult_is_ok(pk));
+    
+    if (peek_entry.payload != nullptr && peek_entry.size >= sizeof(int)) {
+        uint8_t* corrupt_ptr = (uint8_t*)peek_entry.payload - sizeof(uint64_t) * 3;
+        *((uint64_t*)corrupt_ptr) = 0xDEADBEEF;
+    }
 
     IpcEntry entry;
     IpcChannelReadResult read_res = ipc_channel_read(channel, &entry);
     CHECK(read_res.ipc_status == IPC_ERR_RETRY_LIMIT);
 
-    IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
+    pk = ipc_channel_peek(channel, &entry);
     CHECK(IpcChannelPeekResult_is_error(pk));
-    CHECK(ipc_channel_skip(channel, pk.error.body.offset).ipc_status ==
-          IPC_OK);
+
+    CHECK(ipc_channel_skip_force(channel).ipc_status == IPC_OK);
 
     read_res = ipc_channel_read(channel, &entry);
     CHECK(read_res.ipc_status == IPC_OK);
-    CHECK(entry.offset == committed_result.result);
 
     int res;
-    memcpy(&res, entry.payload, sizeof(expected));
-    CHECK(expected == res);
+    memcpy(&res, entry.payload, sizeof(second_val));
+    CHECK(second_val == res);
     free(entry.payload);
 
     ipc_channel_destroy(channel);
@@ -278,71 +281,7 @@ TEST_CASE("read timeout") {
     ipc_channel_destroy(channel);
 }
 
-TEST_CASE("channel read before commit via channel") {
-    const uint64_t size = ipc_channel_align_size(128);
-    std::vector<uint8_t> mem(size);
 
-    IpcChannelResult channel_result =
-        ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
-    IpcChannel *channel = channel_result.result;
-
-    const IpcBufferAttachResult buffer_result = ipc_buffer_attach(mem.data());
-    IpcBuffer *buf = buffer_result.result;
-
-    const int expected = 42;
-
-    void *dest;
-    IpcBufferReserveEntryResult result =
-        ipc_buffer_reserve_entry(buf, sizeof(int), &dest);
-    CHECK(result.ipc_status == IPC_OK);
-    *static_cast<int*>(dest) = expected;
-
-    IpcEntry entry;
-    IpcChannelReadResult read_result = ipc_channel_read(channel, &entry);
-    CHECK(read_result.ipc_status == IPC_ERR_RETRY_LIMIT);
-
-    CHECK(ipc_buffer_commit_entry(buf, result.result).ipc_status == IPC_OK);
-
-    read_result = ipc_channel_read(channel, &entry);
-    CHECK(read_result.ipc_status == IPC_OK);
-
-    int v;
-    memcpy(&v, entry.payload, sizeof(v));
-    CHECK(v == expected);
-
-    free(entry.payload);
-    ipc_channel_destroy(channel);
-}
-
-TEST_CASE("channel double commit") {
-    const uint64_t size = ipc_channel_align_size(128);
-    std::vector<uint8_t> mem(size);
-    IpcChannelResult channel_result =
-        ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
-    IpcChannel *channel = channel_result.result;
-
-    const IpcBufferAttachResult buffer_result = ipc_buffer_attach(mem.data());
-    IpcBuffer *buf = buffer_result.result;
-
-    void *dest;
-    IpcBufferReserveEntryResult result =
-        ipc_buffer_reserve_entry(buf, sizeof(int), &dest);
-    CHECK(result.ipc_status == IPC_OK);
-    *static_cast<int*>(dest) = 42;
-    CHECK(ipc_buffer_commit_entry(buf, result.result).ipc_status == IPC_OK);
-    CHECK(IpcBufferCommitEntryResult_is_error(
-        ipc_buffer_commit_entry(buf, result.result)));
-
-    IpcEntry entry;
-    IpcChannelReadResult read1 = ipc_channel_read(channel, &entry);
-    CHECK(read1.ipc_status == IPC_OK);
-    free(entry.payload);
-
-    IpcChannelTryReadResult read2 = ipc_channel_try_read(channel, &entry);
-    CHECK(read2.ipc_status == IPC_EMPTY);
-
-    ipc_channel_destroy(channel);
-}
 
 TEST_CASE("channel data - different sizes") {
     const uint64_t size = ipc_channel_align_size(2048);
