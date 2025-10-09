@@ -47,8 +47,6 @@ add_shmipc_test(ipc_channel_basic_test        ipc_channel_basic_test.cpp)
 add_shmipc_test(ipc_mmap_test                 ipc_mmap_test.cpp)
 
 add_shmipc_test(ipc_buffer_concurrency_test   ipc_buffer_concurrency_test.cpp)
-# add_shmipc_test(ipc_channel_concurrent_test   ipc_channel_concurrency_test.cpp)  # Temporarily disabled due to compilation issues
-# add_shmipc_test(ipc_channel_interprocess_test ipc_channel_interprocess_test.cpp)
-# add_shmipc_test(ipc_buffer_stress_test        ipc_buffer_stress_test.cpp)
-# add_shmipc_test(ipc_channel_interprocess_stress_test ipc_channel_interprocess_stress_test.cpp)
-# add_shmipc_test(ipc_channel_stress_test      ipc_channel_stress_test.cpp)
+add_shmipc_test(ipc_channel_concurrent_test   ipc_channel_concurrency_test.cpp)  # Temporarily disabled due to compilation issues
+add_shmipc_test(ipc_buffer_stress_test        ipc_buffer_stress_test.cpp)
+add_shmipc_test(ipc_channel_stress_test      ipc_channel_stress_test.cpp)
