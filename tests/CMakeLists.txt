@@ -42,9 +42,9 @@ function(add_shmipc_test name)
   add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
-# add_shmipc_test(ipc_buffer_basic_test         ipc_buffer_basic_test.cpp)
-# add_shmipc_test(ipc_channel_basic_test        ipc_channel_basic_test.cpp)
-# add_shmipc_test(ipc_mmap_test                 ipc_mmap_test.cpp)
+add_shmipc_test(ipc_buffer_basic_test         ipc_buffer_basic_test.cpp)
+add_shmipc_test(ipc_channel_basic_test        ipc_channel_basic_test.cpp)
+add_shmipc_test(ipc_mmap_test                 ipc_mmap_test.cpp)
 
 add_shmipc_test(ipc_buffer_concurrency_test   ipc_buffer_concurrency_test.cpp)
 # add_shmipc_test(ipc_channel_concurrent_test   ipc_channel_concurrency_test.cpp)  # Temporarily disabled due to compilation issues
