@@ -35,6 +35,7 @@ static uint64_t _read_head(const struct IpcBuffer *buffer);
 static bool _is_aligned(const uint64_t offset);
 static bool _lock(_Atomic uint64_t *ref, const uint64_t offset);
 static bool _unlock(_Atomic uint64_t *ref, const uint64_t offset);
+static bool _is_locked(const uint64_t offset);
 static IpcStatus _read_entry_header_unsafe(const struct IpcBuffer *buffer,
                                            const uint64_t offset,
                                            EntryHeader **dest);
@@ -136,7 +137,7 @@ IpcBufferWriteResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
   bool placeholder = false;
   do {
     tail = atomic_load(&((struct IpcBuffer *)buffer)->header->tail);
-    if (tail == LOCK(tail)) {
+    if (_is_locked(tail)) {
       return IpcBufferWriteResult_error_body(IPC_ERR_LOCKED, "locked", error);
     }
 
@@ -206,7 +207,7 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
   uint64_t head;
   do {
     head = _read_head(buffer);
-    if (LOCK(head) == head) {
+    if (_is_locked(head)) {
       error.offset = UNLOCK(head);
       return IpcBufferReadResult_error_body(IPC_ERR_LOCKED, "entry is locked",
                                             error);
@@ -288,7 +289,7 @@ IpcBufferPeekResult ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
   uint64_t head;
   do {
     head = _read_head(buffer);
-    if (LOCK(head) == head) {
+    if (_is_locked(head)) {
       error.offset = UNLOCK(head);
       return IpcBufferPeekResult_error_body(IPC_ERR_LOCKED, "entry is locked",
                                             error);
@@ -363,7 +364,7 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const uint64_t offset) {
   uint64_t head;
   do {
     head = _read_head(buffer);
-    if (LOCK(head) == head) {
+    if (_is_locked(head)) {
       error.offset = UNLOCK(head);
       return IpcBufferSkipResult_error_body(IPC_ERR_LOCKED, "entry is locked",
                                             error);
@@ -451,6 +452,20 @@ static inline bool _is_aligned(const uint64_t offset) {
   return ALIGN_UP(offset, IPC_DATA_ALIGN) == offset;
 }
 
+static bool _is_locked(const uint64_t offset) {
+  return LOCK(offset) == offset;
+}
+
+static inline bool _lock(_Atomic uint64_t *ref, const uint64_t offset) {
+  uint64_t expected = UNLOCK(offset);
+  return atomic_compare_exchange_strong(ref, &expected, LOCK(offset));
+}
+
+static inline bool _unlock(_Atomic uint64_t *ref, const uint64_t offset) {
+  uint64_t expected = LOCK(offset);
+  return atomic_compare_exchange_strong(ref, &expected, UNLOCK(offset));
+}
+
 static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
                                            const uint64_t offset,
                                            EntryHeader *dest) {
@@ -476,7 +491,7 @@ static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
     return IPC_OK;
   }
 
-  if (offset == LOCK(dest->seq)) {
+  if (_is_locked(offset)) {
     return IPC_ERR_LOCKED;
   }
 
@@ -498,19 +513,9 @@ static IpcStatus _read_entry_header_unsafe(const struct IpcBuffer *buffer,
 
   *dest = (EntryHeader *)(buffer->data + rel_head);
 
-  if (LOCK(tail) == tail) {
+  if (_is_locked(tail)) {
     return IPC_ERR_NOT_READY;
   }
 
   return IPC_OK;
-}
-
-static inline bool _lock(_Atomic uint64_t *ref, const uint64_t offset) {
-  uint64_t expected = UNLOCK(offset);
-  return atomic_compare_exchange_strong(ref, &expected, LOCK(offset));
-}
-
-static inline bool _unlock(_Atomic uint64_t *ref, const uint64_t offset) {
-  uint64_t expected = LOCK(offset);
-  return atomic_compare_exchange_strong(ref, &expected, UNLOCK(offset));
 }
