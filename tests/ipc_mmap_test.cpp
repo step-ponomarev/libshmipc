@@ -1,7 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
-#include "test_utils.h"
 #include "shmipc/ipc_mmap.h"
+#include "test_utils.h"
 #include <unistd.h>
 
 TEST_CASE("different segment sizes") {

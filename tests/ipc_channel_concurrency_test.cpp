@@ -1,11 +1,11 @@
-#include "shmipc/ipc_common.h"
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
-
+#include "shmipc/ipc_channel.h"
+#include "shmipc/ipc_common.h"
 #include "concurrency_manager.hpp"
-#include "concurrent_test_utils.h"
-#include "test_utils.h"
 #include "unsafe_collector.hpp"
+#include "test_utils.h"
+#include "concurrent_test_utils.h"
 #include <atomic>
 #include <thread>
 #include <unordered_set>

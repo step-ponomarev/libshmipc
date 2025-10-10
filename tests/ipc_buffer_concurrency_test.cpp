@@ -4,6 +4,8 @@
 #include "test_utils.h"
 #include "unsafe_collector.hpp"
 #include "concurrency_manager.hpp"
+#include "test_utils.h"
+#include "concurrent_test_utils.h"
 #include <unordered_set>
 #include <thread>
 
@@ -79,7 +81,7 @@ TEST_CASE("multiple writer multiple reader") {
 }
 
 TEST_CASE("multiple writer multiple reader stress") {
-  const size_t total = 50000;
+  const size_t total = 500000;
   test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
   UnsafeCollector<size_t> collector1, collector2, collector3;
   ConcurrencyManager<size_t> manager;
@@ -424,7 +426,6 @@ TEST_CASE("buffer overflow under concurrent load") {
 }
 
 TEST_CASE("extreme stress - buffer overflow chaos") {
-
   test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
   const size_t num_threads = 15;

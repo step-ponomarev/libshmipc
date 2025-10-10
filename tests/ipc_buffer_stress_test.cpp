@@ -4,7 +4,9 @@
 #include "test_utils.h"
 #include <atomic>
 #include <chrono>
+#include <cstring>
 #include <iomanip>
+#include <iostream>
 #include <random>
 #include <thread>
 #include <vector>
@@ -25,10 +27,9 @@ TEST_CASE("buffer stress - high load throughput") {
         ipc_buffer_write(buffer.get(), &test_data, sizeof(test_data));
     if (write_result.ipc_status != IPC_OK &&
         write_result.ipc_status != IPC_ERR_NO_SPACE_CONTIGUOUS) {
-      break; // Stop if we get an unexpected error
+      break;
     }
 
-    // Only read if write was successful
     if (write_result.ipc_status == IPC_OK) {
       test_utils::EntryWrapper entry(sizeof(int));
       IpcEntry entry_ref = entry.get();
@@ -113,54 +114,6 @@ TEST_CASE("buffer stress - sequential high load") {
 
   CHECK(items_processed > 0);
   CHECK(throughput > 1000);
-}
-
-TEST_CASE("buffer stress - large data burst") {
-  test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
-
-  const int iterations = 200000;
-
-  auto start = high_resolution_clock::now();
-
-  int successful_operations = 0;
-  for (int i = 0; i < iterations; ++i) {
-    int test_data = i;
-    IpcBufferWriteResult write_result =
-        ipc_buffer_write(buffer.get(), &test_data, sizeof(test_data));
-    if (write_result.ipc_status != IPC_OK &&
-        write_result.ipc_status != IPC_ERR_NO_SPACE_CONTIGUOUS) {
-      break;
-    }
-
-    if (write_result.ipc_status == IPC_OK) {
-      test_utils::EntryWrapper entry(sizeof(int));
-      IpcEntry entry_ref = entry.get();
-      IpcBufferReadResult read_result =
-          ipc_buffer_read(buffer.get(), &entry_ref);
-      if (read_result.ipc_status == IPC_OK) {
-        int read_data;
-        memcpy(&read_data, entry_ref.payload, sizeof(int));
-        CHECK(read_data == test_data);
-        successful_operations++;
-      }
-    }
-  }
-
-  auto end = high_resolution_clock::now();
-  auto duration = duration_cast<microseconds>(end - start);
-
-  double throughput =
-      (double)successful_operations / duration.count() * 1000000;
-  double data_throughput = (double)successful_operations * sizeof(int) /
-                           duration.count() * 1000000 / (1024 * 1024);
-  std::cout << "Buffer large data burst throughput: " << std::fixed
-            << std::setprecision(0) << throughput << " ops/sec, " << std::fixed
-            << std::setprecision(2) << data_throughput << " MB/sec"
-            << std::endl;
-
-  CHECK(successful_operations > 0);
-  CHECK(throughput > 100);
-  CHECK(data_throughput > 0.001);
 }
 
 TEST_CASE("buffer stress - rapid create destroy") {
@@ -256,7 +209,7 @@ TEST_CASE("buffer stress - random operations") {
   const int num_operations = 100;
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<> dis(0, 2); // 3 operations: write, peek, skip
+  std::uniform_int_distribution<> dis(0, 2);
 
   auto start = high_resolution_clock::now();
 
@@ -265,23 +218,17 @@ TEST_CASE("buffer stress - random operations") {
 
     switch (operation) {
     case 0: {
-      // Write operation
       int data = i;
       ipc_buffer_write(buffer.get(), &data, sizeof(data));
-      // Accept both success and buffer full as valid outcomes
       break;
     }
     case 1: {
-      // Peek operation - safe, doesn't modify buffer
       IpcEntry entry;
       ipc_buffer_peek(buffer.get(), &entry);
-      // IPC_OK or IPC_EMPTY are both valid statuses
       break;
     }
     case 2: {
-      // Skip operation - removes one entry from buffer
       ipc_buffer_skip_force(buffer.get());
-      // IPC_OK, IPC_EMPTY, or IPC_ALREADY_SKIPPED are all valid
       break;
     }
     }
@@ -301,6 +248,7 @@ TEST_CASE("buffer stress - overflow handling") {
   test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
   const int data_size = 16;
+
   std::vector<uint8_t> data(data_size, 0xAB);
 
   int successful_writes = 0;

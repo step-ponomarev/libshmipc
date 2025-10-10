@@ -6,12 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define IPC_DATA_ALIGN 8
+#define IPC_DATA_ALIGN 0x8
 #define MIN_BUFFER_SIZE                                                        \
   (sizeof(IpcBufferHeader) +                                                   \
    IPC_DATA_ALIGN) // 8 bytes min buffer size despite header
 #define UNLOCK(offset) (((offset) & (~(0x1))))
-#define LOCK(offset) ((offset) | 1)
+#define LOCK(offset) ((offset) | 0x1)
 
 typedef struct IpcBufferHeader {
   _Atomic uint64_t head;
@@ -107,7 +107,6 @@ IpcBufferWriteResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
                                .requested_size = size,
                                .available_contiguous = 0,
                                .buffer_size = 0};
-
   if (buffer == NULL) {
     return IpcBufferWriteResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
@@ -117,6 +116,7 @@ IpcBufferWriteResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
     return IpcBufferWriteResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: data is NULL", error);
   }
+
   if (size == 0) {
     return IpcBufferWriteResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: data size is 0", error);
@@ -163,7 +163,6 @@ IpcBufferWriteResult ipc_buffer_write(IpcBuffer *buffer, const void *data,
 
   EntryHeader *header =
       (EntryHeader *)(((struct IpcBuffer *)buffer)->data + rel_tail);
-
   if (placeholder) {
     header->payload_size = 0;
     header->entry_size = space_to_wrap;
@@ -383,7 +382,6 @@ IpcBufferSkipResult ipc_buffer_skip(IpcBuffer *buffer, const uint64_t offset) {
   const IpcStatus status =
       _read_entry_header((struct IpcBuffer *)buffer, head, &header);
   const bool placeholder = status == IPC_PLACEHOLDER;
-
   if (!placeholder && status != IPC_OK) {
     if (!_unlock(&((struct IpcBuffer *)buffer)->header->head, head)) {
       return IpcBufferSkipResult_error_body(
@@ -452,9 +450,7 @@ static inline bool _is_aligned(const uint64_t offset) {
   return ALIGN_UP(offset, IPC_DATA_ALIGN) == offset;
 }
 
-static bool _is_locked(const uint64_t offset) {
-  return LOCK(offset) == offset;
-}
+static bool _is_locked(const uint64_t offset) { return LOCK(offset) == offset; }
 
 static inline bool _lock(_Atomic uint64_t *ref, const uint64_t offset) {
   uint64_t expected = UNLOCK(offset);
@@ -467,8 +463,7 @@ static inline bool _unlock(_Atomic uint64_t *ref, const uint64_t offset) {
 }
 
 static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
-                                           const uint64_t offset,
-                                           EntryHeader *dest) {
+                                    const uint64_t offset, EntryHeader *dest) {
   EntryHeader *header;
   IpcStatus status = _read_entry_header_unsafe(buffer, offset, &header);
   if (status != IPC_OK) {
@@ -501,7 +496,6 @@ static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
 static IpcStatus _read_entry_header_unsafe(const struct IpcBuffer *buffer,
                                            const uint64_t offset,
                                            EntryHeader **dest) {
-
   const uint64_t aligned_head = UNLOCK(offset);
   const uint64_t tail = atomic_load(&buffer->header->tail);
   if (aligned_head == UNLOCK(tail)) {

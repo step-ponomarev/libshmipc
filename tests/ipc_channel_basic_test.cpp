@@ -1,10 +1,10 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
-#include "test_utils.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_channel.h"
 #include "shmipc/ipc_common.h"
 #include "../src/ipc_utils.h"
+#include "test_utils.h"
 #include <cstdlib>
 #include <cstring>
 #include <ctime>

@@ -1,7 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
-#include "test_utils.h"
 #include "shmipc/ipc_channel.h"
+#include "test_utils.h"
 #include <chrono>
 #include <vector>
 #include <thread>

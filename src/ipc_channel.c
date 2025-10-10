@@ -342,6 +342,7 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
 
   IpcEntry read_entry = {.offset = 0, .payload = NULL, .size = 0};
 
+  //TODO: futex
   for (;;) {
     IpcEntry peek_entry;
     const IpcBufferPeekResult peek_result =
