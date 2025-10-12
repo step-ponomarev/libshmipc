@@ -193,7 +193,6 @@ TEST_CASE("extreme stress test - small buffer") {
                          2 * test_utils::LARGE_COUNT / 3,
                          test_utils::LARGE_COUNT);
 
-    // Добавляем консьюмеров с отдельными коллекторами
     manager.add_consumer(concurrent_test_utils::consume_channel, channel,
                          std::ref(collector1), std::ref(manager.get_manager()));
     manager.add_consumer(concurrent_test_utils::consume_channel, channel,
@@ -201,7 +200,6 @@ TEST_CASE("extreme stress test - small buffer") {
     manager.add_consumer(concurrent_test_utils::consume_channel, channel,
                          std::ref(collector3), std::ref(manager.get_manager()));
 
-    // Запускаем и ждем завершения
     manager.run_and_wait();
 
     IpcEntry entry;

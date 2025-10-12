@@ -7,7 +7,7 @@
 
 ## Overview
 
-`libshmipc` is a library designed for high-performance inter-process communication (IPC) using shared memory. It provides a lock-free transport layer for message passing between producers and consumers, and builds upon this with a configurable channel abstraction for higher-level IPC patterns.
+`libshmipc` is a library designed for high-performance inter-process communication (IPC) using shared memory. It provides an atomic-based transport layer with optimistic locking for message passing between producers and consumers, and builds upon this with a configurable channel abstraction for higher-level IPC patterns.
 
 ---
 
@@ -17,7 +17,7 @@
 
 At the core of the library is a circular buffer implemented over user-provided shared memory. This buffer enables:
 
-* Lock-free writes and reads
+* Low-contention atomic writes and reads with spin-lock synchronization
 * Atomic commit semantics
 * Efficient wraparound handling
 * Minimal memory overhead
