@@ -887,19 +887,18 @@ TEST_CASE("buffer data - different sizes") {
     struct TestData {
         size_t size;
         uint8_t pattern;
-        const char* description;
     };
     
     std::vector<TestData> test_cases = {
-        {1, 0xAA, "single byte"},
-        {4, 0xBB, "4 bytes (int)"},
-        {8, 0xCC, "8 bytes (long long)"},
-        {16, 0xDD, "16 bytes"},
-        {32, 0xEE, "32 bytes"},
-        {64, 0xFF, "64 bytes"},
-        {128, 0x11, "128 bytes"},
-        {256, 0x22, "256 bytes"},
-        {512, 0x33, "512 bytes"}
+        {1, 0xAA},
+        {4, 0xBB},
+        {8, 0xCC},
+        {16, 0xDD},
+        {32, 0xEE},
+        {64, 0xFF},
+        {128, 0x11},
+        {256, 0x22},
+        {512, 0x33}
     };
 
     std::vector<std::vector<uint8_t>> written_data;
