@@ -183,7 +183,6 @@ TEST_CASE("extreme stress test - small buffer") {
     UnsafeCollector<size_t> collector1, collector2, collector3;
     ConcurrencyManager<size_t> manager;
 
-    // Добавляем продюсеров
     manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
                          test_utils::LARGE_COUNT / 3);
     manager.add_producer(concurrent_test_utils::produce_channel, channel,

@@ -6,9 +6,7 @@
 #include "concurrency_manager.hpp"
 #include "unsafe_collector.hpp"
 #include "test_utils.h"
-#include <chrono>
 #include <cstring>
-#include <thread>
 
 namespace concurrent_test_utils {
 

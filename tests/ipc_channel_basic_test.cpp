@@ -1,6 +1,5 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
-#include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_channel.h"
 #include "shmipc/ipc_common.h"
 #include "../src/ipc_utils.h"
@@ -176,7 +175,7 @@ TEST_CASE("read retry limit reached") {
 
     uint64_t* seq_ptr = (uint64_t*)((uint8_t*)peek_entry.payload - sizeof(uint64_t) * 3);
     uint64_t original_seq = *seq_ptr;
-    *seq_ptr = 0xDEADBEEF; // Коррапчим seq
+    *seq_ptr = 0xDEADBEEF;
 
     IpcEntry entry;
     CHECK(ipc_channel_read(channel, &entry).ipc_status == IPC_ERR_RETRY_LIMIT);
@@ -293,18 +292,17 @@ TEST_CASE("channel data - different sizes") {
     struct TestData {
         size_t size;
         uint8_t pattern;
-        const char* description;
     };
     
     std::vector<TestData> test_cases = {
-        {1, 0xAA, "single byte"},
-        {4, 0xBB, "4 bytes (int)"},
-        {8, 0xCC, "8 bytes (long long)"},
-        {16, 0xDD, "16 bytes"},
-        {32, 0xEE, "32 bytes"},
-        {64, 0xFF, "64 bytes"},
-        {128, 0x11, "128 bytes"},
-        {256, 0x22, "256 bytes"}
+        {1, 0xAA},
+        {4, 0xBB},
+        {8, 0xCC},
+        {16, 0xDD},
+        {32, 0xEE},
+        {64, 0xFF},
+        {128, 0x11},
+        {256, 0x22}
     };
     
     std::vector<std::vector<uint8_t>> written_data;
@@ -315,8 +313,7 @@ TEST_CASE("channel data - different sizes") {
         IpcChannelWriteResult write_result = 
             ipc_channel_write(channel, data.data(), data.size());
         
-        if (IpcChannelWriteResult_is_ok(write_result)) {
-        } else {
+        if (!IpcChannelWriteResult_is_ok(write_result)) {
             written_data.pop_back();
             break;
         }
@@ -328,13 +325,7 @@ TEST_CASE("channel data - different sizes") {
         
         CHECK(read_result.ipc_status == IPC_OK);
         CHECK(entry.size == written_data[i].size());
-        
         CHECK(memcmp(entry.payload, written_data[i].data(), written_data[i].size()) == 0);
-        
-        const uint8_t expected_pattern = test_cases[i].pattern;
-        for (size_t j = 0; j < entry.size; ++j) {
-            CHECK(static_cast<uint8_t*>(entry.payload)[j] == expected_pattern);
-        }
         
         free(entry.payload);
     }

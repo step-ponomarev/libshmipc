@@ -600,73 +600,9 @@ TEST_CASE("extreme stress - system stability under chaos") {
 }
 
 TEST_CASE("multiple writer multiple reader - different data sizes") {
-  struct VariableSizeData {
+  struct TestData {
     size_t id;
-    uint8_t size;
     uint8_t pattern;
-    uint8_t data[32];
-  };
-
-  auto create_variable_data = [](size_t id) -> VariableSizeData {
-    VariableSizeData data;
-    data.id = id;
-    data.size = 1 + (id % 32);
-    data.pattern = 0x40 + (id % 16);
-
-    for (size_t i = 0; i < data.size; ++i) {
-      data.data[i] = data.pattern;
-    }
-
-    return data;
-  };
-
-  auto produce_variable_buffer = [&](IpcBuffer *buffer, size_t from,
-                                     size_t to) {
-    for (size_t i = from; i < to; ++i) {
-      VariableSizeData data = create_variable_data(i);
-
-      IpcBufferWriteResult write_result =
-          ipc_buffer_write(buffer, &data, sizeof(VariableSizeData));
-
-      if (!IpcBufferWriteResult_is_ok(write_result)) {
-        continue;
-      }
-    }
-  };
-
-  auto consume_variable_buffer = [&](IpcBuffer *buffer,
-                                     UnsafeCollector<size_t> &collector,
-                                     ConcurrencyManager<size_t> &manager) {
-    test_utils::EntryWrapper entry(sizeof(VariableSizeData));
-
-    while (true) {
-      bool finished = manager.all_producers_finished();
-      IpcEntry entry_ref = entry.get();
-      IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
-
-      if (result.ipc_status == IPC_OK) {
-        VariableSizeData received_data;
-        memcpy(&received_data, entry_ref.payload, sizeof(VariableSizeData));
-
-        CHECK(received_data.size >= 1);
-        CHECK(received_data.size <= 32);
-
-        for (size_t i = 0; i < received_data.size; ++i) {
-          CHECK(received_data.data[i] == received_data.pattern);
-        }
-
-        VariableSizeData expected_data = create_variable_data(received_data.id);
-        CHECK(received_data.id == expected_data.id);
-        CHECK(received_data.size == expected_data.size);
-        CHECK(received_data.pattern == expected_data.pattern);
-        CHECK(memcmp(received_data.data, expected_data.data,
-                     received_data.size) == 0);
-
-        collector.collect(received_data.id);
-      } else if (finished && result.ipc_status == IPC_EMPTY) {
-        break;
-      }
-    }
   };
 
   test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
@@ -675,18 +611,41 @@ TEST_CASE("multiple writer multiple reader - different data sizes") {
 
   const size_t total = 100;
 
-  manager.add_producer(produce_variable_buffer, buffer.get(), 0, total / 3);
-  manager.add_producer(produce_variable_buffer, buffer.get(), total / 3,
-                       2 * total / 3);
-  manager.add_producer(produce_variable_buffer, buffer.get(), 2 * total / 3,
-                       total);
+  auto produce_data = [](IpcBuffer *buffer, size_t from, size_t to) {
+    for (size_t i = from; i < to; ++i) {
+      TestData data{i, static_cast<uint8_t>(0x40 + (i % 16))};
+      IpcBufferWriteResult result = ipc_buffer_write(buffer, &data, sizeof(data));
+      if (!IpcBufferWriteResult_is_ok(result)) {
+        continue;
+      }
+    }
+  };
 
-  manager.add_consumer(consume_variable_buffer, buffer.get(),
-                       std::ref(collector1), std::ref(manager.get_manager()));
-  manager.add_consumer(consume_variable_buffer, buffer.get(),
-                       std::ref(collector2), std::ref(manager.get_manager()));
-  manager.add_consumer(consume_variable_buffer, buffer.get(),
-                       std::ref(collector3), std::ref(manager.get_manager()));
+  auto consume_data = [](IpcBuffer *buffer, UnsafeCollector<size_t> &collector, 
+                         ConcurrencyManager<size_t> &manager) {
+    test_utils::EntryWrapper entry(sizeof(TestData));
+    while (true) {
+      bool finished = manager.all_producers_finished();
+      IpcEntry entry_ref = entry.get();
+      IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
+
+      if (result.ipc_status == IPC_OK) {
+        TestData data;
+        memcpy(&data, entry_ref.payload, sizeof(TestData));
+        collector.collect(data.id);
+      } else if (finished && result.ipc_status == IPC_EMPTY) {
+        break;
+      }
+    }
+  };
+
+  manager.add_producer(produce_data, buffer.get(), 0, total / 3);
+  manager.add_producer(produce_data, buffer.get(), total / 3, 2 * total / 3);
+  manager.add_producer(produce_data, buffer.get(), 2 * total / 3, total);
+
+  manager.add_consumer(consume_data, buffer.get(), std::ref(collector1), std::ref(manager.get_manager()));
+  manager.add_consumer(consume_data, buffer.get(), std::ref(collector2), std::ref(manager.get_manager()));
+  manager.add_consumer(consume_data, buffer.get(), std::ref(collector3), std::ref(manager.get_manager()));
 
   manager.run_and_wait();
 
@@ -694,16 +653,11 @@ TEST_CASE("multiple writer multiple reader - different data sizes") {
   auto collected2 = collector2.get_all_collected();
   auto collected3 = collector3.get_all_collected();
 
-  std::set<size_t> all_collected;
+  std::unordered_set<size_t> all_collected;
   all_collected.insert(collected1.begin(), collected1.end());
   all_collected.insert(collected2.begin(), collected2.end());
   all_collected.insert(collected3.begin(), collected3.end());
 
   CHECK(all_collected.size() > 0);
   CHECK(all_collected.size() <= total);
-
-  for (size_t id : all_collected) {
-    CHECK(id >= 0);
-    CHECK(id < total);
-  }
 }

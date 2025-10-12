@@ -117,17 +117,14 @@ TEST_CASE("write success case") {
 TEST_CASE("write error structure verification") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     
-    
     const int test_data = 42;
     const IpcBufferWriteResult null_buffer_result = ipc_buffer_write(nullptr, &test_data, sizeof(test_data));
     CHECK(IpcBufferWriteResult_is_error(null_buffer_result));
     CHECK(null_buffer_result.error.body.requested_size == sizeof(test_data));
     
-    
     const IpcBufferWriteResult null_data_result = ipc_buffer_write(buffer.get(), nullptr, sizeof(test_data));
     CHECK(IpcBufferWriteResult_is_error(null_data_result));
     CHECK(null_data_result.error.body.requested_size == sizeof(test_data));
-    
     
     const IpcBufferWriteResult zero_size_result = ipc_buffer_write(buffer.get(), &test_data, 0);
     CHECK(IpcBufferWriteResult_is_error(zero_size_result));
@@ -160,13 +157,11 @@ TEST_CASE("read success case") {
 TEST_CASE("read error structure verification") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     
-    
     test_utils::EntryWrapper entry(sizeof(int));
     IpcEntry entry_ref = entry.get();
     const IpcBufferReadResult null_buffer_result = ipc_buffer_read(nullptr, &entry_ref);
     CHECK(IpcBufferReadResult_is_error(null_buffer_result));
     CHECK(null_buffer_result.error.body.offset == 0);
-    
     
     const IpcBufferReadResult null_dest_result = ipc_buffer_read(buffer.get(), nullptr);
     CHECK(IpcBufferReadResult_is_error(null_dest_result));
@@ -195,11 +190,9 @@ TEST_CASE("peek success case") {
     const IpcBufferPeekResult peek_result = ipc_buffer_peek(buffer.get(), &entry);
     test_utils::CHECK_OK(peek_result);
     
-    
     int peeked_data;
     memcpy(&peeked_data, entry.payload, sizeof(test_data));
     CHECK(peeked_data == test_data);
-    
     
     IpcEntry entry2;
     const IpcBufferPeekResult peek_result2 = ipc_buffer_peek(buffer.get(), &entry2);
@@ -223,12 +216,10 @@ TEST_CASE("peek empty buffer") {
 TEST_CASE("peek error structure verification") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     
-    
     IpcEntry entry;
     const IpcBufferPeekResult null_buffer_result = ipc_buffer_peek(nullptr, &entry);
     CHECK(IpcBufferPeekResult_is_error(null_buffer_result));
     CHECK(null_buffer_result.error.body.offset == 0);
-    
     
     const IpcBufferPeekResult null_dest_result = ipc_buffer_peek(buffer.get(), nullptr);
     CHECK(IpcBufferPeekResult_is_error(null_dest_result));
@@ -238,12 +229,10 @@ TEST_CASE("peek error structure verification") {
 TEST_CASE("peek multiple entries") {
     test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
     
-    
     const int v1 = 1, v2 = 2, v3 = 3;
     test_utils::write_data(buffer.get(), v1);
     test_utils::write_data(buffer.get(), v2);
     test_utils::write_data(buffer.get(), v3);
-    
     
     IpcEntry entry;
     const IpcBufferPeekResult peek1 = ipc_buffer_peek(buffer.get(), &entry);
@@ -253,7 +242,6 @@ TEST_CASE("peek multiple entries") {
     memcpy(&peeked_v1, entry.payload, sizeof(v1));
     CHECK(peeked_v1 == v1);
     
-    
     const IpcBufferPeekResult peek2 = ipc_buffer_peek(buffer.get(), &entry);
     test_utils::CHECK_OK(peek2);
     
@@ -261,9 +249,7 @@ TEST_CASE("peek multiple entries") {
     memcpy(&peeked_v1_again, entry.payload, sizeof(v1));
     CHECK(peeked_v1_again == v1);
     
-    
     CHECK(ipc_buffer_skip_force(buffer.get()).ipc_status == IPC_OK);
-    
     
     const IpcBufferPeekResult peek3 = ipc_buffer_peek(buffer.get(), &entry);
     test_utils::CHECK_OK(peek3);
@@ -284,16 +270,13 @@ TEST_CASE("skip success case") {
     const int test_data = 42;
     test_utils::write_data(buffer.get(), test_data);
     
-    
     IpcEntry entry;
     const IpcBufferPeekResult peek_result = ipc_buffer_peek(buffer.get(), &entry);
     test_utils::CHECK_OK(peek_result);
     
-    
     const IpcBufferSkipResult skip_result = ipc_buffer_skip(buffer.get(), entry.offset);
     test_utils::CHECK_OK(skip_result);
     CHECK(skip_result.result == entry.offset);
-    
     
     const IpcBufferPeekResult peek_after = ipc_buffer_peek(buffer.get(), &entry);
     CHECK(peek_after.ipc_status == IPC_EMPTY);
@@ -927,8 +910,7 @@ TEST_CASE("buffer data - different sizes") {
         IpcBufferWriteResult write_result = 
             ipc_buffer_write(buffer.get(), data.data(), data.size());
         
-        if (IpcBufferWriteResult_is_ok(write_result)) {
-        } else {
+        if (!IpcBufferWriteResult_is_ok(write_result)) {
             written_data.pop_back();
             break;
         }
@@ -942,15 +924,7 @@ TEST_CASE("buffer data - different sizes") {
         
         CHECK(read_result.ipc_status == IPC_OK);
         CHECK(entry_ref.size == written_data[i].size());
-        
-
         CHECK(memcmp(entry_ref.payload, written_data[i].data(), written_data[i].size()) == 0);
-        
-
-        const uint8_t expected_pattern = test_cases[i].pattern;
-        for (size_t j = 0; j < entry_ref.size; ++j) {
-            CHECK(static_cast<uint8_t*>(entry_ref.payload)[j] == expected_pattern);
-        }
     }
 
     test_utils::EntryWrapper entry(1);
