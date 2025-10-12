@@ -4,44 +4,48 @@ find_package(Threads REQUIRED)
 set(SHMIPC_PUBLIC_INCLUDE_DIR   "${CMAKE_SOURCE_DIR}/include")
 set(SHMIPC_INTERNAL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src")
 
+include(FetchContent)
+FetchContent_Declare(
+  doctest
+  GIT_REPOSITORY https://github.com/doctest/doctest.git
+  GIT_TAG        v2.4.12
+)
+FetchContent_MakeAvailable(doctest)
+
 function(target_test_flags tgt)
-  target_compile_options(${tgt} PRIVATE -O0 -g -UNDEBUG) 
+  target_compile_options(${tgt} PRIVATE -O0 -g -UNDEBUG)
   target_enable_warnings(${tgt})
   target_compile_options(${tgt} PRIVATE
     $<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>
   )
   target_fix_posix(${tgt})
+  target_enable_sanitizers(${tgt})
 endfunction()
-
-add_library(ipc_test STATIC test_runner.c)
-target_include_directories(ipc_test PRIVATE
-  ${SHMIPC_PUBLIC_INCLUDE_DIR}
-  ${SHMIPC_INTERNAL_INCLUDE_DIR}
-)
-target_test_flags(ipc_test)
 
 function(add_shmipc_test name)
   add_executable(${name} ${ARGN})
-
+  
   target_include_directories(${name} PRIVATE
     ${SHMIPC_PUBLIC_INCLUDE_DIR}
     ${SHMIPC_INTERNAL_INCLUDE_DIR}
+    ${doctest_SOURCE_DIR}
   )
-
-  target_test_flags(${name})
-
+  
   target_link_libraries(${name} PRIVATE
+    doctest::doctest
     shmipc_static
-    ipc_test
     Threads::Threads
   )
-
+  
+  target_test_flags(${name})
+  
   add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
-add_shmipc_test(ipc_buffer_basic_test         ipc_buffer_basic_test.c)
+add_shmipc_test(ipc_buffer_basic_test         ipc_buffer_basic_test.cpp)
+add_shmipc_test(ipc_channel_basic_test        ipc_channel_basic_test.cpp)
+add_shmipc_test(ipc_mmap_test                 ipc_mmap_test.cpp)
+
 add_shmipc_test(ipc_buffer_concurrency_test   ipc_buffer_concurrency_test.cpp)
-add_shmipc_test(ipc_channel_basic_test        ipc_channel_basic_test.c)
 add_shmipc_test(ipc_channel_concurrent_test   ipc_channel_concurrency_test.cpp)
-add_shmipc_test(ipc_mmap_test                 ipc_mmap_test.c)
 

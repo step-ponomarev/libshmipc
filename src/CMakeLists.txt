@@ -29,6 +29,7 @@ function(configure_library_common tgt)
   target_compile_definitions(${tgt} PRIVATE NDEBUG)
 
   target_fix_posix(${tgt})
+  target_enable_sanitizers(${tgt})
   set_property(TARGET ${tgt} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endfunction()
 

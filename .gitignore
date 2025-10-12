@@ -60,3 +60,7 @@ build
 .cache
 compile_commands.json
 Testing
+third_party_doctest
+build_asan
+build_tsan
+build_ubsan

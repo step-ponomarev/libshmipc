@@ -11,6 +11,9 @@ project(
 option(SHMIPC_BUILD_STATIC     "Build static library"           ON)
 option(SHMIPC_BUILD_SHARED     "Build shared library"           ON)
 option(SHMIPC_BUILD_TESTS      "Build tests"                    ON)
+option(SHMIPC_ENABLE_ASAN      "Enable AddressSanitizer"        OFF)
+option(SHMIPC_ENABLE_TSAN      "Enable ThreadSanitizer"         OFF)
+option(SHMIPC_ENABLE_UBSAN     "Enable UndefinedBehaviorSanitizer" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -34,6 +37,31 @@ function(target_fix_posix tgt)
   _POSIX_C_SOURCE=200809L
   _XOPEN_SOURCE=700
   )
+endfunction()
+
+# --- Sanitizers ----
+function(target_enable_sanitizers tgt)
+  if(SHMIPC_ENABLE_ASAN AND SHMIPC_ENABLE_TSAN)
+    message(FATAL_ERROR "Cannot enable both ASan and TSan simultaneously")
+  endif()
+
+  if(SHMIPC_ENABLE_ASAN)
+    message(STATUS "Enabling AddressSanitizer for ${tgt}")
+    target_compile_options(${tgt} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+    target_link_options(${tgt} PRIVATE -fsanitize=address)
+  endif()
+
+  if(SHMIPC_ENABLE_TSAN)
+    message(STATUS "Enabling ThreadSanitizer for ${tgt}")
+    target_compile_options(${tgt} PRIVATE -fsanitize=thread -fno-omit-frame-pointer)
+    target_link_options(${tgt} PRIVATE -fsanitize=thread)
+  endif()
+
+  if(SHMIPC_ENABLE_UBSAN)
+    message(STATUS "Enabling UndefinedBehaviorSanitizer for ${tgt}")
+    target_compile_options(${tgt} PRIVATE -fsanitize=undefined -fno-omit-frame-pointer)
+    target_link_options(${tgt} PRIVATE -fsanitize=undefined)
+  endif()
 endfunction()
 
 # ---------- Install dirs ----------
