@@ -877,8 +877,6 @@ TEST_CASE("buffer boundary - simple overflow test") {
             CHECK(read_val == test_data);
         }
     }
-    
-    
 }
 
 TEST_CASE("buffer data - different sizes") {
