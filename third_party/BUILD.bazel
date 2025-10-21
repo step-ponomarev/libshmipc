@@ -1,0 +1,6 @@
+cc_library(
+    name = "doctest",
+    hdrs = ["doctest/doctest.h"],
+    includes = ["."],
+    visibility = ["//visibility:public"],
+)

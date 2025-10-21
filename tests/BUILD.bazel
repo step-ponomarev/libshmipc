@@ -1,0 +1,111 @@
+# BUILD file for tests
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "test_support_headers",
+    srcs = glob(["*.h", "*.hpp"]),
+    visibility = ["//visibility:public"],
+)
+
+# Basic tests
+cc_test(
+    name = "ipc_buffer_basic_test",
+    srcs = ["ipc_buffer_basic_test.cpp", ":test_support_headers"],
+    deps = ["//:shmipc", "//third_party:doctest"],
+    copts = [
+        "-std=c++20",
+        "-O0",
+        "-g",
+        "-UNDEBUG",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-D_POSIX_C_SOURCE=200809L",
+        "-D_XOPEN_SOURCE=700",
+        "-fno-omit-frame-pointer",
+    ],
+    includes = ["."],
+    linkopts = ["-pthread"],
+)
+
+cc_test(
+    name = "ipc_channel_basic_test",
+    srcs = ["ipc_channel_basic_test.cpp", ":test_support_headers"],
+    deps = ["//:shmipc", "//third_party:doctest"],
+    copts = [
+        "-std=c++20",
+        "-O0",
+        "-g",
+        "-UNDEBUG",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-D_POSIX_C_SOURCE=200809L",
+        "-D_XOPEN_SOURCE=700",
+        "-fno-omit-frame-pointer",
+    ],
+    includes = ["."],
+    linkopts = ["-pthread"],
+)
+
+cc_test(
+    name = "ipc_mmap_test",
+    srcs = ["ipc_mmap_test.cpp", ":test_support_headers"],
+    deps = ["//:shmipc", "//third_party:doctest"],
+    copts = [
+        "-std=c++20",
+        "-O0",
+        "-g",
+        "-UNDEBUG",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-D_POSIX_C_SOURCE=200809L",
+        "-D_XOPEN_SOURCE=700",
+        "-fno-omit-frame-pointer",
+    ],
+    includes = ["."],
+    linkopts = ["-pthread"],
+)
+
+# Concurrency tests
+cc_test(
+    name = "ipc_buffer_concurrency_test",
+    srcs = ["ipc_buffer_concurrency_test.cpp", ":test_support_headers"],
+    deps = ["//:shmipc", "//third_party:doctest"],
+    copts = [
+        "-std=c++20",
+        "-O0",
+        "-g",
+        "-UNDEBUG",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-D_POSIX_C_SOURCE=200809L",
+        "-D_XOPEN_SOURCE=700",
+        "-fno-omit-frame-pointer",
+    ],
+    includes = ["."],
+    linkopts = ["-pthread"],
+)
+
+cc_test(
+    name = "ipc_channel_concurrency_test",
+    srcs = ["ipc_channel_concurrency_test.cpp", ":test_support_headers"],
+    deps = ["//:shmipc", "//third_party:doctest"],
+    copts = [
+        "-std=c++20",
+        "-O0",
+        "-g",
+        "-UNDEBUG",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-D_POSIX_C_SOURCE=200809L",
+        "-D_XOPEN_SOURCE=700",
+        "-fno-omit-frame-pointer",
+    ],
+    includes = ["."],
+    linkopts = ["-pthread"],
+)

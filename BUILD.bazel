@@ -1,0 +1,35 @@
+# BUILD.bazel for libshmipc
+
+cc_library(
+    name = "shmipc",
+    srcs = [
+        "src/ipc_buffer.c",
+        "src/ipc_channel.c",
+        "src/ipc_mmap.c",
+        "src/ipc_utils.c",
+    ],
+    hdrs = glob([
+        "include/shmipc/*.h",
+        "src/*.h",
+    ]),
+    includes = ["include", "src"],
+    visibility = ["//visibility:public"],
+    copts = [
+        "-std=c11",
+        "-O3",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-DNDEBUG",
+        "-D_POSIX_C_SOURCE=200809L",
+        "-D_XOPEN_SOURCE=700",
+    ],
+    linkopts = [],
+)
+
+cc_binary(
+    name = "shmipc_shared",
+    deps = [":shmipc"],
+    linkshared = 1,
+    visibility = ["//visibility:public"],
+)

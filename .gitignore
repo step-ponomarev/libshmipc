@@ -56,11 +56,15 @@ dkms.conf
 
 test_runner.dSYM
 .clangd
-build
 .cache
-compile_commands.json
-Testing
-third_party_doctest
-build_asan
-build_tsan
-build_ubsan
+
+# Bazel outputs and symlinks
+bazel-*
+bazel-bin
+bazel-out
+bazel-testlogs
+.bazelrc.user
+
+MODULE.bazel.lock
+
+dist

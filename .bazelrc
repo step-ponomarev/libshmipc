@@ -1,0 +1,8 @@
+# AddressSanitizer configuration
+build:asan --copt=-fsanitize=address --copt=-fno-omit-frame-pointer --linkopt=-fsanitize=address
+
+# ThreadSanitizer configuration
+build:tsan --copt=-fsanitize=thread --copt=-fno-omit-frame-pointer --linkopt=-fsanitize=thread
+
+# UndefinedBehaviorSanitizer configuration
+build:ubsan --copt=-fsanitize=undefined --copt=-fno-omit-frame-pointer --linkopt=-fsanitize=undefined
