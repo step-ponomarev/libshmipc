@@ -50,15 +50,22 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-
+.vscode
 .DS_Store
 /**/.DS_Store
 
 test_runner.dSYM
 .clangd
-build
 .cache
+
+# Bazel outputs and symlinks
+bazel-*
+.bazelrc.user
+
+MODULE.bazel.lock
 compile_commands.json
+
+dist
 Testing
 third_party_doctest
 build_asan

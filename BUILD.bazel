@@ -1,0 +1,21 @@
+cc_library(
+    name = "shmipc",
+    srcs = glob([
+        "src/*.c",
+        "src/*.h",
+    ]),
+    hdrs = glob(["include/shmipc/*.h"]),
+    strip_include_prefix = "include",
+    visibility = ["//visibility:public"],
+    copts = [
+        "-std=c11", "-O3", "-Wall", "-Wextra", "-Wpedantic",
+        "-DNDEBUG", "-D_POSIX_C_SOURCE=200809L", "-D_XOPEN_SOURCE=700",
+    ],
+)
+
+cc_binary(
+    name = "shmipc_shared",
+    deps = [":shmipc"],
+    linkshared = 1,
+    visibility = ["//visibility:public"],
+)

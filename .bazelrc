@@ -1,0 +1,7 @@
+common --enable_bzlmod
+
+build:asan --copt=-fsanitize=address --copt=-fno-omit-frame-pointer --linkopt=-fsanitize=address
+
+build:tsan --copt=-fsanitize=thread --copt=-fno-omit-frame-pointer --linkopt=-fsanitize=thread
+
+build:ubsan --copt=-fsanitize=undefined --copt=-fno-omit-frame-pointer --linkopt=-fsanitize=undefined

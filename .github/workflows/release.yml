@@ -18,67 +18,78 @@ jobs:
           - os_name: linux
             arch: x86_64
             runner: ubuntu-latest
-            cmake_extra: ""
           - os_name: linux
             arch: arm64
-            runner: ubuntu-24.04-arm 
-            cmake_extra: ""
+            runner: ubuntu-24.04-arm64
           - os_name: macos
             arch: arm64
             runner: macos-latest
-            cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=arm64"
           - os_name: macos
             arch: x86_64
             runner: macos-13
-            cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-tags: true
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelrc: common --enable_bzlmod
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: ${{ github.workflow }}
 
-      - name: Deps (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build cmake
+      - name: Build (opt)
+        run: bazel build -c opt //:shmipc //:shmipc_shared
 
-      - name: Deps (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install ninja cmake
+      - name: Test (no cache, single-threaded)
+        run: bazel test //tests:all --test_output=errors --jobs=1 --cache_test_results=no
 
-      - name: Configure
-        run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DSHMIPC_BUILD_STATIC=ON \
-            -DSHMIPC_BUILD_SHARED=ON \
-            -DSHMIPC_BUILD_TESTS=ON \
-            ${{ matrix.cmake_extra }}
-
-      - name: Extract version
+      - name: Extract version from MODULE.bazel
         id: ver
+        shell: bash
         run: |
-          ver=$(cmake -L -N build | awk -F= '/^shmipc_VERSION:/{print $2}')
+          set -euo pipefail
+          ver=$(awk -F '"' '/version[[:space:]]*=/{print $2; exit}' MODULE.bazel)
+          [[ -n "$ver" ]] || { echo "Failed to extract version from MODULE.bazel" >&2; exit 1; }
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
-      - name: Build
-        run: cmake --build build -j
-
-      - name: Test (single-threaded)
-        run: ctest --test-dir build --output-on-failure -j1 --timeout 100
-
       - name: Package
-        run: cmake --build build --target package
+        shell: bash
+        run: |
+          set -euo pipefail
+          ver="${{ steps.ver.outputs.ver }}"
+          os="${{ matrix.os_name }}"
+          arch="${{ matrix.arch }}"
+          pkg="libshmipc-${ver}-${os}-${arch}"
+
+          BIN_DIR="$(bazel info bazel-bin)"
+
+          mkdir -p "dist/${pkg}/include" "dist/${pkg}/lib"
+          cp -R include/shmipc "dist/${pkg}/include/"
+          cp "${BIN_DIR}/libshmipc.a" "dist/${pkg}/lib/"
+
+          if [[ "${os}" == "macos" ]]; then
+            cp "${BIN_DIR}/libshmipc_shared.dylib" "dist/${pkg}/lib/libshmipc.dylib"
+          else
+            if [[ -f "${BIN_DIR}/libshmipc_shared.so" ]]; then
+              cp "${BIN_DIR}/libshmipc_shared.so" "dist/${pkg}/lib/libshmipc.so"
+            else
+              find "${BIN_DIR}" -maxdepth 1 -name 'libshmipc_shared*.so*' -exec cp {} "dist/${pkg}/lib/" \; || true
+            fi
+          fi
+
+          (cd dist && tar -czf "${pkg}.tar.gz" "${pkg}")
+          (cd dist && shasum -a 256 "${pkg}.tar.gz" > "${pkg}.tar.gz.sha256")
+          rm -rf "dist/${pkg}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: shmipc-${{ steps.ver.outputs.ver }}-${{ matrix.os_name }}-${{ matrix.arch }}
           path: |
-            build/*.tar.gz
-            build/*.sha256
+            dist/*.tar.gz
+            dist/*.sha256
 
   release:
     name: Release
@@ -93,17 +104,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist_artifacts
- 
-      - name: Extract version from downloaded packages
+
+      - name: Extract version from MODULE.bazel
         id: ver
         shell: bash
         run: |
-          f=$(ls dist_artifacts/**/*.tar.gz | head -1)
-          if [[ -z "$f" ]]; then
-            echo "No package found" >&2; exit 1
-          fi
-          ver=$(sed -nE 's/.*libshmipc-([0-9.]+)-.*/\1/p' <<<"$f")
-          [[ -n "$ver" ]] || { echo "Failed to parse version" >&2; exit 1; }
+          set -euo pipefail
+          ver=$(awk -F '"' '/version[[:space:]]*=/{print $2; exit}' MODULE.bazel)
+          [[ -n "$ver" ]] || { echo "Failed to extract version from MODULE.bazel" >&2; exit 1; }
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
