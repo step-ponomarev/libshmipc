@@ -32,8 +32,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-tags: true
-
-      - uses: bazelbuild/setup-bazel@v5
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelrc: common --enable_bzlmod
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: ${{ github.workflow }}
 
       - name: Build (opt)
         run: bazel build -c opt //:shmipc //:shmipc_shared
@@ -59,7 +63,7 @@ jobs:
           arch="${{ matrix.arch }}"
           pkg="libshmipc-${ver}-${os}-${arch}"
 
-          BIN_DIR="$(bazel info bazel-bin)"   # <- надёжнее, чем readlink
+          BIN_DIR="$(bazel info bazel-bin)"
 
           mkdir -p "dist/${pkg}/include" "dist/${pkg}/lib"
           cp -R include/shmipc "dist/${pkg}/include/"
