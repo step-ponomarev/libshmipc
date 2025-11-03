@@ -16,7 +16,7 @@ TEST_COPTS = [
 TEST_LINKOPTS = ["-pthread"]
 
 TEST_DEPS = [
-    "//:shmipc",
+    "//core:shmipc",
     "@doctest//doctest:doctest",
     ":test_support",
 ]
@@ -66,4 +66,16 @@ cc_test(
     deps = TEST_DEPS,
     copts = TEST_COPTS,
     linkopts = TEST_LINKOPTS,
+)
+
+test_suite(
+    name = "all",
+    tests = [
+        ":ipc_buffer_basic_test",
+        ":ipc_buffer_concurrency_test",
+        ":ipc_channel_basic_test",
+        ":ipc_channel_concurrency_test",
+        ":ipc_mmap_test",
+    ],
+    visibility = ["//visibility:public"],
 )

@@ -1,5 +1,5 @@
 module(
-    name = "libshmipc",
+    name = "shmipc",
     version = "0.0.1",
 )
 

@@ -1,21 +1,16 @@
-cc_library(
+# Root BUILD file for shmipc monorepo
+# Aggregates all submodules for convenient builds
+
+# Re-export core library and shared library for easy access
+alias(
     name = "shmipc",
-    srcs = glob([
-        "src/*.c",
-        "src/*.h",
-    ]),
-    hdrs = glob(["include/shmipc/*.h"]),
-    strip_include_prefix = "include",
+    actual = "//core:shmipc",
     visibility = ["//visibility:public"],
-    copts = [
-        "-std=c11", "-O3", "-Wall", "-Wextra", "-Wpedantic",
-        "-DNDEBUG", "-D_POSIX_C_SOURCE=200809L", "-D_XOPEN_SOURCE=700",
-    ],
 )
 
-cc_binary(
+alias(
     name = "shmipc_shared",
-    deps = [":shmipc"],
-    linkshared = 1,
+    actual = "//core:shmipc_shared",
     visibility = ["//visibility:public"],
 )
+
