@@ -1,7 +1,3 @@
-# Root BUILD file for shmipc monorepo
-# Aggregates all submodules for convenient builds
-
-# Re-export core library and shared library for easy access
 alias(
     name = "shmipc",
     actual = "//core:shmipc",
@@ -13,4 +9,3 @@ alias(
     actual = "//core:shmipc_shared",
     visibility = ["//visibility:public"],
 )
-
