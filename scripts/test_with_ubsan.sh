@@ -7,7 +7,6 @@ echo "=== Building with UndefinedBehaviorSanitizer ==="
 bazel build --config=ubsan //:shmipc
 
 echo "=== Running tests with UndefinedBehaviorSanitizer ==="
-bazel test --config=ubsan //tests:all
+bazel test --cache_test_results=no --config=ubsan //tests:all
 
 echo "=== UndefinedBehaviorSanitizer test complete ==="
-

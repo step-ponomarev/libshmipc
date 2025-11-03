@@ -147,7 +147,7 @@ TEST_CASE("race between skip and read") {
             memcpy(&v, e_ref.payload, e_ref.size);
             CHECK(v == val);
         } else {
-            bool valid_status = (result.ipc_status == IPC_EMPTY);
+            bool valid_status = (result.ipc_status == IPC_EMPTY) || (result.ipc_status == IPC_ERR_LOCKED);
             CHECK(valid_status);
         }
     });

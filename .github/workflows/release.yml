@@ -20,7 +20,7 @@ jobs:
             runner: ubuntu-latest
           - os_name: linux
             arch: arm64
-            runner: ubuntu-24.04-arm 
+            runner: ubuntu-24.04-arm64
           - os_name: macos
             arch: arm64
             runner: macos-latest
@@ -35,20 +35,19 @@ jobs:
 
       - uses: bazelbuild/setup-bazel@v5
 
-      - name: Build with Bazel
-        run: bazel build //:shmipc //:shmipc_shared
+      - name: Build (opt)
+        run: bazel build -c opt //:shmipc //:shmipc_shared
 
-      - name: Test with Bazel (single-threaded)
-        run: bazel test //tests:all --test_output=errors --jobs=1
+      - name: Test (no cache, single-threaded)
+        run: bazel test //tests:all --test_output=errors --jobs=1 --cache_test_results=no
 
       - name: Extract version from MODULE.bazel
         id: ver
         shell: bash
         run: |
+          set -euo pipefail
           ver=$(awk -F '"' '/version[[:space:]]*=/{print $2; exit}' MODULE.bazel)
-          if [[ -z "$ver" ]]; then
-            echo "Failed to extract version from MODULE.bazel" >&2; exit 1
-          fi
+          [[ -n "$ver" ]] || { echo "Failed to extract version from MODULE.bazel" >&2; exit 1; }
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Package
@@ -59,27 +58,26 @@ jobs:
           os="${{ matrix.os_name }}"
           arch="${{ matrix.arch }}"
           pkg="libshmipc-${ver}-${os}-${arch}"
-          mkdir -p dist
-          # Build static and shared
-          bazel build //:shmipc //:shmipc_shared
-          BIN_DIR=$(readlink bazel-bin)
-          # Collect files
-          mkdir -p "dist/$pkg/include" "dist/$pkg/lib"
-          cp -R include/shmipc "dist/$pkg/include/"
-          cp "$BIN_DIR/libshmipc.a" "dist/$pkg/lib/"
+
+          BIN_DIR="$(bazel info bazel-bin)"   # <- надёжнее, чем readlink
+
+          mkdir -p "dist/${pkg}/include" "dist/${pkg}/lib"
+          cp -R include/shmipc "dist/${pkg}/include/"
+          cp "${BIN_DIR}/libshmipc.a" "dist/${pkg}/lib/"
+
           if [[ "${os}" == "macos" ]]; then
-            cp "$BIN_DIR/libshmipc_shared.dylib" "dist/$pkg/lib/libshmipc.dylib"
+            cp "${BIN_DIR}/libshmipc_shared.dylib" "dist/${pkg}/lib/libshmipc.dylib"
           else
-            if [[ -f "$BIN_DIR/libshmipc_shared.so" ]]; then
-              cp "$BIN_DIR/libshmipc_shared.so" "dist/$pkg/lib/libshmipc.so"
+            if [[ -f "${BIN_DIR}/libshmipc_shared.so" ]]; then
+              cp "${BIN_DIR}/libshmipc_shared.so" "dist/${pkg}/lib/libshmipc.so"
             else
-              find "$BIN_DIR" -maxdepth 1 -name 'libshmipc_shared*.so*' -exec cp {} "dist/$pkg/lib/" \; || true
+              find "${BIN_DIR}" -maxdepth 1 -name 'libshmipc_shared*.so*' -exec cp {} "dist/${pkg}/lib/" \; || true
             fi
           fi
-          # Create tarball and checksum
-          (cd dist && tar -czf "$pkg.tar.gz" "$pkg")
-          (cd dist && shasum -a 256 "$pkg.tar.gz" > "$pkg.tar.gz.sha256")
-          rm -rf "dist/$pkg"
+
+          (cd dist && tar -czf "${pkg}.tar.gz" "${pkg}")
+          (cd dist && shasum -a 256 "${pkg}.tar.gz" > "${pkg}.tar.gz.sha256")
+          rm -rf "dist/${pkg}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -102,15 +100,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist_artifacts
- 
+
       - name: Extract version from MODULE.bazel
         id: ver
         shell: bash
         run: |
+          set -euo pipefail
           ver=$(awk -F '"' '/version[[:space:]]*=/{print $2; exit}' MODULE.bazel)
-          if [[ -z "$ver" ]]; then
-            echo "Failed to extract version from MODULE.bazel" >&2; exit 1
-          fi
+          [[ -n "$ver" ]] || { echo "Failed to extract version from MODULE.bazel" >&2; exit 1; }
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release

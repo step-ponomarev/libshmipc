@@ -8,7 +8,6 @@ echo "=== Building with AddressSanitizer ==="
 bazel build --config=asan //:shmipc
 
 echo "=== Running tests with AddressSanitizer ==="
-bazel test --config=asan //tests:all
+bazel test --cache_test_results=no --config=asan //tests:all
 
 echo "=== AddressSanitizer test complete ==="
-

@@ -50,7 +50,7 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-
+.vscode
 .DS_Store
 /**/.DS_Store
 
@@ -60,11 +60,9 @@ test_runner.dSYM
 
 # Bazel outputs and symlinks
 bazel-*
-bazel-bin
-bazel-out
-bazel-testlogs
 .bazelrc.user
 
 MODULE.bazel.lock
+compile_commands.json
 
 dist
