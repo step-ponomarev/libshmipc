@@ -12,11 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: bazelbuild/setup-bazel@v5
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelrc: common --enable_bzlmod
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: ${{ github.workflow }}
 
       - name: Build
-        run: bazel build //:shmipc
+        run: bazel build //:shmipc //:shmipc_shared
 
       - name: Test
-        run: bazel test //tests:all
-
+        run: bazel test //tests:all --test_output=errors --cache_test_results=no
