@@ -66,3 +66,8 @@ MODULE.bazel.lock
 compile_commands.json
 
 dist
+Testing
+third_party_doctest
+build_asan
+build_tsan
+build_ubsan
