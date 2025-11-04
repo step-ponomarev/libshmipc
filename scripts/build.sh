@@ -7,4 +7,4 @@ echo "=== Building libshmipc with Bazel ==="
 bazel build //:shmipc
 
 echo "=== Running tests ==="
-bazel test --cache_test_results=no //tests:all
+bazel test --cache_test_results=no //core/tests:all

@@ -28,7 +28,7 @@ echo "=== Build (Bazel) ==="
 bazel_cmd build "${BUILD_FLAGS[@]}" //:shmipc //:shmipc_shared
 
 echo "=== Test (Bazel, single-threaded, no cache) ==="
-bazel_cmd test "${TEST_FLAGS[@]}" //tests:all
+bazel_cmd test "${TEST_FLAGS[@]}" //core/tests:all
 
 echo "=== Extract version from MODULE.bazel ==="
 VER=$(awk -F'"' '/^[[:space:]]*version[[:space:]]*=/ {print $2; exit}' MODULE.bazel || true)
@@ -47,18 +47,18 @@ BIN_DIR="$(bazel_cmd info bazel-bin)"
 
 echo "=== Package to dist/${PKG}.tar.gz ==="
 rm -rf dist && mkdir -p "dist/${PKG}/include" "dist/${PKG}/lib"
-cp -R include/shmipc "dist/${PKG}/include/"
-cp "${BIN_DIR}/libshmipc.a" "dist/${PKG}/lib/"
+cp -R core/include/shmipc "dist/${PKG}/include/"
+cp "${BIN_DIR}/core/libshmipc.a" "dist/${PKG}/lib/"
 
 if [[ "$OS" == "darwin" ]]; then
-  cp "${BIN_DIR}/libshmipc_shared.dylib" "dist/${PKG}/lib/libshmipc.dylib"
+  cp "${BIN_DIR}/core/libshmipc_shared.dylib" "dist/${PKG}/lib/libshmipc.dylib"
 else
   shopt -s nullglob
-  so=( "${BIN_DIR}"/libshmipc_shared*.so* )
+  so=( "${BIN_DIR}/core"/libshmipc_shared*.so* )
   if ((${#so[@]})); then
     cp "${so[@]}" "dist/${PKG}/lib/"
   else
-    echo "WARNING: libshmipc_shared.so not found in ${BIN_DIR}" >&2
+    echo "WARNING: libshmipc_shared.so not found in ${BIN_DIR}/core" >&2
   fi
 fi
 
