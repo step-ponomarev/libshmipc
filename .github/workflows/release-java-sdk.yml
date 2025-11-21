@@ -1,4 +1,4 @@
-name: "Build Java SDK (Reusable)"
+name: "Release Java SDK (Reusable)"
 
 on:
   workflow_call:

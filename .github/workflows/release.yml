@@ -23,21 +23,21 @@ jobs:
           ver=$(awk -F '"' '/version[[:space:]]*=/{print $2; exit}' MODULE.bazel)
           [[ -n "$ver" ]] || { echo "Failed to extract version from MODULE.bazel" >&2; exit 1; }
           echo "version=$ver" >> "$GITHUB_OUTPUT"
-  build-core:
-    uses: ./.github/workflows/build-core.yml
+  release-core:
+    uses: ./.github/workflows/release-core.yml
     needs: get-version
     with:
       version: ${{ needs.get-version.outputs.version }}
 
-  build-java-sdk:
-    uses: ./.github/workflows/build-java-sdk.yml
+  release-java-sdk:
+    uses: ./.github/workflows/release-java-sdk.yml
     needs: get-version
     with:
       version: ${{ needs.get-version.outputs.version }}
 
   package-java:
     name: Package Java JAR
-    needs: [get-version, build-java-sdk]
+    needs: [get-version, release-java-sdk]
     runs-on: ubuntu-latest
     env:
       BAZEL_BUILD_FLAGS: -c opt
@@ -146,7 +146,7 @@ jobs:
 
   release:
     name: Release
-    needs: [get-version, build-core, package-java]
+    needs: [get-version, release-core, package-java]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
