@@ -1,16 +1,12 @@
+load("//tools/copts:defs.bzl", "shmipc_copts", "shmipc_defines")
+
 cc_library(
     name = "shmipc",
-    srcs = glob([
-        "src/*.c",
-        "src/*.h",
-    ]),
-    hdrs = glob(["include/shmipc/*.h"]),
-    strip_include_prefix = "include",
+    srcs = glob(["src/*.c", "src/*.h"]),
+    deps = ["//include:shmipc_headers"],
     visibility = ["//visibility:public"],
-    copts = [
-        "-std=c11", "-O3", "-Wall", "-Wextra", "-Wpedantic",
-        "-DNDEBUG", "-D_POSIX_C_SOURCE=200809L", "-D_XOPEN_SOURCE=700",
-    ],
+    copts = shmipc_copts(),
+    defines = shmipc_defines(),
 )
 
 cc_binary(

@@ -1,5 +1,7 @@
 common --enable_bzlmod
 
+build --action_env=JAVA_HOME
+
 build:asan --copt=-fsanitize=address --copt=-fno-omit-frame-pointer --linkopt=-fsanitize=address
 
 build:tsan --copt=-fsanitize=thread --copt=-fno-omit-frame-pointer --linkopt=-fsanitize=thread

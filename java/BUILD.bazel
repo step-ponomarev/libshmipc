@@ -1,0 +1,106 @@
+load("//tools/copts:defs.bzl", "shmipc_copts", "shmipc_defines")
+load("//java:tools/jni_headers.bzl", "jni_header_outs", "gen_jni_headers_cmd")
+load("//java:tools/java_tests.bzl", "java_tests")
+
+package(default_visibility = ["//visibility:private"])
+
+exports_files(["tools/gen_jni_headers.sh"])
+
+java_library(
+    name = "shmipc_java_core",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:private"],
+)
+
+JNI_JAVA_SRCS = glob(["src/main/java/lib/shm/ipc/jni/**/*.java"])
+JNI_HEADER_OUTS = jni_header_outs(JNI_JAVA_SRCS)
+
+genrule(
+    name = "jni_headers",
+    srcs = JNI_JAVA_SRCS,
+    outs = JNI_HEADER_OUTS,
+    tools = [
+        ":shmipc_java_core",
+        "//java:tools/gen_jni_headers.sh",
+    ],
+    cmd = gen_jni_headers_cmd(":shmipc_java_core"),
+    local = 1,
+    tags = ["no-remote"],
+    visibility = ["//java/native:__pkg__"],
+)
+
+filegroup(
+    name = "jni_headers_files",
+    srcs = [":jni_headers"],
+    visibility = ["//java/native:__pkg__"],
+)
+
+# Packages native library as JAR resource for current platform only.
+# Structure matches LibLoader.java expectations: /native/{OS}-{ARCH}/libshmipc_jni.{ext}
+# See LibLoader.java extract() method for resource path format.
+genrule(
+    name = "native_lib_for_jar",
+    srcs = ["//java/native:shmipc_jni"],
+    outs = ["native_lib_placeholder"],
+    cmd = """
+      OS="$$(uname | tr '[:upper:]' '[:lower:]')"
+      ARCH="$$(uname -m)"
+      case "$$ARCH" in
+        arm64|aarch64) 
+          if [ "$$OS" = "darwin" ]; then 
+            PLATFORM="Darwin-arm64"
+            EXT="dylib"
+          else 
+            PLATFORM="Linux-aarch64"
+            EXT="so"
+          fi
+          ;;
+        x86_64|amd64) 
+          if [ "$$OS" = "darwin" ]; then 
+            PLATFORM="Darwin-x86_64"
+            EXT="dylib"
+          else 
+            PLATFORM="Linux-x86_64"
+            EXT="so"
+          fi
+          ;;
+        *) echo "Unknown arch: $$ARCH" >&2; exit 1 ;;
+      esac
+      
+      RES_DIR="$$(dirname $@)/native/$$PLATFORM"
+      mkdir -p "$$RES_DIR"
+      cp "$<" "$$RES_DIR/libshmipc_jni.$$EXT"
+      touch $@
+    """,
+    visibility = ["//visibility:private"],
+)
+
+java_library(
+    name = "shmipc_java",
+    srcs = glob(["src/main/java/**/*.java"]),
+    resources = [":native_lib_for_jar"],
+    runtime_deps = ["//java/native:shmipc_jni"],
+    visibility = ["//visibility:public"],
+)
+
+java_library(
+    name = "junit4",
+    visibility = ["//visibility:private"],
+    exports = [
+        "@maven_shmipc//:junit_junit",
+    ],
+)
+
+java_tests(
+    name = "all_tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    deps = [
+        ":shmipc_java",
+        ":junit4",
+    ],
+    runtime_deps = [
+        "//java/native:shmipc_jni",
+    ],
+    visibility = ["//visibility:private"],
+)
+

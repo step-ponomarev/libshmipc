@@ -1,0 +1,80 @@
+name: "Build Java SDK (Reusable)"
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: "Library version"
+
+jobs:
+  build:
+    name: Build Java SDK (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    env:
+      BAZEL_BUILD_FLAGS: -c opt
+      BAZEL_TEST_FLAGS: --test_output=errors --jobs=1 --cache_test_results=no
+      VERSION: ${{ inputs.version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os_name: linux
+            arch: x86_64
+            runner: ubuntu-latest
+            platform: Linux-x86_64
+            ext: so
+          - os_name: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm64
+            platform: Linux-aarch64
+            ext: so
+          - os_name: macos
+            arch: arm64
+            runner: macos-latest
+            platform: Darwin-arm64
+            ext: dylib
+          - os_name: macos
+            arch: x86_64
+            runner: macos-13
+            platform: Darwin-x86_64
+            ext: dylib
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelrc: common --enable_bzlmod
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: ${{ github.workflow }}
+
+      - name: Build JNI library
+        run: bazel build $BAZEL_BUILD_FLAGS //:shmipc_jni
+
+      - name: Test Java
+        run: bazel test $BAZEL_TEST_FLAGS //java:all_tests
+
+      - name: Package JNI library
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN_DIR="$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)"
+          PLATFORM="${{ matrix.platform }}"
+          EXT="${{ matrix.ext }}"
+          
+          mkdir -p "jni_libs/native/${PLATFORM}"
+          cp "${BIN_DIR}/java/native/libshmipc_jni.${EXT}" "jni_libs/native/${PLATFORM}/libshmipc_jni.${EXT}"
+          ls -la "jni_libs/native/${PLATFORM}/"
+
+      - name: Upload JNI library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jni-${{ matrix.platform }}
+          path: jni_libs/
+          retention-days: 1
+

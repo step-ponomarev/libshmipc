@@ -9,3 +9,41 @@ alias(
     actual = "//core:shmipc_shared",
     visibility = ["//visibility:public"],
 )
+
+alias(
+    name = "shmipc_java",
+    actual = "//java:shmipc_java",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "shmipc_jni",
+    actual = "//java/native:shmipc_jni",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "jni",
+    actual = "//java/native:shmipc_jni",
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "build_all",
+    srcs = [
+        ":shmipc",
+        ":shmipc_shared",
+        ":shmipc_java",
+        ":shmipc_jni",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+test_suite(
+    name = "test_all",
+    tests = [
+        "//core/tests:all",
+        "//java:all_tests",
+    ],
+    visibility = ["//visibility:public"],
+)

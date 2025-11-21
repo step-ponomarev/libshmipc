@@ -1,3 +1,5 @@
+load("//core:tools/cc_tests.bzl", "cc_tests")
+
 package(default_visibility = ["//visibility:private"])
 
 TEST_COPTS = [
@@ -28,54 +30,11 @@ cc_library(
     visibility = ["//visibility:private"],
 )
 
-cc_test(
-    name = "ipc_buffer_basic_test",
-    srcs = ["ipc_buffer_basic_test.cpp"],
-    deps = TEST_DEPS,
-    copts = TEST_COPTS,
-    linkopts = TEST_LINKOPTS,
-)
-
-cc_test(
-    name = "ipc_channel_basic_test",
-    srcs = ["ipc_channel_basic_test.cpp"],
-    deps = TEST_DEPS,
-    copts = TEST_COPTS,
-    linkopts = TEST_LINKOPTS,
-)
-
-cc_test(
-    name = "ipc_mmap_test",
-    srcs = ["ipc_mmap_test.cpp"],
-    deps = TEST_DEPS,
-    copts = TEST_COPTS,
-    linkopts = TEST_LINKOPTS,
-)
-
-cc_test(
-    name = "ipc_buffer_concurrency_test",
-    srcs = ["ipc_buffer_concurrency_test.cpp"],
-    deps = TEST_DEPS,
-    copts = TEST_COPTS,
-    linkopts = TEST_LINKOPTS,
-)
-
-cc_test(
-    name = "ipc_channel_concurrency_test",
-    srcs = ["ipc_channel_concurrency_test.cpp"],
-    deps = TEST_DEPS,
-    copts = TEST_COPTS,
-    linkopts = TEST_LINKOPTS,
-)
-
-test_suite(
+cc_tests(
     name = "all",
-    tests = [
-        ":ipc_buffer_basic_test",
-        ":ipc_buffer_concurrency_test",
-        ":ipc_channel_basic_test",
-        ":ipc_channel_concurrency_test",
-        ":ipc_mmap_test",
-    ],
+    srcs = glob(["suites/*_test.cpp"]),
+    deps = TEST_DEPS,
+    copts = TEST_COPTS,
+    linkopts = TEST_LINKOPTS,
     visibility = ["//visibility:public"],
 )

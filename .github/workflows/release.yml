@@ -8,29 +8,40 @@ on:
     branches: [ main ]
 
 jobs:
-  build-matrix:
-    name: Build (${{ matrix.os_name }} ${{ matrix.arch }})
-    runs-on: ${{ matrix.runner }}
+  get-version:
+    name: Get Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version from MODULE.bazel
+        id: ver
+        shell: bash
+        run: |
+          set -euo pipefail
+          ver=$(awk -F '"' '/version[[:space:]]*=/{print $2; exit}' MODULE.bazel)
+          [[ -n "$ver" ]] || { echo "Failed to extract version from MODULE.bazel" >&2; exit 1; }
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+  build-core:
+    uses: ./.github/workflows/build-core.yml
+    needs: get-version
+    with:
+      version: ${{ needs.get-version.outputs.version }}
+
+  build-java-sdk:
+    uses: ./.github/workflows/build-java-sdk.yml
+    needs: get-version
+    with:
+      version: ${{ needs.get-version.outputs.version }}
+
+  package-java:
+    name: Package Java JAR
+    needs: [get-version, build-java-sdk]
+    runs-on: ubuntu-latest
     env:
       BAZEL_BUILD_FLAGS: -c opt
-      BAZEL_TEST_FLAGS: --test_output=errors --jobs=1 --cache_test_results=no
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os_name: linux
-            arch: x86_64
-            runner: ubuntu-latest
-          - os_name: linux
-            arch: arm64
-            runner: ubuntu-24.04-arm64
-          - os_name: macos
-            arch: arm64
-            runner: macos-latest
-          - os_name: macos
-            arch: x86_64
-            runner: macos-13
-
+      VERSION: ${{ needs.get-version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,61 +54,99 @@ jobs:
           repository-cache: true
           disk-cache: ${{ github.workflow }}
 
-      - name: Build (opt)
-        run: bazel build $BAZEL_BUILD_FLAGS //:shmipc //:shmipc_shared
+      - name: Download all JNI libraries
+        uses: actions/download-artifact@v4
+        with:
+          path: jni_libs_all
 
-      - name: Test (no cache, single-threaded)
-        run: bazel test $BAZEL_TEST_FLAGS //...
+      - name: Build Java core library
+        run: bazel build $BAZEL_BUILD_FLAGS //java:shmipc_java_core
 
-      - name: Extract version from MODULE.bazel
-        id: ver
+      - name: Create multi-platform JAR
         shell: bash
         run: |
           set -euo pipefail
-          ver=$(awk -F '"' '/version[[:space:]]*=/{print $2; exit}' MODULE.bazel)
-          [[ -n "$ver" ]] || { echo "Failed to extract version from MODULE.bazel" >&2; exit 1; }
-          echo "ver=$ver" >> "$GITHUB_OUTPUT"
-
-      - name: Package
-        shell: bash
-        run: |
-          set -euo pipefail
-          ver="${{ steps.ver.outputs.ver }}"
-          os="${{ matrix.os_name }}"
-          arch="${{ matrix.arch }}"
-          pkg="libshmipc-${ver}-${os}-${arch}"
-
+          ver="${{ env.VERSION }}"
           BIN_DIR="$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)"
 
-          mkdir -p "dist/${pkg}/include" "dist/${pkg}/lib"
-          cp -R core/include/shmipc "dist/${pkg}/include/"
-          cp "${BIN_DIR}/core/libshmipc.a" "dist/${pkg}/lib/"
+          BASE_JAR="${BIN_DIR}/java/libshmipc_java_core.jar"
+          FINAL_JAR="dist/libshmipc-java-${ver}.jar"
+          
+          mkdir -p dist jar_temp
+          cd jar_temp
+          
+          jar xf "../${BASE_JAR}"
 
-          if [[ "${os}" == "macos" ]]; then
-            cp "${BIN_DIR}/core/libshmipc_shared.dylib" "dist/${pkg}/lib/libshmipc.dylib"
-          else
-            if [[ -f "${BIN_DIR}/core/libshmipc_shared.so" ]]; then
-              cp "${BIN_DIR}/core/libshmipc_shared.so" "dist/${pkg}/lib/libshmipc.so"
-            else
-              find "${BIN_DIR}/core" -maxdepth 1 -name 'libshmipc_shared*.so*' -exec cp {} "dist/${pkg}/lib/" \; || true
+          mkdir -p native
+          find ../jni_libs_all -name "libshmipc_jni.*" -type f || true
+          
+          for jni_artifact_dir in ../jni_libs_all/jni-*/; do
+            if [ -d "$jni_artifact_dir" ]; then
+              platform=$(basename "$jni_artifact_dir" | sed 's/^jni-//')
+              native_lib_path="${jni_artifact_dir}/jni_libs/native/${platform}/libshmipc_jni."*
+              
+              if ls ${native_lib_path} 1> /dev/null 2>&1; then
+                echo "Copying native libs for platform: $platform"
+                mkdir -p "native/${platform}"
+                cp ${native_lib_path} "native/${platform}/"
+              else
+                echo "WARNING: Native library not found for platform $platform at ${native_lib_path}" >&2
+              fi
             fi
-          fi
+          done
+          
+          echo "Native libraries structure:"
+          find native -type f || true
+          
+          expected_platforms=("Linux-x86_64" "Linux-aarch64" "Darwin-arm64" "Darwin-x86_64")
+          for platform in "${expected_platforms[@]}"; do
+            if [ ! -f "native/${platform}/libshmipc_jni."* ]; then
+              echo "ERROR: Missing native library for platform: $platform" >&2
+              exit 1
+            fi
+          done
+          
+          jar cf "../${FINAL_JAR}" *
+          cd ..
+          
+          echo "JAR contents (showing native libraries and sample classes):"
+          jar tf "${FINAL_JAR}" | grep -E "native/" || true
+          jar tf "${FINAL_JAR}" | grep "\.class" | head -5 || true
+          
+          echo "Verifying all platforms in JAR (matching LibLoader.java expectations):"
+          declare -A platform_checks=(
+            ["Linux-x86_64"]="native/Linux-x86_64/libshmipc_jni.so"
+            ["Linux-aarch64"]="native/Linux-aarch64/libshmipc_jni.so"
+            ["Darwin-arm64"]="native/Darwin-arm64/libshmipc_jni.dylib"
+            ["Darwin-x86_64"]="native/Darwin-x86_64/libshmipc_jni.dylib"
+          )
+          
+          for platform in "${expected_platforms[@]}"; do
+            expected_path="${platform_checks[$platform]}"
+            if jar tf "${FINAL_JAR}" | grep -q "^${expected_path}$"; then
+              echo "✓ Platform $platform: $expected_path (matches LibLoader.java expectation: /${expected_path})"
+            else
+              echo "✗ ERROR: Platform $platform NOT found at expected path: $expected_path" >&2
+              echo "  Found paths:" >&2
+              jar tf "${FINAL_JAR}" | grep "native/${platform}/" >&2 || echo "  (none)" >&2
+              exit 1
+            fi
+          done
+          
+          shasum -a 256 "${FINAL_JAR}" > "${FINAL_JAR}.sha256"
+          echo "Created: ${FINAL_JAR} and ${FINAL_JAR}.sha256"
 
-          (cd dist && tar -czf "${pkg}.tar.gz" "${pkg}")
-          (cd dist && shasum -a 256 "${pkg}.tar.gz" > "${pkg}.tar.gz.sha256")
-          rm -rf "dist/${pkg}"
-
-      - name: Upload artifacts
+      - name: Upload Java JAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: shmipc-${{ steps.ver.outputs.ver }}-${{ matrix.os_name }}-${{ matrix.arch }}
+          name: java-jar-${{ env.VERSION }}
           path: |
-            dist/*.tar.gz
+            dist/*.jar
             dist/*.sha256
 
   release:
     name: Release
-    needs: build-matrix
+    needs: [get-version, build-core, package-java]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -109,23 +158,15 @@ jobs:
         with:
           path: dist_artifacts
 
-      - name: Extract version from MODULE.bazel
-        id: ver
-        shell: bash
-        run: |
-          set -euo pipefail
-          ver=$(awk -F '"' '/version[[:space:]]*=/{print $2; exit}' MODULE.bazel)
-          [[ -n "$ver" ]] || { echo "Failed to extract version from MODULE.bazel" >&2; exit 1; }
-          echo "ver=$ver" >> "$GITHUB_OUTPUT"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.ver.outputs.ver }}
-          name: shmipc ${{ steps.ver.outputs.ver }}
+          tag_name: v${{ needs.get-version.outputs.version }}
+          name: shmipc ${{ needs.get-version.outputs.version }}
           prerelease: true
           files: |
             dist_artifacts/**/*.tar.gz
             dist_artifacts/**/*.sha256
+            dist_artifacts/**/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

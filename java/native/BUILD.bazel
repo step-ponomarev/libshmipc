@@ -1,0 +1,28 @@
+load("//tools/copts:defs.bzl", "shmipc_copts", "shmipc_defines")
+
+package(default_visibility = ["//visibility:private"])
+
+cc_library(
+    name = "jni_headers_lib",
+    hdrs = ["//java:jni_headers"],
+    includes = ["../include"],
+    visibility = ["//visibility:private"],
+)
+
+cc_binary(
+    name = "shmipc_jni",
+    srcs = glob(["src/**/*.c"]),
+    includes = ["include"],
+    linkshared = 1,
+    deps = [
+        ":jni_headers_lib",
+        "//core:shmipc",
+        "//include:shmipc_headers",
+        "@bazel_tools//tools/jdk:jni",
+    ],
+    copts = shmipc_copts(),
+    defines = shmipc_defines(),
+    visibility = ["//visibility:public"],
+)
+
+

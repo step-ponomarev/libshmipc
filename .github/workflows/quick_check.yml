@@ -20,7 +20,7 @@ jobs:
           disk-cache: ${{ github.workflow }}
 
       - name: Build
-        run: bazel build //:shmipc //:shmipc_shared
+        run: bazel build //:build_all
 
       - name: Test
-        run: bazel test //... --test_output=errors --cache_test_results=no
+        run: bazel test //:test_all --test_output=errors --cache_test_results=no
