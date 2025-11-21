@@ -63,7 +63,7 @@ jobs:
           BIN_DIR="$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)"
 
           mkdir -p "dist/${pkg}/include" "dist/${pkg}/lib"
-          cp -R core/include/shmipc "dist/${pkg}/include/"
+          cp -R include/shmipc "dist/${pkg}/include/"
           cp "${BIN_DIR}/core/libshmipc.a" "dist/${pkg}/lib/"
 
           if [[ "${os}" == "macos" ]]; then
