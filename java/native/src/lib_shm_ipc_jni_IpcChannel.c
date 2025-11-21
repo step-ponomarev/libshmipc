@@ -40,7 +40,6 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
   DBG("path='%s' size=%llu", path, (unsigned long long)size);
 
   uint64_t aligned = ipc_channel_align_size((size_t)size);
-  // 1) mmap
   IpcMemorySegmentResult mmap_result = ipc_mmap(path, aligned);
   
   if (IpcMemorySegmentResult_is_error(mmap_result)) {
@@ -62,10 +61,7 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
     return 0;
   }
 
-  // 2) config
   IpcChannelConfigurationJni cfg = parce_config(env, conf);
-
-  // 3) create/connect
   IpcChannel *ch = NULL;
   if (cfg.create) {
     IpcChannelResult create_result = ipc_channel_create(seg->memory, seg->size, cfg.config);
@@ -95,10 +91,6 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
     DBG("ipc_channel_%s returned NULL", cfg.create ? "create" : "connect");
     return 0;
   }
-
-  // 4) (диагностика layout’а, если понадобится)
-  // DBG("IpcEntry sizeof=%zu off(payload)=%zu off(size)=%zu", sizeof(IpcEntry),
-  // offsetof(IpcEntry, payload), offsetof(IpcEntry, size));
 
   return (jlong)(intptr_t)ch;
 }
