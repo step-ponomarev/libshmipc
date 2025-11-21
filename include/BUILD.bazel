@@ -1,0 +1,9 @@
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "shmipc_headers",
+    hdrs = glob(["shmipc/*.h"]),
+    strip_include_prefix = ".",
+    visibility = ["//visibility:public"],
+)
+

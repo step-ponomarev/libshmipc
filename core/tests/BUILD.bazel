@@ -1,0 +1,40 @@
+load("//core:tools/cc_tests.bzl", "cc_tests")
+
+package(default_visibility = ["//visibility:private"])
+
+TEST_COPTS = [
+    "-std=c++20",
+    "-O0",
+    "-g",
+    "-UNDEBUG",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-D_POSIX_C_SOURCE=200809L",
+    "-D_XOPEN_SOURCE=700",
+    "-fno-omit-frame-pointer",
+]
+
+TEST_LINKOPTS = ["-pthread"]
+
+TEST_DEPS = [
+    "//core:shmipc",
+    "@doctest//doctest:doctest",
+    ":test_support",
+]
+
+cc_library(
+    name = "test_support",
+    hdrs = glob(["*.h", "*.hpp"]),
+    includes = ["."],
+    visibility = ["//visibility:private"],
+)
+
+cc_tests(
+    name = "all",
+    srcs = glob(["suites/*_test.cpp"]),
+    deps = TEST_DEPS,
+    copts = TEST_COPTS,
+    linkopts = TEST_LINKOPTS,
+    visibility = ["//visibility:public"],
+)

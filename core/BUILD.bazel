@@ -1,0 +1,17 @@
+load("//tools/copts:defs.bzl", "shmipc_copts", "shmipc_defines")
+
+cc_library(
+    name = "shmipc",
+    srcs = glob(["src/*.c", "src/*.h"]),
+    deps = ["//include:shmipc_headers"],
+    visibility = ["//visibility:public"],
+    copts = shmipc_copts(),
+    defines = shmipc_defines(),
+)
+
+cc_binary(
+    name = "shmipc_shared",
+    deps = [":shmipc"],
+    linkshared = 1,
+    visibility = ["//visibility:public"],
+)

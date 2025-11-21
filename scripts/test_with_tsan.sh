@@ -7,6 +7,6 @@ echo "=== Building with ThreadSanitizer ==="
 bazel build --config=tsan //:shmipc
 
 echo "=== Running tests with ThreadSanitizer ==="
-bazel test --cache_test_results=no --config=tsan //tests:all
+bazel test --cache_test_results=no --config=tsan //core/tests:all
 
 echo "=== ThreadSanitizer test complete ==="
