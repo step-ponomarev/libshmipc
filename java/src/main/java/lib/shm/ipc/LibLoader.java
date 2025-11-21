@@ -1,6 +1,5 @@
 package lib.shm.ipc;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -12,54 +11,49 @@ public class LibLoader {
     private LibLoader() {}
 
     public static void load() {
-        try {
-            // Try to load from runfiles (when using runtime_deps in Bazel)
-            String libPath = findLibraryInRunfiles();
-            if (libPath != null) {
-                System.load(libPath);
+        String resPath = "/native/" + os() + "-" + arch() + "/" + (os().equals("Darwin") ? "libshmipc_jni.dylib" : "libshmipc_jni.so");
+        try (InputStream in = LibLoader.class.getResourceAsStream(resPath)) {
+            if (in != null) {
+                Path tmp = Files.createTempFile("shmipc-", "-" + Paths.get(resPath).getFileName());
+                tmp.toFile().deleteOnExit();
+                Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+                System.load(tmp.toString());
                 return;
             }
-            
-            // Fallback to resource extraction (when packaged as resources)
-            final String dir = "/native/" + os() + "-" + arch() + "/";
-            final String fileName = os().equals("Darwin") ? "libshmipc_jni.dylib" : "libshmipc_jni.so";
-            final Path corePath = extract(dir + fileName);
-            System.load(corePath.toString());
-        } catch (IOException e) {
-            throw new UnsatisfiedLinkError("Failed to load native libs: " + e);
+        } catch (IOException e) {}
+        
+        // Fallback to runfiles (local run)
+        String libPath = findLibraryInRunfiles();
+        if (libPath != null) {
+            System.load(libPath);
+            return;
         }
+        
+        throw new UnsatisfiedLinkError("Native library not found in resources or runfiles. Resource path: " + resPath);
     }
-    
+
     private static String findLibraryInRunfiles() {
-        // Check for runfiles directory from environment variables
         String runfilesDir = System.getenv("JAVA_RUNFILES");
         if (runfilesDir == null) {
             runfilesDir = System.getenv("RUNFILES_DIR");
         }
         if (runfilesDir == null) {
-            // Try to find runfiles relative to the current class location
             String classPath = LibLoader.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-            // Look for .runfiles directory in the path
             int runfilesIdx = classPath.indexOf(".runfiles");
             if (runfilesIdx > 0) {
                 runfilesDir = classPath.substring(0, runfilesIdx + ".runfiles".length());
             }
         }
         
-        if (runfilesDir != null) {
-            String fileName = os().equals("Darwin") ? "libshmipc_jni.dylib" : "libshmipc_jni.so";
-            // Try common runfiles paths for runtime_deps
-            String[] paths = {
-                runfilesDir + "/_main/java/native/" + fileName,
-                runfilesDir + "/java/native/" + fileName,
-                runfilesDir + "/_main/" + fileName,  // Direct path if symlinked
-            };
-            for (String path : paths) {
-                java.io.File file = new java.io.File(path);
-                if (file.exists()) {
-                    return file.getAbsolutePath();
-                }
-            }
+        if (runfilesDir == null) {
+            return null;
+        }
+        
+        String fileName = os().equals("Darwin") ? "libshmipc_jni.dylib" : "libshmipc_jni.so";
+        Path libPath = Paths.get(runfilesDir, "_main", "java", "native", fileName);
+        
+        if (Files.exists(libPath)) {
+            return libPath.toAbsolutePath().toString();
         }
         
         return null;
@@ -88,15 +82,5 @@ public class LibLoader {
         }
 
         throw new UnsupportedOperationException("Arch: " + arch);
-    }
-
-    private static Path extract(String resPath) throws IOException {
-        try (InputStream in = LibLoader.class.getResourceAsStream(resPath)) {
-            if (in == null) throw new FileNotFoundException(resPath);
-            Path tmp = Files.createTempFile("shmipc-", "-" + Paths.get(resPath).getFileName());
-            tmp.toFile().deleteOnExit();
-            Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
-            return tmp;
-        }
     }
 }
