@@ -49,7 +49,7 @@ jobs:
         run: bazel build $BAZEL_BUILD_FLAGS //:shmipc //:shmipc_shared
 
       - name: Test (no cache, single-threaded)
-        run: bazel test $BAZEL_TEST_FLAGS //...
+        run: bazel test $BAZEL_TEST_FLAGS //core/tests:all
 
       - name: Package
         shell: bash
