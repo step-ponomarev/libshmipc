@@ -80,11 +80,11 @@ jobs:
           mkdir -p native
           find ../jni_libs_all -name "libshmipc_jni.*" -type f || true
           
-          # All platforms are in one artifact: jni_libs_all/jni_libs/native/${PLATFORM}/libshmipc_jni.{ext}
-          for platform_dir in ../jni_libs_all/jni_libs/native/*/; do
-            if [ -d "$platform_dir" ]; then
-              platform=$(basename "$platform_dir")
-              native_lib_path="${platform_dir}libshmipc_jni."*
+          # Each platform has its own artifact: jni_libs_all/jni-${PLATFORM}/jni_libs/native/${PLATFORM}/libshmipc_jni.{ext}
+          for jni_artifact_dir in ../jni_libs_all/jni-*/; do
+            if [ -d "$jni_artifact_dir" ]; then
+              platform=$(basename "$jni_artifact_dir" | sed 's/^jni-//')
+              native_lib_path="${jni_artifact_dir}jni_libs/native/${platform}/libshmipc_jni."*
               
               if ls ${native_lib_path} 1> /dev/null 2>&1; then
                 echo "Copying native libs for platform: $platform"
