@@ -27,7 +27,7 @@ jobs:
             ext: so
           - os_name: linux
             arch: arm64
-            runner: ubuntu-24.04-arm64
+            runner: ubuntu-22.04-arm64
             platform: Linux-aarch64
             ext: so
           - os_name: macos
@@ -45,6 +45,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-tags: true
+
+      - name: Sync MODULE.bazel version to tag
+        run: |
+          set -euo pipefail
+          ver="${VERSION}"
+          perl -pi -e 's/(version\s*=\s*")[0-9]+\.[0-9]+\.[0-9]+(")/$1'"${ver}"'$2/' MODULE.bazel
 
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
@@ -77,4 +83,3 @@ jobs:
           name: jni-${{ matrix.platform }}
           path: jni_libs/
           retention-days: 1
-
