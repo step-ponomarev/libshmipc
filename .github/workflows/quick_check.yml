@@ -3,6 +3,8 @@ name: "Test on push branch"
 on:
   pull_request:
     branches: ['**']
+  push:
+    branches: [ main ]
   workflow_dispatch: {}
 
 jobs:
