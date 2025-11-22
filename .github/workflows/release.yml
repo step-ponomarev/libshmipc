@@ -14,6 +14,7 @@ jobs:
     uses: ./.github/workflows/platform-matrix.yml
     with:
       arm_runner_label: ${{ vars.ARM_RUNNER_LABEL || 'ubuntu-24.04-arm64' }}
+      enable_arm64: true
 
   get-version:
     name: Get Version
