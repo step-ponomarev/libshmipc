@@ -12,7 +12,7 @@ on:
         type: string
         description: "Matrix JSON (include list with os_name/arch/runner)"
         default: |
-          {"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest"},{"os_name":"linux","arch":"arm64","runner":"ubuntu-22.04-arm64"},{"os_name":"macos","arch":"arm64","runner":"macos-latest"},{"os_name":"macos","arch":"x86_64","runner":"macos-13"}]}
+          {"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest"},{"os_name":"linux","arch":"arm64","runner":"ubuntu-24.04-arm64"},{"os_name":"macos","arch":"arm64","runner":"macos-latest"},{"os_name":"macos","arch":"x86_64","runner":"macos-13"}]}
 
 jobs:
   build:
