@@ -20,6 +20,6 @@ jobs:
       - id: set
         run: |
           cat <<'JSON' >> "$GITHUB_OUTPUT"
-          core_matrix={"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest"},{"os_name":"linux","arch":"arm64","runner":"ubuntu-22.04-arm64"},{"os_name":"macos","arch":"arm64","runner":"macos-latest"},{"os_name":"macos","arch":"x86_64","runner":"macos-13"}]}
-          java_matrix={"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest","platform":"Linux-x86_64","ext":"so"},{"os_name":"linux","arch":"arm64","runner":"ubuntu-22.04-arm64","platform":"Linux-aarch64","ext":"so"},{"os_name":"macos","arch":"arm64","runner":"macos-latest","platform":"Darwin-arm64","ext":"dylib"},{"os_name":"macos","arch":"x86_64","runner":"macos-13","platform":"Darwin-x86_64","ext":"dylib"}]}
+          core_matrix={"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest"},{"os_name":"linux","arch":"arm64","runner":"ubuntu-24.04-arm64"},{"os_name":"macos","arch":"arm64","runner":"macos-latest"},{"os_name":"macos","arch":"x86_64","runner":"macos-13"}]}
+          java_matrix={"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest","platform":"Linux-x86_64","ext":"so"},{"os_name":"linux","arch":"arm64","runner":"ubuntu-24.04-arm64","platform":"Linux-aarch64","ext":"so"},{"os_name":"macos","arch":"arm64","runner":"macos-latest","platform":"Darwin-arm64","ext":"dylib"},{"os_name":"macos","arch":"x86_64","runner":"macos-13","platform":"Darwin-x86_64","ext":"dylib"}]}
           JSON
