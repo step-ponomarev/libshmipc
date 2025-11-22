@@ -157,26 +157,26 @@ jobs:
           mkdir -p native
           find ../jni_libs_all -name "libshmipc_jni.*" -type f || true
           
-          # Each platform has its own artifact: jni_libs_all/jni-${PLATFORM}/jni_libs/native/${PLATFORM}/libshmipc_jni.{ext}
+          # Each platform artifact may have native libs under native/${platform}/... or jni_libs/native/${platform}/...
           for jni_artifact_dir in ../jni_libs_all/jni-*/; do
-            if [ -d "$jni_artifact_dir" ]; then
-              platform=$(basename "$jni_artifact_dir" | sed 's/^jni-//')
-              native_lib_path="${jni_artifact_dir}jni_libs/native/${platform}/libshmipc_jni."*
-              
-              if ls ${native_lib_path} 1> /dev/null 2>&1; then
-                echo "Copying native libs for platform: $platform"
-                mkdir -p "native/${platform}"
-                cp ${native_lib_path} "native/${platform}/"
-              else
-                echo "WARNING: Native library not found for platform $platform at ${native_lib_path}" >&2
-              fi
+            [ -d "$jni_artifact_dir" ] || continue
+            platform=$(basename "$jni_artifact_dir" | sed 's/^jni-//')
+            native_lib_path=$(find "$jni_artifact_dir" -maxdepth 4 -type f -path "*/native/${platform}/libshmipc_jni.*" | head -n 1)
+
+            if [ -n "$native_lib_path" ]; then
+              echo "Copying native libs for platform: $platform from ${native_lib_path}"
+              mkdir -p "native/${platform}"
+              cp "$native_lib_path" "native/${platform}/"
+            else
+              echo "WARNING: Native library not found for platform $platform under $jni_artifact_dir" >&2
             fi
           done
           
           echo "Native libraries structure:"
           find native -type f || true
           
-          expected_platforms=("Linux-x86_64" "Linux-aarch64" "Darwin-arm64" "Darwin-x86_64")
+          # Expect only the platforms we actually build JNI for (ARM Linux currently disabled)
+          expected_platforms=("Linux-x86_64" "Darwin-arm64" "Darwin-x86_64")
           for platform in "${expected_platforms[@]}"; do
             if [ ! -f "native/${platform}/libshmipc_jni."* ]; then
               echo "ERROR: Missing native library for platform: $platform" >&2
