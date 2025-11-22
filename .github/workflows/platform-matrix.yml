@@ -34,16 +34,35 @@ jobs:
       - id: set
         run: |
           arm_runner="${ARM_RUNNER_LABEL}"
-          enable_arm="${ENABLE_ARM64}"
-          echo "Using ARM runner label: ${arm_runner}; enable_arm64=${enable_arm}"
-
-          CORE='{"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest"},{"os_name":"macos","arch":"arm64","runner":"macos-latest"},{"os_name":"macos","arch":"x86_64","runner":"macos-13"}]}'
-          JAVA='{"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest","platform":"Linux-x86_64","ext":"so"},{"os_name":"macos","arch":"arm64","runner":"macos-latest","platform":"Darwin-arm64","ext":"dylib"},{"os_name":"macos","arch":"x86_64","runner":"macos-13","platform":"Darwin-x86_64","ext":"dylib"}]}'
-
-          if [ "${enable_arm}" = "true" ] || [ "${enable_arm}" = "True" ]; then
-            CORE=$(echo "$CORE" | jq --arg runner "$arm_runner" '.include += [{"os_name":"linux","arch":"arm64","runner":$runner}]')
-            JAVA=$(echo "$JAVA" | jq --arg runner "$arm_runner" '.include += [{"os_name":"linux","arch":"arm64","runner":$runner,"platform":"Linux-aarch64","ext":"so"}]')
+          enable_raw="${ENABLE_ARM64}"
+          if [ "${enable_raw}" = "true" ] || [ "${enable_raw}" = "True" ]; then
+            arm_enabled=true
+          else
+            arm_enabled=false
           fi
+          echo "Using ARM runner label: ${arm_runner}; enable_arm64=${arm_enabled}"
 
-          printf 'core_matrix=%s\n' "${CORE}" >> "$GITHUB_OUTPUT"
-          printf 'java_matrix=%s\n' "${JAVA}" >> "$GITHUB_OUTPUT"
+          core_json=$(jq -nc \
+            --arg runner "$arm_runner" \
+            --argjson arm_enabled "$arm_enabled" \
+            '{
+              include: [
+                {os_name:"linux", arch:"x86_64", runner:"ubuntu-latest"},
+                {os_name:"macos", arch:"arm64", runner:"macos-latest"},
+                {os_name:"macos", arch:"x86_64", runner:"macos-13"}
+              ]
+            } | if $arm_enabled then .include += [{os_name:"linux", arch:"arm64", runner:$runner}] else . end')
+
+          java_json=$(jq -nc \
+            --arg runner "$arm_runner" \
+            --argjson arm_enabled "$arm_enabled" \
+            '{
+              include: [
+                {os_name:"linux", arch:"x86_64", runner:"ubuntu-latest", platform:"Linux-x86_64", ext:"so"},
+                {os_name:"macos", arch:"arm64", runner:"macos-latest", platform:"Darwin-arm64", ext:"dylib"},
+                {os_name:"macos", arch:"x86_64", runner:"macos-13", platform:"Darwin-x86_64", ext:"dylib"}
+              ]
+            } | if $arm_enabled then .include += [{os_name:"linux", arch:"arm64", runner:$runner, platform:"Linux-aarch64", ext:"so"}] else . end')
+
+          printf 'core_matrix=%s\n' "${core_json}" >> "$GITHUB_OUTPUT"
+          printf 'java_matrix=%s\n' "${java_json}" >> "$GITHUB_OUTPUT"
