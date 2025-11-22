@@ -107,7 +107,7 @@ jobs:
               new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
           path.write_text(new)
           print(f"Set MODULE.bazel version to {ver}")
-PY
+          PY
 
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
