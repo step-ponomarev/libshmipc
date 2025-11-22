@@ -45,5 +45,5 @@ jobs:
             JAVA=$(echo "$JAVA" | jq --arg runner "$arm_runner" '.include += [{"os_name":"linux","arch":"arm64","runner":$runner,"platform":"Linux-aarch64","ext":"so"}]')
           fi
 
-          echo "core_matrix=${CORE}" >> "$GITHUB_OUTPUT"
-          echo "java_matrix=${JAVA}" >> "$GITHUB_OUTPUT"
+          printf 'core_matrix=%s\n' "${CORE}" >> "$GITHUB_OUTPUT"
+          printf 'java_matrix=%s\n' "${JAVA}" >> "$GITHUB_OUTPUT"
