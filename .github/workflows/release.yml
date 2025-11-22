@@ -110,19 +110,19 @@ jobs:
           set -euo pipefail
           ver="${VERSION}"
           python3 - "$ver" <<'PY'
-import pathlib, re, sys
-ver = sys.argv[1]
-path = pathlib.Path("MODULE.bazel")
-text = path.read_text()
-pattern = re.compile(r'(version\s*=\s*")(.*?)(")')
-m = pattern.search(text)
-if m:
-    new = text[:m.start(2)] + ver + text[m.end(2):]
-else:
-    new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
-path.write_text(new)
-print(f"Set MODULE.bazel version to {ver}")
-PY
+            import pathlib, re, sys
+            ver = sys.argv[1]
+            path = pathlib.Path("MODULE.bazel")
+            text = path.read_text()
+            pattern = re.compile(r'(version\s*=\s*")(.*?)(")')
+            m = pattern.search(text)
+            if m:
+                new = text[:m.start(2)] + ver + text[m.end(2):]
+            else:
+                new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
+            path.write_text(new)
+            print(f"Set MODULE.bazel version to {ver}")
+          PY
 
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
