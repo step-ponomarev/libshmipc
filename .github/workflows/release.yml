@@ -56,7 +56,8 @@ jobs:
           text = path.read_text()
           pattern = r'(version\s*=\s*")[^"]*(")'
           if re.search(pattern, text):
-              new = re.sub(pattern, rf'\1{ver}\2', text, count=1)
+              m = re.search(pattern, text)
+              new = text[:m.start(1)+len(m.group(1))] + ver + text[m.end(2)-1:]
           else:
               new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
           path.write_text(new)
@@ -111,15 +112,15 @@ jobs:
             import pathlib, re, sys
             ver = sys.argv[1]
             path = pathlib.Path("MODULE.bazel")
-            text = path.read_text()
-            pattern = re.compile(r'(version\s*=\s*")(.*?)(")')
-            m = pattern.search(text)
-            if m:
-                new = text[:m.start(2)] + ver + text[m.end(2):]
-            else:
-                new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
-            path.write_text(new)
-            print(f"Set MODULE.bazel version to {ver}")
+          text = path.read_text()
+          pattern = re.compile(r'(version\s*=\s*")(.*?)(")')
+          m = pattern.search(text)
+          if m:
+              new = text[:m.start(2)] + ver + text[m.end(2):]
+          else:
+              new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
+          path.write_text(new)
+          print(f"Set MODULE.bazel version to {ver}")
           PY
 
       - uses: bazel-contrib/setup-bazel@0.15.0
