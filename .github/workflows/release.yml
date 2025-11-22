@@ -95,7 +95,19 @@ jobs:
         run: |
           set -euo pipefail
           ver="${VERSION}"
-          perl -pi -e 's/(version\s*=\s*")[0-9]+\.[0-9]+\.[0-9]+(")/$1'"${ver}"'$2/' MODULE.bazel
+          python - "$ver" <<'PY'
+import pathlib, re, sys
+ver = sys.argv[1]
+path = pathlib.Path("MODULE.bazel")
+text = path.read_text()
+pattern = r'(version\s*=\s*")[^"]*(")'
+if re.search(pattern, text):
+    new = re.sub(pattern, rf'\1{ver}\2', text, count=1)
+else:
+    new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
+path.write_text(new)
+print(f"Set MODULE.bazel version to {ver}")
+PY
 
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
