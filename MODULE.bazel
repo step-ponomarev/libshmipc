@@ -1,6 +1,6 @@
 module(
     name = "shmipc",
-    version = "0.0.10",
+    version = "0.0.1",
 )
 
 bazel_dep(name = "doctest", version = "2.4.12")
