@@ -9,6 +9,10 @@ on:
       - "v*"
 
 jobs:
+  platform-matrix:
+    name: Define platform matrix
+    uses: ./.github/workflows/platform-matrix.yml
+
   get-version:
     name: Get Version
     runs-on: ubuntu-latest
@@ -60,15 +64,17 @@ jobs:
           git push origin HEAD:main
   release-core:
     uses: ./.github/workflows/release-core.yml
-    needs: get-version
+    needs: [platform-matrix, get-version]
     with:
       version: ${{ needs.get-version.outputs.version }}
+      matrix_json: ${{ needs.platform-matrix.outputs.core_matrix }}
 
   release-java-sdk:
     uses: ./.github/workflows/release-java-sdk.yml
-    needs: get-version
+    needs: [platform-matrix, get-version]
     with:
       version: ${{ needs.get-version.outputs.version }}
+      matrix_json: ${{ needs.platform-matrix.outputs.java_matrix }}
 
   package-java:
     name: Package Java JAR

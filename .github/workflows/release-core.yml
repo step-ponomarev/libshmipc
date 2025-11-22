@@ -7,6 +7,12 @@ on:
         required: true
         type: string
         description: "Library version"
+      matrix_json:
+        required: false
+        type: string
+        description: "Matrix JSON (include list with os_name/arch/runner)"
+        default: |
+          {"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest"},{"os_name":"linux","arch":"arm64","runner":"ubuntu-22.04-arm64"},{"os_name":"macos","arch":"arm64","runner":"macos-latest"},{"os_name":"macos","arch":"x86_64","runner":"macos-13"}]}
 
 jobs:
   build:
@@ -18,20 +24,7 @@ jobs:
       VERSION: ${{ inputs.version }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os_name: linux
-            arch: x86_64
-            runner: ubuntu-latest
-          - os_name: linux
-            arch: arm64
-            runner: ubuntu-22.04-arm64
-          - os_name: macos
-            arch: arm64
-            runner: macos-latest
-          - os_name: macos
-            arch: x86_64
-            runner: macos-13
+      matrix: ${{ fromJSON(inputs.matrix_json) }}
 
     steps:
       - uses: actions/checkout@v4

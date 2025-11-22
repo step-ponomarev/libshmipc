@@ -6,9 +6,17 @@ on:
   workflow_dispatch: {}
 
 jobs:
+  platform-matrix:
+    name: Define platform matrix
+    uses: ./.github/workflows/platform-matrix.yml
+
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os_name }} ${{ matrix.arch }})
+    needs: platform-matrix
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.platform-matrix.outputs.core_matrix) }}
     steps:
       - uses: actions/checkout@v4
 
