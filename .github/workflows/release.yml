@@ -152,7 +152,7 @@ jobs:
           mkdir -p dist jar_temp
           cd jar_temp
           
-          jar xf "../${BASE_JAR}"
+          jar xf "${BASE_JAR}"
 
           mkdir -p native
           find ../jni_libs_all -name "libshmipc_jni.*" -type f || true
