@@ -229,7 +229,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-tags: true
+          ref: ${{ github.ref }}
+          fetch-depth: 0
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
