@@ -1,0 +1,49 @@
+name: "Platform Matrix (Reusable)"
+
+on:
+  workflow_call:
+    inputs:
+      arm_runner_label:
+        required: false
+        type: string
+        description: "Label for Linux arm64 runner (e.g. ubuntu-24.04-arm64 or partner label)"
+        default: "ubuntu-24.04-arm64"
+      enable_arm64:
+        required: false
+        type: boolean
+        description: "Include linux arm64 in matrices"
+        default: true
+    outputs:
+      core_matrix:
+        description: "Matrix (runner/os/arch) for core builds/tests"
+        value: ${{ jobs.define.outputs.core_matrix }}
+      java_matrix:
+        description: "Matrix (runner/os/arch/platform/ext) for Java SDK builds/tests"
+        value: ${{ jobs.define.outputs.java_matrix }}
+
+jobs:
+  define:
+    runs-on: ubuntu-latest
+    outputs:
+      core_matrix: ${{ steps.set.outputs.core_matrix }}
+      java_matrix: ${{ steps.set.outputs.java_matrix }}
+    env:
+      ARM_RUNNER_LABEL: ${{ inputs.arm_runner_label }}
+      ENABLE_ARM64: ${{ inputs.enable_arm64 }}
+    steps:
+      - id: set
+        run: |
+          arm_runner="${ARM_RUNNER_LABEL}"
+          enable_arm="${ENABLE_ARM64}"
+          echo "Using ARM runner label: ${arm_runner}; enable_arm64=${enable_arm}"
+
+          CORE='{"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest"},{"os_name":"macos","arch":"arm64","runner":"macos-latest"},{"os_name":"macos","arch":"x86_64","runner":"macos-13"}]}'
+          JAVA='{"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest","platform":"Linux-x86_64","ext":"so"},{"os_name":"macos","arch":"arm64","runner":"macos-latest","platform":"Darwin-arm64","ext":"dylib"},{"os_name":"macos","arch":"x86_64","runner":"macos-13","platform":"Darwin-x86_64","ext":"dylib"}]}'
+
+          if [ "${enable_arm}" = "true" ] || [ "${enable_arm}" = "True" ]; then
+            CORE=$(echo "$CORE" | jq --arg runner "$arm_runner" '.include += [{"os_name":"linux","arch":"arm64","runner":$runner}]')
+            JAVA=$(echo "$JAVA" | jq --arg runner "$arm_runner" '.include += [{"os_name":"linux","arch":"arm64","runner":$runner,"platform":"Linux-aarch64","ext":"so"}]')
+          fi
+
+          echo "core_matrix=${CORE}" >> "$GITHUB_OUTPUT"
+          echo "java_matrix=${JAVA}" >> "$GITHUB_OUTPUT"
