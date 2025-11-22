@@ -47,4 +47,3 @@ jobs:
 
           echo "core_matrix=${CORE}" >> "$GITHUB_OUTPUT"
           echo "java_matrix=${JAVA}" >> "$GITHUB_OUTPUT"
-          JSON
