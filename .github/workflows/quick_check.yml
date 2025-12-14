@@ -1,3 +1,8 @@
+platforms: &platforms
+  - {os_name:linux, arch:x86_64, runner:ubuntu-latest}
+  - {os_name:macos, arch:arm64, runner:macos-latest}
+  - {os_name:macos, arch:x86_64, runner:macos-13}
+
 name: "Test on push branch"
 
 on:
@@ -5,23 +10,15 @@ on:
     branches: ['**']
   push:
     branches: [ main ]
-  workflow_dispatch: {}
 
 jobs:
-  platform-matrix:
-    name: Define platform matrix
-    uses: ./.github/workflows/platform-matrix.yml
-    with:
-      arm_runner_label: ${{ vars.ARM_RUNNER_LABEL || 'ubuntu-24.04-arm64' }}
-      enable_arm64: ${{ fromJSON(vars.ENABLE_ARM64_QUICKCHECK || 'false') }}
-
   test:
-    name: Test (${{ matrix.os_name }} ${{ matrix.arch }})
-    needs: platform-matrix
+    name: Test (${{ matrix.os_name }} ${{ matrix.arch }}) 
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.platform-matrix.outputs.core_matrix) }}
+      matrix: 
+        include: *platforms
     steps:
       - uses: actions/checkout@v4
 
