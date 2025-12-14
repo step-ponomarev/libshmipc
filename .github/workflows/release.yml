@@ -96,10 +96,12 @@ jobs:
       - name: Build Java core library
         run: bazel build $BAZEL_BUILD_FLAGS //java:shmipc_java_core
       - name: Create multi-platform JAR
-        run: .github/scripts/package-java-jar.sh \
-                "$VERSION" \
-                "$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)/java/libshmipc_java_core.jar" \
-                "jni_libs_all"
+        run: |
+          BIN_DIR="$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)"
+          .github/scripts/package-java-jar.sh \
+            "$VERSION" \
+            "${BIN_DIR}/java/libshmipc_java_core.jar" \
+            "jni_libs_all"
 
       - name: Upload Java JAR artifact
         uses: actions/upload-artifact@v4
