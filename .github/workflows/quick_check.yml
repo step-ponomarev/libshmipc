@@ -1,8 +1,3 @@
-platforms: &platforms
-  - {os_name:linux, arch:x86_64, runner:ubuntu-latest}
-  - {os_name:macos, arch:arm64, runner:macos-latest}
-  - {os_name:macos, arch:x86_64, runner:macos-13}
-
 name: "Test on push branch"
 
 on:
@@ -18,7 +13,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-        include: *platforms
+        include:
+          - os_name: linux
+            arch: x86_64
+            runner: ubuntu-latest
+          - os_name: macos
+            arch: arm64
+            runner: macos-latest
+          - os_name: macos
+            arch: x86_64
+            runner: macos-13
     steps:
       - uses: actions/checkout@v4
 
