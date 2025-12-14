@@ -4,8 +4,8 @@ set -euo pipefail
 USAGE="Usage: $0 <version> <base_jar> <jni_libs_dir>"
 
 VERSION="${1:?$USAGE}"
-BASE_JAR="${2:?$USAGE}"
-JNI_LIBS_DIR="${3:?$USAGE}"
+BASE_JAR="$(realpath "${2:?$USAGE}")"
+JNI_LIBS_DIR="$(realpath "${3:?$USAGE}")"
 
 FINAL_JAR="dist/libshmipc-java-${VERSION}.jar"
 EXPECTED_PLATFORMS=("Linux-x86_64" "Darwin-arm64" "Darwin-x86_64")
