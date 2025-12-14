@@ -1,5 +1,5 @@
 name: "Release Core (Reusable)"
-
+      
 on:
   workflow_call:
     inputs:
@@ -7,12 +7,6 @@ on:
         required: true
         type: string
         description: "Library version"
-      matrix_json:
-        required: false
-        type: string
-        description: "Matrix JSON (include list with os_name/arch/runner)"
-        default: |
-          {"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest"},{"os_name":"macos","arch":"arm64","runner":"macos-latest"},{"os_name":"macos","arch":"x86_64","runner":"macos-13"}]}
 
 jobs:
   build:
@@ -24,7 +18,17 @@ jobs:
       VERSION: ${{ inputs.version }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(inputs.matrix_json) }}
+      matrix: 
+        include:
+          - os_name: linux
+            arch: x86_64
+            runner: ubuntu-latest
+          - os_name: macos
+            arch: arm64
+            runner: macos-latest
+          - os_name: macos
+            arch: x86_64
+            runner: macos-15
 
     steps:
       - uses: actions/checkout@v4
@@ -33,24 +37,7 @@ jobs:
           fetch-depth: 0
 
       - name: Sync MODULE.bazel version to tag
-        run: |
-          set -euo pipefail
-          ver="${VERSION}"
-          python3 - "$ver" <<'PY'
-          import pathlib, re, sys
-          ver = sys.argv[1]
-          path = pathlib.Path("MODULE.bazel")
-          text = path.read_text()
-          pattern = re.compile(r'(version\s*=\s*")(.*?)(")')
-          m = pattern.search(text)
-          if m:
-              new = text[:m.start(2)] + ver + text[m.end(2):]
-          else:
-              new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
-          path.write_text(new)
-          print(f"Set MODULE.bazel version to {ver}")
-          PY
-
+        run: .github/scripts/bump-version.sh "$VERSION" 
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelrc: common --enable_bzlmod
@@ -66,32 +53,7 @@ jobs:
 
       - name: Package
         shell: bash
-        run: |
-          set -euo pipefail
-          ver="${{ env.VERSION }}"
-          os="${{ matrix.os_name }}"
-          arch="${{ matrix.arch }}"
-          pkg="libshmipc-${ver}-${os}-${arch}"
-
-          BIN_DIR="$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)"
-
-          mkdir -p "dist/${pkg}/include" "dist/${pkg}/lib"
-          cp -R include/shmipc "dist/${pkg}/include/"
-          cp "${BIN_DIR}/core/libshmipc.a" "dist/${pkg}/lib/"
-
-          if [[ "${os}" == "macos" ]]; then
-            cp "${BIN_DIR}/core/libshmipc_shared.dylib" "dist/${pkg}/lib/libshmipc.dylib"
-          else
-            if [[ -f "${BIN_DIR}/core/libshmipc_shared.so" ]]; then
-              cp "${BIN_DIR}/core/libshmipc_shared.so" "dist/${pkg}/lib/libshmipc.so"
-            else
-              find "${BIN_DIR}/core" -maxdepth 1 -name 'libshmipc_shared*.so*' -exec cp {} "dist/${pkg}/lib/" \; || true
-            fi
-          fi
-
-          (cd dist && tar -czf "${pkg}.tar.gz" "${pkg}")
-          (cd dist && shasum -a 256 "${pkg}.tar.gz" > "${pkg}.tar.gz.sha256")
-          rm -rf "dist/${pkg}"
+        run: .github/scripts/package-core.sh "$VERSION" "${{ matrix.os_name }}" "${{ matrix.arch }}" "$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

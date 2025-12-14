@@ -9,13 +9,6 @@ on:
       - "v*"
 
 jobs:
-  platform-matrix:
-    name: Define platform matrix
-    uses: ./.github/workflows/platform-matrix.yml
-    with:
-      arm_runner_label: ${{ vars.ARM_RUNNER_LABEL || 'ubuntu-24.04-arm64' }}
-      enable_arm64: false
-
   get-version:
     name: Get Version
     runs-on: ubuntu-latest
@@ -25,7 +18,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Extract version from tag
         id: ver
-        shell: bash
         run: |
           set -euo pipefail
           ref="${GITHUB_REF_NAME:-}"
@@ -46,23 +38,7 @@ jobs:
           fetch-depth: 0
 
       - name: Update MODULE.bazel version
-        run: |
-          set -euo pipefail
-          ver="${VERSION}"
-          python - "$ver" <<'PY'
-          import pathlib, re, sys
-          ver = sys.argv[1]
-          path = pathlib.Path("MODULE.bazel")
-          text = path.read_text()
-          pattern = r'(version\s*=\s*")[^"]*(")'
-          if re.search(pattern, text):
-              m = re.search(pattern, text)
-              new = text[:m.start(1)+len(m.group(1))] + ver + text[m.end(2)-1:]
-          else:
-              new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
-          path.write_text(new)
-          print(f"Set MODULE.bazel version to {ver}")
-          PY
+        run: .github/scripts/bump-version.sh "$VERSION"
 
       - name: Commit and push if changed
         env:
@@ -80,17 +56,15 @@ jobs:
           git push origin HEAD:main
   release-core:
     uses: ./.github/workflows/release-core.yml
-    needs: [platform-matrix, get-version]
+    needs: [ get-version]
     with:
-      version: ${{ needs.get-version.outputs.version }}
-      matrix_json: ${{ needs.platform-matrix.outputs.core_matrix }}
+      version: ${{ needs.get-version.outputs.version }} 
 
   release-java-sdk:
     uses: ./.github/workflows/release-java-sdk.yml
-    needs: [platform-matrix, get-version]
+    needs: [get-version]
     with:
-      version: ${{ needs.get-version.outputs.version }}
-      matrix_json: ${{ needs.platform-matrix.outputs.java_matrix }}
+      version: ${{ needs.get-version.outputs.version }} 
 
   package-java:
     name: Package Java JAR
@@ -104,25 +78,8 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
-
       - name: Sync MODULE.bazel version to tag
-        run: |
-          set -euo pipefail
-          ver="${VERSION}"
-          python3 - "$ver" <<'PY'
-          import pathlib, re, sys
-          ver = sys.argv[1]
-          path = pathlib.Path("MODULE.bazel")
-          text = path.read_text()
-          pattern = re.compile(r'(version\s*=\s*")(.*?)(")')
-          m = pattern.search(text)
-          if m:
-              new = text[:m.start(2)] + ver + text[m.end(2):]
-          else:
-              new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
-          path.write_text(new)
-          print(f"Set MODULE.bazel version to {ver}")
-          PY
+        run: .github/scripts/bump-version.sh "$VERSION"
 
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
@@ -138,81 +95,11 @@ jobs:
 
       - name: Build Java core library
         run: bazel build $BAZEL_BUILD_FLAGS //java:shmipc_java_core
-
       - name: Create multi-platform JAR
-        shell: bash
-        run: |
-          set -euo pipefail
-          ver="${{ env.VERSION }}"
-          BIN_DIR="$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)"
-
-          BASE_JAR="${BIN_DIR}/java/libshmipc_java_core.jar"
-          FINAL_JAR="dist/libshmipc-java-${ver}.jar"
-          
-          mkdir -p dist jar_temp
-          cd jar_temp
-          
-          jar xf "${BASE_JAR}"
-
-          mkdir -p native
-          find ../jni_libs_all -name "libshmipc_jni.*" -type f || true
-          
-          # Each platform artifact may have native libs under native/${platform}/... or jni_libs/native/${platform}/...
-          for jni_artifact_dir in ../jni_libs_all/jni-*/; do
-            [ -d "$jni_artifact_dir" ] || continue
-            platform=$(basename "$jni_artifact_dir" | sed 's/^jni-//')
-            native_lib_path=$(find "$jni_artifact_dir" -maxdepth 4 -type f -path "*/native/${platform}/libshmipc_jni.*" | head -n 1)
-
-            if [ -n "$native_lib_path" ]; then
-              echo "Copying native libs for platform: $platform from ${native_lib_path}"
-              mkdir -p "native/${platform}"
-              cp "$native_lib_path" "native/${platform}/"
-            else
-              echo "WARNING: Native library not found for platform $platform under $jni_artifact_dir" >&2
-            fi
-          done
-          
-          echo "Native libraries structure:"
-          find native -type f || true
-          
-          # Expect only the platforms we actually build JNI for (ARM Linux currently disabled)
-          expected_platforms=("Linux-x86_64" "Darwin-arm64" "Darwin-x86_64")
-          for platform in "${expected_platforms[@]}"; do
-            if [ ! -f "native/${platform}/libshmipc_jni."* ]; then
-              echo "ERROR: Missing native library for platform: $platform" >&2
-              exit 1
-            fi
-          done
-          
-          jar cf "../${FINAL_JAR}" *
-          cd ..
-          
-          echo "JAR contents (showing native libraries and sample classes):"
-          jar tf "${FINAL_JAR}" | grep -E "native/" || true
-          jar tf "${FINAL_JAR}" | grep "\.class" | head -5 || true
-          
-          echo "Verifying all platforms in JAR (matching LibLoader.java expectations):"
-          declare -A platform_checks=(
-            ["Linux-x86_64"]="native/Linux-x86_64/libshmipc_jni.so"
-            ["Linux-aarch64"]="native/Linux-aarch64/libshmipc_jni.so"
-            ["Darwin-arm64"]="native/Darwin-arm64/libshmipc_jni.dylib"
-            ["Darwin-x86_64"]="native/Darwin-x86_64/libshmipc_jni.dylib"
-          )
-          
-          for platform in "${expected_platforms[@]}"; do
-            expected_path="${platform_checks[$platform]}"
-            if jar tf "${FINAL_JAR}" | grep -q "^${expected_path}$"; then
-              echo "✓ Platform $platform: $expected_path (matches LibLoader.java expectation: /${expected_path})"
-            else
-              echo "✗ ERROR: Platform $platform NOT found at expected path: $expected_path" >&2
-              echo "  Found paths:" >&2
-              jar tf "${FINAL_JAR}" | grep "native/${platform}/" >&2 || echo "  (none)" >&2
-              exit 1
-            fi
-          done
-          
-          shasum -a 256 "${FINAL_JAR}" > "${FINAL_JAR}.sha256"
-          echo "Created: ${FINAL_JAR} and ${FINAL_JAR}.sha256"
+        run: .github/scripts/package-java-jar.sh \
+                "$VERSION" \
+                "$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)/java/libshmipc_java_core.jar" \
+                "jni_libs_all"
 
       - name: Upload Java JAR artifact
         uses: actions/upload-artifact@v4
