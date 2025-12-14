@@ -7,12 +7,6 @@ on:
         required: true
         type: string
         description: "Library version"
-      matrix_json:
-        required: false
-        type: string
-        description: "Matrix JSON (include list with os_name/arch/runner/platform/ext)"
-        default: |
-          {"include":[{"os_name":"linux","arch":"x86_64","runner":"ubuntu-latest","platform":"Linux-x86_64","ext":"so"},{"os_name":"macos","arch":"arm64","runner":"macos-latest","platform":"Darwin-arm64","ext":"dylib"},{"os_name":"macos","arch":"x86_64","runner":"macos-13","platform":"Darwin-x86_64","ext":"dylib"}]}
 
 jobs:
   build:
@@ -24,7 +18,23 @@ jobs:
       VERSION: ${{ inputs.version }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(inputs.matrix_json) }}
+      matrix: 
+        include:
+          - os_name: linux
+            arch: x86_64
+            runner: ubuntu-latest
+            platform: Linux-x86_64
+            ext: so
+          - os_name: macos
+            arch: arm64
+            runner: macos-latest
+            platform: Darwin-arm64
+            ext: dylib
+          - os_name: macos
+            arch: x86_64
+            runner: macos-15
+            platform: Darwin-x86_64
+            ext: dylib
 
     steps:
       - uses: actions/checkout@v4
@@ -33,23 +43,7 @@ jobs:
           fetch-depth: 0
 
       - name: Sync MODULE.bazel version to tag
-        run: |
-          set -euo pipefail
-          ver="${VERSION}"
-          python3 - "$ver" <<'PY'
-          import pathlib, re, sys
-          ver = sys.argv[1]
-          path = pathlib.Path("MODULE.bazel")
-          text = path.read_text()
-          pattern = re.compile(r'(version\s*=\s*")(.*?)(")')
-          m = pattern.search(text)
-          if m:
-              new = text[:m.start(2)] + ver + text[m.end(2):]
-          else:
-              new = re.sub(r'(module\(\s*[^)]*)', r'\1\n    version = "' + ver + '",', text, count=1)
-          path.write_text(new)
-          print(f"Set MODULE.bazel version to {ver}")
-          PY
+        run: .github/scripts/bump-version.sh "$VERSION"
 
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
@@ -65,16 +59,7 @@ jobs:
         run: bazel test $BAZEL_TEST_FLAGS //java:all_tests
 
       - name: Package JNI library
-        shell: bash
-        run: |
-          set -euo pipefail
-          BIN_DIR="$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)"
-          PLATFORM="${{ matrix.platform }}"
-          EXT="${{ matrix.ext }}"
-          
-          mkdir -p "jni_libs/native/${PLATFORM}"
-          cp "${BIN_DIR}/java/native/libshmipc_jni.${EXT}" "jni_libs/native/${PLATFORM}/libshmipc_jni.${EXT}"
-          ls -la "jni_libs/native/${PLATFORM}/"
+        run: .github/scripts/package-jni.sh "$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)" "${{ matrix.platform }}" "${{ matrix.ext }}"
 
       - name: Upload JNI library artifact
         uses: actions/upload-artifact@v4
