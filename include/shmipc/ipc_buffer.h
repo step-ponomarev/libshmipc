@@ -8,7 +8,7 @@ SHMIPC_BEGIN_DECLS
 
 typedef struct IpcBuffer IpcBuffer;
 
-SHMIPC_API uint64_t ipc_buffer_align_size(size_t size);
+SHMIPC_API uint64_t ipc_buffer_get_memory_overhead();
 
 typedef struct IpcBufferCreateError {
   size_t requested_size;

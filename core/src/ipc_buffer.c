@@ -7,9 +7,8 @@
 #include <string.h>
 
 #define IPC_DATA_ALIGN 0x8
-#define MIN_BUFFER_SIZE                                                        \
-  (sizeof(IpcBufferHeader) +                                                   \
-   IPC_DATA_ALIGN) // 8 bytes min buffer size despite header
+#define BUFFER_HEADER_SIZE_ALIGNED                                             \
+  ALIGN_UP_BY_CACHE_LINE(sizeof(IpcBufferHeader))
 #define UNLOCK(offset) (((offset) & (~(0x1))))
 #define LOCK(offset) ((offset) | 0x1)
 
@@ -30,7 +29,6 @@ typedef struct EntryHeader {
   uint64_t entry_size;
 } EntryHeader;
 
-static uint64_t _find_max_power_of_2(const uint64_t max);
 static uint64_t _read_head(const struct IpcBuffer *buffer);
 static bool _is_aligned(const uint64_t offset);
 static bool _lock(_Atomic uint64_t *ref, const uint64_t offset);
@@ -42,24 +40,29 @@ static IpcStatus _read_entry_header_unsafe(const struct IpcBuffer *buffer,
 static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
                                     const uint64_t offset, EntryHeader *dest);
 
-uint64_t ipc_buffer_align_size(size_t size) {
-  return (size < IPC_DATA_ALIGN ? IPC_DATA_ALIGN : size) +
-         sizeof(IpcBufferHeader);
+uint64_t ipc_buffer_get_memory_overhead() {
+  return BUFFER_HEADER_SIZE_ALIGNED; // TODO: rename to min size
 }
 
 IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
   const IpcBufferCreateError error = {.requested_size = size,
-                                      .min_size = MIN_BUFFER_SIZE};
+                                      .min_size = BUFFER_HEADER_SIZE_ALIGNED};
 
   if (mem == NULL) {
     return IpcBufferCreateResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
   }
 
-  if (size < MIN_BUFFER_SIZE) {
+  if (size < BUFFER_HEADER_SIZE_ALIGNED) {
     return IpcBufferCreateResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer size too small",
         error);
+  }
+
+  const uint64_t data_capacity = size - BUFFER_HEADER_SIZE_ALIGNED;
+  if (!is_power_of_2(data_capacity)) {
+    return IpcBufferCreateResult_error_body(IPC_ERR_INVALID_ARGUMENT,
+                                            "size must be pover of 2", error);
   }
 
   struct IpcBuffer *buffer =
@@ -70,10 +73,9 @@ IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
   }
 
   buffer->header = (IpcBufferHeader *)mem;
-  buffer->data = ((uint8_t *)mem) + sizeof(IpcBufferHeader);
+  buffer->data = ((uint8_t *)mem) + BUFFER_HEADER_SIZE_ALIGNED;
 
-  const uint64_t cap = _find_max_power_of_2(size - sizeof(IpcBufferHeader));
-  atomic_init(&buffer->header->data_size, cap);
+  atomic_init(&buffer->header->data_size, data_capacity);
   atomic_init(&buffer->header->head, 0);
   atomic_init(&buffer->header->tail, 0);
 
@@ -81,7 +83,7 @@ IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
 }
 
 IpcBufferAttachResult ipc_buffer_attach(void *mem) {
-  const IpcBufferAttachError error = {.min_size = MIN_BUFFER_SIZE};
+  const IpcBufferAttachError error = {.min_size = BUFFER_HEADER_SIZE_ALIGNED};
   if (mem == NULL) {
     return IpcBufferAttachResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
@@ -96,7 +98,7 @@ IpcBufferAttachResult ipc_buffer_attach(void *mem) {
   }
 
   buffer->header = (IpcBufferHeader *)mem;
-  buffer->data = ((uint8_t *)mem) + sizeof(IpcBufferHeader);
+  buffer->data = ((uint8_t *)mem) + BUFFER_HEADER_SIZE_ALIGNED;
 
   return IpcBufferAttachResult_ok(IPC_OK, buffer);
 }
@@ -437,13 +439,6 @@ IpcBufferSkipForceResult ipc_buffer_skip_force(IpcBuffer *buffer) {
 
 static inline uint64_t _read_head(const struct IpcBuffer *buffer) {
   return atomic_load(&buffer->header->head);
-}
-
-static inline uint64_t _find_max_power_of_2(const uint64_t max) {
-  uint64_t res = 1;
-  while (res < max)
-    res <<= 1;
-  return res == max ? max : (res >> 1);
 }
 
 static inline bool _is_aligned(const uint64_t offset) {

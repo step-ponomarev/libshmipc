@@ -14,8 +14,6 @@ SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
                                            const uint64_t size) {
   IpcMmapError error = {.name = NULL,
                         .requested_size = size,
-                        .aligned_size = 0,
-                        .page_size = 0,
                         .existing_size = 0,
                         .existed = false,
                         .sys_errno = 0};
@@ -30,24 +28,13 @@ SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: size == 0", error);
   }
 
-  const long page_size = sysconf(_SC_PAGESIZE);
-  if (page_size == -1) {
-    error.page_size = -1;
-    error.sys_errno = errno;
-    return IpcMemorySegmentResult_error_body(
-        IPC_ERR_SYSTEM, "system error: sysconf(_SC_PAGESIZE) failed", error);
-  }
-
-  const uint64_t aligned_size = ALIGN_UP(size, (uint64_t)page_size);
   int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, OPEN_MODE);
   bool existed = false;
   if (fd >= 0) {
-    if (ftruncate(fd, (off_t)aligned_size) < 0) {
+    if (ftruncate(fd, (off_t)size) < 0) {
       close(fd);
       error.name = name;
       error.requested_size = size;
-      error.aligned_size = aligned_size;
-      error.page_size = page_size;
       error.existing_size = 0;
       error.existed = false;
       error.sys_errno = errno;
@@ -58,8 +45,6 @@ SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
     if (errno != EEXIST) {
       error.name = name;
       error.requested_size = size;
-      error.aligned_size = aligned_size;
-      error.page_size = page_size;
       error.existing_size = 0;
       error.existed = false;
       error.sys_errno = errno;
@@ -69,12 +54,12 @@ SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
 
     existed = true;
     errno = 0;
+
+    // TODO: split producer/consuper flow!
     fd = shm_open(name, O_RDWR, OPEN_MODE);
     if (fd < 0) {
       error.name = name;
       error.requested_size = size;
-      error.aligned_size = aligned_size;
-      error.page_size = page_size;
       error.existing_size = 0;
       error.existed = existed;
       error.sys_errno = errno;
@@ -87,8 +72,6 @@ SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
       close(fd);
       error.name = name;
       error.requested_size = size;
-      error.aligned_size = aligned_size;
-      error.page_size = page_size;
       error.existing_size = 0;
       error.existed = existed;
       error.sys_errno = errno;
@@ -96,12 +79,10 @@ SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
           IPC_ERR_SYSTEM, "system error: fstat failed", error);
     }
 
-    if ((uint64_t)st.st_size != aligned_size) {
+    if ((uint64_t)st.st_size != size) {
       close(fd);
       error.name = name;
       error.requested_size = size;
-      error.aligned_size = aligned_size;
-      error.page_size = page_size;
       error.existing_size = (uint64_t)st.st_size;
       error.existed = existed;
       error.sys_errno = errno;
@@ -111,14 +92,12 @@ SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
     }
   }
 
-  void *mapped = mmap(NULL, (size_t)aligned_size, PROT_READ | PROT_WRITE,
-                      MAP_SHARED, fd, 0);
+  void *mapped =
+      mmap(NULL, (size_t)size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   close(fd);
   if (mapped == MAP_FAILED) {
     error.name = name;
     error.requested_size = size;
-    error.aligned_size = aligned_size;
-    error.page_size = page_size;
     error.existing_size = 0;
     error.existed = existed;
     error.sys_errno = errno;
@@ -128,11 +107,9 @@ SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
 
   IpcMemorySegment *segment = (IpcMemorySegment *)malloc(sizeof(*segment));
   if (segment == NULL) {
-    munmap(mapped, (size_t)aligned_size);
+    munmap(mapped, (size_t)size);
     error.name = name;
     error.requested_size = size;
-    error.aligned_size = aligned_size;
-    error.page_size = page_size;
     error.existing_size = 0;
     error.existed = existed;
     error.sys_errno = errno;
@@ -143,12 +120,10 @@ SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
   const size_t nlen = strlen(name) + 1;
   char *name_copy = (char *)malloc(nlen);
   if (name_copy == NULL) {
-    munmap(mapped, (size_t)aligned_size);
+    munmap(mapped, (size_t)size);
     free(segment);
     error.name = name;
     error.requested_size = size;
-    error.aligned_size = aligned_size;
-    error.page_size = page_size;
     error.existing_size = 0;
     error.existed = existed;
     error.sys_errno = errno;
@@ -159,7 +134,6 @@ SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name,
 
   segment->name = name_copy;
   segment->memory = mapped;
-  segment->size = aligned_size;
 
   return IpcMemorySegmentResult_ok(IPC_OK, segment);
 }

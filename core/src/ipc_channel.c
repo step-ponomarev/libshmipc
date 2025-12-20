@@ -1,12 +1,22 @@
 #include "ipc_utils.h"
-#include "shmipc/ipc_buffer.h"
-#include "shmipc/ipc_common.h"
+#include <shmipc/ipc_buffer.h>
 #include <shmipc/ipc_channel.h>
+#include <shmipc/ipc_common.h>
 #include <stdlib.h>
+
+#include <sys/lock.h>
 
 #define WAIT_EXPAND_FACTOR 2
 
+#define CHANNEL_HEADER_SIZE_ALIGNED                                            \
+  ALIGN_UP_BY_CACHE_LINE(sizeof(IpcChannelHeader))
+
+typedef struct ipcchannelheader {
+  _Atomic uint32_t ready;
+} IpcChannelHeader;
+
 struct IpcChannel {
+  IpcChannelHeader *header;
   IpcBuffer *buffer;
   IpcChannelConfiguration config;
 };
@@ -14,19 +24,19 @@ struct IpcChannel {
 static IpcChannelReadResult _read(IpcChannel *, IpcEntry *,
                                   const struct timespec *);
 static IpcChannelReadResult _try_read(IpcChannel *, IpcEntry *);
-static bool _sleep_and_expand_delay(struct timespec *, const long);
+static bool _wait_and_expand_delay(struct timespec *, const long);
 static bool _is_valid_config(const IpcChannelConfiguration);
 static bool _is_timeout_valid(const struct timespec *);
 static bool _is_error_status(const IpcStatus);
 static bool _is_retry_status(const IpcStatus);
 
-inline uint64_t ipc_channel_align_size(size_t size) {
-  return ipc_buffer_align_size(size);
+inline uint64_t ipc_channel_get_memory_overhead() {
+  return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_get_memory_overhead();
 }
 
 IpcChannelResult ipc_channel_create(void *mem, const size_t size,
                                     const IpcChannelConfiguration config) {
-  const size_t min_total = ipc_buffer_align_size(2);
+  const size_t min_total = ipc_channel_get_memory_overhead();
   IpcChannelOpenError error = {
       .requested_size = size, .min_size = min_total, .config = config};
 
@@ -50,8 +60,9 @@ IpcChannelResult ipc_channel_create(void *mem, const size_t size,
         error);
   }
 
-  const IpcBufferCreateResult buffer_result =
-      ipc_buffer_create(mem, (size_t)size);
+  uint8_t *buffer_memory = ((uint8_t *)mem) + CHANNEL_HEADER_SIZE_ALIGNED;
+  const IpcBufferCreateResult buffer_result = ipc_buffer_create(
+      (void *)buffer_memory, (size_t)size - CHANNEL_HEADER_SIZE_ALIGNED);
   if (IpcBufferCreateResult_is_error(buffer_result)) {
     error.requested_size = size;
     return IpcChannelResult_error_body(buffer_result.ipc_status,
@@ -73,7 +84,7 @@ IpcChannelResult ipc_channel_create(void *mem, const size_t size,
 
 IpcChannelConnectResult
 ipc_channel_connect(void *mem, const IpcChannelConfiguration config) {
-  const size_t min_total = ipc_buffer_align_size(2);
+  const size_t min_total = ipc_channel_get_memory_overhead();
   IpcChannelConnectError error = {.min_size = min_total, .config = config};
 
   if (mem == NULL) {
@@ -96,7 +107,9 @@ ipc_channel_connect(void *mem, const IpcChannelConfiguration config) {
         IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
   }
 
-  const IpcBufferAttachResult buffer_result = ipc_buffer_attach(mem);
+  uint8_t *buffer_memory = ((uint8_t *)mem) + CHANNEL_HEADER_SIZE_ALIGNED;
+  const IpcBufferAttachResult buffer_result =
+      ipc_buffer_attach((void *)buffer_memory);
   if (IpcBufferAttachResult_is_error(buffer_result)) {
     free(channel);
     return IpcChannelConnectResult_error_body(
@@ -262,7 +275,8 @@ IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel,
         IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
   }
 
-  const IpcBufferSkipResult skip_result = ipc_buffer_skip(channel->buffer, offset);
+  const IpcBufferSkipResult skip_result =
+      ipc_buffer_skip(channel->buffer, offset);
   if (IpcBufferSkipResult_is_error(skip_result)) {
     error.offset = skip_result.error.body.offset;
     return IpcChannelSkipResult_error_body(skip_result.ipc_status,
@@ -342,16 +356,17 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
 
   IpcEntry read_entry = {.offset = 0, .payload = NULL, .size = 0};
 
-  //TODO: futex
+  // TODO: futex
   for (;;) {
     IpcEntry peek_entry;
     const IpcBufferPeekResult peek_result =
         ipc_buffer_peek(channel->buffer, &peek_entry);
-    if (IpcBufferPeekResult_is_error(peek_result) && !_is_retry_status(peek_result.ipc_status)) {
+    if (IpcBufferPeekResult_is_error(peek_result) &&
+        !_is_retry_status(peek_result.ipc_status)) {
       free(read_entry.payload);
       error.offset = peek_entry.offset;
-      return IpcChannelReadResult_error_body(peek_result.ipc_status, peek_result.error.detail,
-        error);
+      return IpcChannelReadResult_error_body(peek_result.ipc_status,
+                                             peek_result.error.detail, error);
     }
 
     if (timeout != NULL) {
@@ -367,8 +382,8 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
       if (curr_ns - start_ns > timeout_ns) {
         free(read_entry.payload);
         error.offset = peek_entry.offset;
-        return IpcChannelReadResult_error_body(IPC_ERR_TIMEOUT,
-                                               "timeout: read timed out", error);
+        return IpcChannelReadResult_error_body(
+            IPC_ERR_TIMEOUT, "timeout: read timed out", error);
       }
     } else {
       const IpcStatus status = peek_result.ipc_status;
@@ -386,12 +401,17 @@ static IpcChannelReadResult _read(IpcChannel *channel, IpcEntry *dest,
         free(read_entry.payload);
         error.offset = peek_entry.offset;
         return IpcChannelReadResult_error_body(
-            IPC_ERR_RETRY_LIMIT, "limit is reached: retry limit reached", error);
+            IPC_ERR_RETRY_LIMIT, "limit is reached: retry limit reached",
+            error);
       }
     }
 
     if (_is_retry_status(peek_result.ipc_status)) {
-      if (!_sleep_and_expand_delay(&delay, channel->config.max_sleep_ns)) {
+      // TODO:
+      // if timeout use timeout for
+      // else use max_sleep_ns
+      // see ipc_futex.h
+      if (!_wait_and_expand_delay(&delay, channel->config.max_sleep_ns)) {
         free(read_entry.payload);
         error.offset = peek_entry.offset;
         return IpcChannelReadResult_error_body(
@@ -485,8 +505,8 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
   }
 }
 
-static inline bool _sleep_and_expand_delay(struct timespec *delay,
-                                           const long max_sleep_ns) {
+static inline bool _wait_and_expand_delay(struct timespec *delay,
+                                          const long max_sleep_ns) {
   if (nanosleep(delay, NULL) != 0) {
     return false;
   }

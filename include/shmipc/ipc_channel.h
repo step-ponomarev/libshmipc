@@ -13,7 +13,7 @@ typedef struct IpcChannelConfiguration {
   long start_sleep_ns;
   long max_sleep_ns;
 } IpcChannelConfiguration;
-SHMIPC_API uint64_t ipc_channel_align_size(size_t size);
+SHMIPC_API uint64_t ipc_channel_get_memory_overhead();
 
 typedef struct IpcChannelOpenError {
   size_t requested_size;
