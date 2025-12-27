@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="platformclasspath">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/bazel-bin/external/rules_java+/toolchains/platformclasspath.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

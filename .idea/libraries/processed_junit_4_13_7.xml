@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="processed_junit-4.13.7">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/bazel-libshmipc/bazel-out/darwin_arm64-fastbuild/bin/java/LibLoadTest.runfiles/rules_jvm_external++maven+maven_shmipc/v1/https/repo1.maven.org/maven2/junit/junit/4.13.2/processed_junit-4.13.2.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

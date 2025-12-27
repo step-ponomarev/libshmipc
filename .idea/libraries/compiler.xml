@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="compiler">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/external/rules_kotlin+/src/main/kotlin/io/bazel/kotlin/compiler/compiler.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="Runner_deploy4">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/bazel-libshmipc/bazel-out/darwin_arm64-fastbuild/bin/java/LibLoadTest.runfiles/rules_java++toolchains+remote_java_tools/java_tools/Runner_deploy.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
