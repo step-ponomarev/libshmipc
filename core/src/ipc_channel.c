@@ -291,7 +291,7 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
     if (_is_retry_status(peek_result.ipc_status)) {
       uint32_t not_need_notify = NOT_NEED_NOTIFY;
       if (!atomic_compare_exchange_strong(&channel->header->ready,
-                                          &not_need_notify, true)) {
+                                          &not_need_notify, NEED_NOTIFY)) {
         continue; // already notified
       }
 
