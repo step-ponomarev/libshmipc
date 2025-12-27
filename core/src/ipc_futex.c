@@ -35,6 +35,7 @@ int ipc_futex_wake_all(_Atomic uint32_t *addr) {
 }
 
 #elif defined(__linux__)
+#include <errno.h>
 #include <limits.h>
 #include <linux/futex.h>
 #include <sys/syscall.h>
@@ -42,7 +43,11 @@ int ipc_futex_wake_all(_Atomic uint32_t *addr) {
 
 int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
                    const struct timespec *timeout) {
-  return syscall(SYS_futex, addr, FUTEX_WAIT, expected, timeout);
+  int res = syscall(SYS_futex, addr, FUTEX_WAIT, expected, timeout);
+  if (res == -1 && (errno == EAGAIN || errno == EINTR)) {
+    return 0;
+  }
+  return res;
 }
 
 int ipc_futex_wake_one(_Atomic uint32_t *addr) {

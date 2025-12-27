@@ -16,7 +16,7 @@
 #define NOT_NEED_NOTIFY 2
 
 typedef struct IpcChannelHeader {
-  _Atomic uint32_t ready;
+  _Atomic uint32_t notified;
   _Atomic uint32_t need_notify;
 } IpcChannelHeader;
 
@@ -84,6 +84,7 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
   channel->header = (IpcChannelHeader *)mem;
   channel->buffer = buffer_result.result;
   atomic_init(&channel->header->need_notify, NEED_NOTIFY);
+  atomic_init(&channel->header->notified, 0);
 
   return IpcChannelOpenResult_ok(IPC_OK, channel);
 }
@@ -171,8 +172,8 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
   uint32_t need_notify = NEED_NOTIFY;
   if (atomic_compare_exchange_strong(&channel->header->need_notify,
                                      &need_notify, NOT_NEED_NOTIFY)) {
-    // TODO: not each time
-    ipc_futex_wake_all(&channel->header->ready);
+    atomic_fetch_add(&channel->header->notified, 1);
+    ipc_futex_wake_all(&channel->header->notified);
   }
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
@@ -296,8 +297,7 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
         continue; // already notified
       }
 
-      // Read current value of ready before waiting
-      const uint32_t expected_ready = atomic_load(&channel->header->ready);
+      const uint32_t expected_ready = atomic_load(&channel->header->notified);
 
       struct timespec curr_time;
       if (clock_gettime(CLOCK_MONOTONIC, &curr_time) != 0) {
@@ -321,7 +321,7 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
           .tv_sec = (time_t)(remaining_ns / NANOS_PER_SEC),
           .tv_nsec = (long)(remaining_ns % NANOS_PER_SEC)};
 
-      ipc_futex_wait(&channel->header->ready, expected_ready,
+      ipc_futex_wait(&channel->header->notified, expected_ready,
                      &remaining_timeout);
       continue;
     }
