@@ -5,8 +5,6 @@
 #include <shmipc/ipc_common.h>
 #include <stdlib.h>
 
-#include <sys/lock.h>
-
 #define WAIT_EXPAND_FACTOR 2
 
 #define CHANNEL_HEADER_SIZE_ALIGNED                                            \
