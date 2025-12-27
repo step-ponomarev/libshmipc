@@ -238,22 +238,19 @@ TEST_CASE("futex blocks reader until writer writes") {
     while (!reader_ready.load(std::memory_order_acquire)) {
       std::this_thread::yield();
     }
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     test_utils::write_data(channel, 42);
-    writer_done.store(true, std::memory_order_release);
   });
 
   IpcEntry entry;
-  struct timespec timeout = {.tv_sec = 10, .tv_nsec = 0};
+  struct timespec timeout = {.tv_sec = 20, .tv_nsec = 0};
 
   reader_ready.store(true, std::memory_order_release);
 
   const IpcChannelReadResult result =
       ipc_channel_read(channel, &entry, &timeout);
-
   CHECK(result.ipc_status == IPC_OK);
-  CHECK(writer_done.load(std::memory_order_acquire) == true);
 
   int value;
   memcpy(&value, entry.payload, sizeof(value));

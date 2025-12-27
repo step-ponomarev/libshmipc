@@ -162,9 +162,8 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
                                             write_result.error.detail, error);
   }
 
-  if (is_empty) {
-    ipc_futex_wake_all(&channel->header->ready);
-  }
+  // TODO: not each time
+  ipc_futex_wake_all(&channel->header->ready);
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
 }
