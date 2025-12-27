@@ -1,6 +1,7 @@
 #include "ipc_futex.h"
 
 #ifdef __APPLE__
+#include <sys/errno.h>
 
 extern int __ulock_wait(uint32_t operation, void *addr, uint64_t value,
                         uint32_t timeout);
