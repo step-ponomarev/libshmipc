@@ -291,10 +291,13 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
 
     if (_is_retry_status(peek_result.ipc_status)) {
       uint32_t not_need_notify = NOT_NEED_NOTIFY;
-      if (!atomic_compare_exchange_strong(&channel->header->ready,
+      if (!atomic_compare_exchange_strong(&channel->header->need_notify,
                                           &not_need_notify, NEED_NOTIFY)) {
         continue; // already notified
       }
+
+      // Read current value of ready before waiting
+      const uint32_t expected_ready = atomic_load(&channel->header->ready);
 
       struct timespec curr_time;
       if (clock_gettime(CLOCK_MONOTONIC, &curr_time) != 0) {
@@ -318,8 +321,8 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
           .tv_sec = (time_t)(remaining_ns / NANOS_PER_SEC),
           .tv_nsec = (long)(remaining_ns % NANOS_PER_SEC)};
 
-      ipc_futex_wait(&channel->header->ready,
-                     atomic_load(&channel->header->ready), &remaining_timeout);
+      ipc_futex_wait(&channel->header->ready, expected_ready,
+                     &remaining_timeout);
       continue;
     }
 
