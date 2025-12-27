@@ -14,14 +14,12 @@ typedef struct IpcMemorySegment {
 typedef struct IpcMmapError {
   const char *name;
   uint64_t requested_size;
-  uint64_t aligned_size;
-  long page_size;
   uint64_t existing_size;
   bool existed;
   int sys_errno;
 } IpcMmapError;
 IPC_RESULT(IpcMemorySegmentResult, IpcMemorySegment *, IpcMmapError)
-SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *name, uint64_t size);
+SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *path, uint64_t size);
 
 typedef struct IpcMmapUnmapError {
   const char *name;
