@@ -14,6 +14,7 @@ SHMIPC_BEGIN_DECLS
 #define ALIGN_UP_BY_CACHE_LINE(x) ALIGN_UP((x), CACHE_LINE_SIZE)
 #define IS_ALIGNED_BY_CACHE_LINE(x) IS_ALIGNED((x), CACHE_LINE_SIZE)
 
+uint64_t find_next_power_of_2(uint64_t n);
 uint64_t ipc_timespec_to_nanos(const struct timespec *);
 bool is_power_of_2(const uint64_t size);
 

@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="CodePointIM4">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk21_macos_aarch64/zulu-21.jdk/Contents/Home/demo/jfc/CodePointIM/src.zip!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk21_macos_aarch64/zulu-21.jdk/Contents/Home/demo/jfc/CodePointIM/CodePointIM.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

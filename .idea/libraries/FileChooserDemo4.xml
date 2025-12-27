@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="FileChooserDemo4">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk21_macos_aarch64/zulu-21.jdk/Contents/Home/demo/jfc/FileChooserDemo/FileChooserDemo.jar!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk21_macos_aarch64/zulu-21.jdk/Contents/Home/demo/jfc/FileChooserDemo/src.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

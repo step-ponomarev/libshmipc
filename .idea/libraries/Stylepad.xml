@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="Stylepad">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk11_macos_aarch64/demo/jfc/Stylepad/Stylepad.jar!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk11_macos_aarch64/demo/jfc/Stylepad/src.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

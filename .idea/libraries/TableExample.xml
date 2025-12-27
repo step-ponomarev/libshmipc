@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="TableExample">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk11_macos_aarch64/zulu-11.jdk/Contents/Home/demo/jfc/TableExample/TableExample.jar!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk11_macos_aarch64/zulu-11.jdk/Contents/Home/demo/jfc/TableExample/src.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

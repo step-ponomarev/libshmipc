@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="Font2DTest">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk21_macos_aarch64/demo/jfc/Font2DTest/src.zip!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk21_macos_aarch64/demo/jfc/Font2DTest/Font2DTest.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

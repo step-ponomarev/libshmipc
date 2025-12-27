@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="java3">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/bazel-libshmipc/bazel-out/darwin_arm64-fastbuild/bin/java/LibLoadTest.runfiles/_main/java/libshmipc_java.jar!/" />
+      <root url="jar://$PROJECT_DIR$/bazel-libshmipc/bazel-out/darwin_arm64-fastbuild/bin/java/LibLoadTest.runfiles/_main/java/LibLoadTest.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="AddJarManifestEntry2">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/bazel-out/darwin_arm64-opt-exec-ST-d57f47055a04/bin/external/rules_jvm_external+/private/tools/java/com/github/bazelbuild/rules_jvm_external/jar/AddJarManifestEntry.runfiles/rules_jvm_external+/private/tools/java/com/github/bazelbuild/rules_jvm_external/jar/AddJarManifestEntry.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

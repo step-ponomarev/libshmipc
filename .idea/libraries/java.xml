@@ -1,0 +1,16 @@
+<component name="libraryTable">
+  <library name="java">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/bazel-bin/java/libshmipc_java-hjar.jar!/" />
+      <root url="jar://$PROJECT_DIR$/bazel-bin/java/libshmipc_java-class.jar!/" />
+      <root url="jar://$PROJECT_DIR$/bazel-bin/java/LibLoadTest.jar!/" />
+      <root url="jar://$PROJECT_DIR$/bazel-bin/java/IpcChannelTest-native-header.jar!/" />
+      <root url="jar://$PROJECT_DIR$/bazel-bin/java/LibLoadTest-native-header.jar!/" />
+      <root url="jar://$PROJECT_DIR$/bazel-bin/java/libshmipc_java.jar!/" />
+      <root url="jar://$PROJECT_DIR$/bazel-bin/java/IpcChannelTest.jar!/" />
+      <root url="jar://$PROJECT_DIR$/bazel-bin/java/libshmipc_java-native-header.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

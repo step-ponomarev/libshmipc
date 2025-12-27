@@ -1,4 +1,5 @@
 #include "ipc_utils.h"
+#include <errno.h>
 #include <shmipc/ipc_buffer.h>
 #include <shmipc/ipc_common.h>
 #include <stdatomic.h>
@@ -7,6 +8,7 @@
 #include <string.h>
 
 #define IPC_DATA_ALIGN 0x8
+
 #define BUFFER_HEADER_SIZE_ALIGNED                                             \
   ALIGN_UP_BY_CACHE_LINE(sizeof(IpcBufferHeader))
 #define UNLOCK(offset) (((offset) & (~(0x1))))
@@ -40,13 +42,29 @@ static IpcStatus _read_entry_header_unsafe(const struct IpcBuffer *buffer,
 static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
                                     const uint64_t offset, EntryHeader *dest);
 
-uint64_t ipc_buffer_get_memory_overhead() {
+inline uint64_t ipc_buffer_get_memory_overhead(void) {
   return BUFFER_HEADER_SIZE_ALIGNED; // TODO: rename to min size
 }
 
+inline uint64_t ipc_buffer_get_min_size(void) {
+  return BUFFER_HEADER_SIZE_ALIGNED + IPC_DATA_ALIGN;
+}
+
+uint64_t ipc_buffer_suggest_size(size_t desired_capacity) {
+  const uint64_t min_size = ipc_buffer_get_min_size();
+  const uint64_t overhead = ipc_buffer_get_memory_overhead();
+
+  if (desired_capacity + overhead < min_size) {
+    return min_size;
+  }
+
+  const uint64_t aligned_capacity = find_next_power_of_2(desired_capacity);
+  return aligned_capacity + overhead;
+}
+
 IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
-  const IpcBufferCreateError error = {.requested_size = size,
-                                      .min_size = BUFFER_HEADER_SIZE_ALIGNED};
+  IpcBufferCreateError error = {.requested_size = size,
+                                .min_size = BUFFER_HEADER_SIZE_ALIGNED};
 
   if (mem == NULL) {
     return IpcBufferCreateResult_error_body(
@@ -68,6 +86,7 @@ IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
   struct IpcBuffer *buffer =
       (struct IpcBuffer *)malloc(sizeof(struct IpcBuffer));
   if (buffer == NULL) {
+    error.sys_errno = errno;
     return IpcBufferCreateResult_error_body(
         IPC_ERR_SYSTEM, "system error: buffer allocation failed", error);
   }
@@ -461,10 +480,6 @@ static IpcStatus _read_entry_header(const struct IpcBuffer *buffer,
                                     const uint64_t offset, EntryHeader *dest) {
   EntryHeader *header;
   IpcStatus status = _read_entry_header_unsafe(buffer, offset, &header);
-  if (status != IPC_OK) {
-    return status;
-  }
-
   if (status != IPC_OK) {
     return status;
   }

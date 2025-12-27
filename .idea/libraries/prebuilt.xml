@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="prebuilt">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external/rules_jvm_external+/private/tools/prebuilt/outdated_deploy.jar!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_jvm_external+/private/tools/prebuilt/index_jar_deploy.jar!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_jvm_external+/private/tools/prebuilt/lock_file_converter_deploy.jar!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_jvm_external+/private/tools/prebuilt/hasher_deploy.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

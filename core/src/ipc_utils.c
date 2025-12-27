@@ -3,6 +3,19 @@
 
 #define NANOS_PER_SEC 1000000000ULL
 
+uint64_t find_next_power_of_2(uint64_t n) {
+  if (n == 0) {
+    return 1;
+  }
+
+  uint64_t pow = 1;
+  while (pow < n) {
+    pow <<= 1;
+  }
+
+  return pow;
+}
+
 uint64_t ipc_timespec_to_nanos(const struct timespec *secs) {
   if (secs == NULL) {
     return 0;

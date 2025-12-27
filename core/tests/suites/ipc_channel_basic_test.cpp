@@ -13,26 +13,26 @@ static const IpcChannelConfiguration DEFAULT_CONFIG = {
     .max_round_trips = 1024, .start_sleep_ns = 1000, .max_sleep_ns = 100000};
 
 TEST_CASE("invalid config") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
 
     IpcChannelConfiguration config1 = {0, 10, 150};
-    CHECK(IpcChannelResult_is_error(ipc_channel_create(mem.data(), size, config1)));
+    CHECK(IpcChannelOpenResult_is_error(ipc_channel_create(mem.data(), size, config1)));
 
     IpcChannelConfiguration config2 = {1, 0, 150};
-    CHECK(IpcChannelResult_is_error(ipc_channel_create(mem.data(), size, config2)));
+    CHECK(IpcChannelOpenResult_is_error(ipc_channel_create(mem.data(), size, config2)));
 
     IpcChannelConfiguration config3 = {1, 1, 0};
-    CHECK(IpcChannelResult_is_error(ipc_channel_create(mem.data(), size, config3)));
+    CHECK(IpcChannelOpenResult_is_error(ipc_channel_create(mem.data(), size, config3)));
 
     IpcChannelConfiguration config4 = {1, 100, 90};
-    CHECK(IpcChannelResult_is_error(ipc_channel_create(mem.data(), size, config4)));
+    CHECK(IpcChannelOpenResult_is_error(ipc_channel_create(mem.data(), size, config4)));
 }
 
 TEST_CASE("write too large entry") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
-    const IpcChannelResult channel_result =
+    const IpcChannelOpenResult channel_result =
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
 
@@ -46,10 +46,10 @@ TEST_CASE("write too large entry") {
 }
 
 TEST_CASE("write read") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
 
-    IpcChannelResult channel_result = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+    IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *producer = channel_result.result;
     CHECK(producer != nullptr);
 
@@ -73,10 +73,10 @@ TEST_CASE("destroy null") {
 }
 
 TEST_CASE("peek") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
 
-    IpcChannelResult channel_result =
+    IpcChannelOpenResult channel_result =
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
 
     IpcChannel *channel = channel_result.result;
@@ -106,10 +106,10 @@ TEST_CASE("peek") {
 }
 
 TEST_CASE("peek empty") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
 
-    IpcChannelResult channel_result =
+    IpcChannelOpenResult channel_result =
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
 
     IpcChannel *channel = channel_result.result;
@@ -122,10 +122,10 @@ TEST_CASE("peek empty") {
 }
 
 TEST_CASE("write try read") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
 
-    IpcChannelResult channel_result =
+    IpcChannelOpenResult channel_result =
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
 
@@ -145,10 +145,10 @@ TEST_CASE("write try read") {
 }
 
 TEST_CASE("try read empty") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
 
-    IpcChannelResult channel_result =
+    IpcChannelOpenResult channel_result =
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
 
@@ -159,10 +159,10 @@ TEST_CASE("try read empty") {
 }
 
 TEST_CASE("read retry limit reached") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
 
-    IpcChannelResult channel_result =
+    IpcChannelOpenResult channel_result =
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
 
@@ -193,10 +193,10 @@ TEST_CASE("read retry limit reached") {
 }
 
 TEST_CASE("skip corrupted entry") {
-    const uint64_t size = ipc_channel_align_size(256);
+    const uint64_t size = ipc_channel_suggest_size(256);
     std::vector<uint8_t> mem(size);
 
-    IpcChannelResult channel_result =
+    IpcChannelOpenResult channel_result =
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
 
@@ -236,9 +236,9 @@ TEST_CASE("skip corrupted entry") {
 }
 
 TEST_CASE("skip force") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
-    IpcChannelResult channel_result =
+    IpcChannelOpenResult channel_result =
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
 
@@ -254,10 +254,10 @@ TEST_CASE("skip force") {
 }
 
 TEST_CASE("read timeout") {
-    const uint64_t size = ipc_channel_align_size(128);
+    const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
 
-    IpcChannelResult channel_result =
+    IpcChannelOpenResult channel_result =
         ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
 
@@ -283,10 +283,10 @@ TEST_CASE("read timeout") {
 
 
 TEST_CASE("channel data - different sizes") {
-    const uint64_t size = ipc_channel_align_size(2048);
+    const uint64_t size = ipc_channel_suggest_size(2048);
     std::vector<uint8_t> mem(size);
     
-    IpcChannelResult channel_result = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
+    IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size, DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
     
     struct TestData {

@@ -12,9 +12,9 @@
 #include <vector>
 
 TEST_CASE("single writer single reader") {
-  const uint64_t size = ipc_channel_align_size(test_utils::SMALL_BUFFER_SIZE);
+  const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelResult channel_result =
+  const IpcChannelOpenResult channel_result =
       ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
   IpcChannel *channel = channel_result.result;
 
@@ -39,9 +39,9 @@ TEST_CASE("single writer single reader") {
 }
 
 TEST_CASE("multiple writer single reader") {
-  const uint64_t size = ipc_channel_align_size(test_utils::SMALL_BUFFER_SIZE);
+  const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelResult channel_result =
+  const IpcChannelOpenResult channel_result =
       ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
   IpcChannel *channel = channel_result.result;
 
@@ -72,9 +72,9 @@ TEST_CASE("multiple writer single reader") {
 }
 
 TEST_CASE("multiple writer multiple reader stress") {
-  const uint64_t size = ipc_channel_align_size(test_utils::SMALL_BUFFER_SIZE);
+  const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelResult channel_result =
+  const IpcChannelOpenResult channel_result =
       ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
 
   const size_t total = 500000;
@@ -174,9 +174,9 @@ TEST_CASE("race between skip and read") {
 
 TEST_CASE("extreme stress test - small buffer") {
   for (int i = 0; i < 5; i++) {
-    const uint64_t size = ipc_channel_align_size(test_utils::SMALL_BUFFER_SIZE);
+    const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
     std::vector<uint8_t> mem(size);
-    const IpcChannelResult channel_result =
+    const IpcChannelOpenResult channel_result =
         ipc_channel_create(mem.data(), size, test_utils::DEFAULT_CONFIG);
     IpcChannel *channel = channel_result.result;
 

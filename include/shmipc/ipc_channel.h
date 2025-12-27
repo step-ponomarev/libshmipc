@@ -13,15 +13,18 @@ typedef struct IpcChannelConfiguration {
   long start_sleep_ns;
   long max_sleep_ns;
 } IpcChannelConfiguration;
-SHMIPC_API uint64_t ipc_channel_get_memory_overhead();
+SHMIPC_API uint64_t ipc_channel_get_memory_overhead(void);
+SHMIPC_API uint64_t ipc_channel_get_min_size(void);
+SHMIPC_API uint64_t ipc_channel_suggest_size(size_t desired_capacity);
 
 typedef struct IpcChannelOpenError {
   size_t requested_size;
   size_t min_size;
+  int sys_errno;
   IpcChannelConfiguration config;
 } IpcChannelOpenError;
-IPC_RESULT(IpcChannelResult, IpcChannel *, IpcChannelOpenError)
-SHMIPC_API IpcChannelResult ipc_channel_create(
+IPC_RESULT(IpcChannelOpenResult, IpcChannel *, IpcChannelOpenError)
+SHMIPC_API IpcChannelOpenResult ipc_channel_create(
     void *mem, const size_t size, const IpcChannelConfiguration config);
 
 typedef struct IpcChannelConnectError {

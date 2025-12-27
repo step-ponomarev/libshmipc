@@ -9,7 +9,7 @@ extern int __ulock_wake(uint32_t operation, void *addr, uint64_t wake_value);
 #define UL_COMPARE_AND_WAIT 1
 #define ULF_WAKE_ALL 0x00000100
 
-// timeout to timespec, common style
+// TODO: timeout to timespec, common style
 static inline int atomic_wait(_Atomic uint32_t *addr, uint32_t expected,
                               uint32_t timeout_ms) {
   return __ulock_wait(UL_COMPARE_AND_WAIT, addr, expected, timeout_ms * 1000);

@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="Notepad3">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk11_macos_aarch64/demo/jfc/Notepad/src.zip!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk11_macos_aarch64/demo/jfc/Notepad/Notepad.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

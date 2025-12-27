@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="FileChooserDemo">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk11_macos_aarch64/demo/jfc/FileChooserDemo/FileChooserDemo.jar!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk11_macos_aarch64/demo/jfc/FileChooserDemo/src.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

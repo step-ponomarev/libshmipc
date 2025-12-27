@@ -8,11 +8,14 @@ SHMIPC_BEGIN_DECLS
 
 typedef struct IpcBuffer IpcBuffer;
 
-SHMIPC_API uint64_t ipc_buffer_get_memory_overhead();
+SHMIPC_API uint64_t ipc_buffer_get_memory_overhead(void);
+SHMIPC_API uint64_t ipc_buffer_get_min_size(void);
+SHMIPC_API uint64_t ipc_buffer_suggest_size(size_t desired_capacity);
 
 typedef struct IpcBufferCreateError {
   size_t requested_size;
   size_t min_size;
+  int sys_errno;
 } IpcBufferCreateError;
 IPC_RESULT(IpcBufferCreateResult, IpcBuffer *, IpcBufferCreateError)
 SHMIPC_API IpcBufferCreateResult ipc_buffer_create(void *mem,

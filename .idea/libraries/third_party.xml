@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="third_party">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external/rules_kotlin+/third_party/empty.jar!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_kotlin+/third_party/jarjar.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

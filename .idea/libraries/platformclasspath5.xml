@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="platformclasspath5">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/bazel-libshmipc/bazel-out/darwin_arm64-opt-exec-ST-d57f47055a04/bin/external/rules_java+/toolchains/platformclasspath.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

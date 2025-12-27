@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="lib5">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk21_macos_aarch64/zulu-21.jdk/Contents/Home/lib/src.zip!/" />
+      <root url="jar://$PROJECT_DIR$/external/rules_java++toolchains+remotejdk21_macos_aarch64/zulu-21.jdk/Contents/Home/lib/jrt-fs.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

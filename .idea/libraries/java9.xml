@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="java9">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/bazel-out/darwin_arm64-fastbuild/bin/java/IpcChannelTest.runfiles/_main/java/IpcChannelTest.jar!/" />
+      <root url="jar://$PROJECT_DIR$/bazel-out/darwin_arm64-fastbuild/bin/java/IpcChannelTest.runfiles/_main/java/libshmipc_java.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

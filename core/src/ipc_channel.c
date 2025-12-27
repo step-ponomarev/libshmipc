@@ -30,29 +30,45 @@ static bool _is_timeout_valid(const struct timespec *);
 static bool _is_error_status(const IpcStatus);
 static bool _is_retry_status(const IpcStatus);
 
-inline uint64_t ipc_channel_get_memory_overhead() {
+inline uint64_t ipc_channel_get_memory_overhead(void) {
   return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_get_memory_overhead();
 }
 
-IpcChannelResult ipc_channel_create(void *mem, const size_t size,
-                                    const IpcChannelConfiguration config) {
+inline uint64_t ipc_channel_get_min_size(void) {
+  return ipc_channel_get_memory_overhead() + ipc_buffer_get_min_size();
+}
+
+uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
+  const uint64_t min_size = ipc_channel_get_min_size();
+  const uint64_t overhead = ipc_channel_get_memory_overhead();
+
+  if (desired_capacity + overhead < min_size) {
+    return min_size;
+  }
+
+  const uint64_t aligned_capacity = find_next_power_of_2(desired_capacity);
+  return aligned_capacity + overhead;
+}
+
+IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size,
+                                        const IpcChannelConfiguration config) {
   const size_t min_total = ipc_channel_get_memory_overhead();
   IpcChannelOpenError error = {
       .requested_size = size, .min_size = min_total, .config = config};
 
   if (mem == NULL) {
-    return IpcChannelResult_error_body(IPC_ERR_INVALID_ARGUMENT,
-                                       "invalid argument: mem is NULL", error);
+    return IpcChannelOpenResult_error_body(
+        IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
   }
 
   if (size == 0) {
-    return IpcChannelResult_error_body(
+    return IpcChannelOpenResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer size is 0", error);
   }
 
   if (!_is_valid_config(config)) {
     error.requested_size = size;
-    return IpcChannelResult_error_body(
+    return IpcChannelOpenResult_error_body(
         IPC_ERR_INVALID_ARGUMENT,
         "invalid argument: valid config must be {start_sleep_ns > 0 && "
         "max_round_trips > 0 && max_sleep_ns > 0 && max_sleep_ns >= "
@@ -65,21 +81,22 @@ IpcChannelResult ipc_channel_create(void *mem, const size_t size,
       (void *)buffer_memory, (size_t)size - CHANNEL_HEADER_SIZE_ALIGNED);
   if (IpcBufferCreateResult_is_error(buffer_result)) {
     error.requested_size = size;
-    return IpcChannelResult_error_body(buffer_result.ipc_status,
-                                       buffer_result.error.detail, error);
+    error.sys_errno = buffer_result.error.body.sys_errno;
+    return IpcChannelOpenResult_error_body(buffer_result.ipc_status,
+                                           buffer_result.error.detail, error);
   }
 
   IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
   if (channel == NULL) {
     error.requested_size = size;
-    return IpcChannelResult_error_body(
+    return IpcChannelOpenResult_error_body(
         IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
   }
 
   channel->buffer = buffer_result.result;
   channel->config = config;
 
-  return IpcChannelResult_ok(IPC_OK, channel);
+  return IpcChannelOpenResult_ok(IPC_OK, channel);
 }
 
 IpcChannelConnectResult

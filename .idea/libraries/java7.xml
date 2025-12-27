@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="java7">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/bazel-libshmipc/bazel-out/darwin_arm64-opt-exec-ST-d57f47055a04/bin/java/libshmipc_java_core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/bazel-libshmipc/bazel-out/darwin_arm64-opt-exec-ST-d57f47055a04/bin/java/libshmipc_java_core-native-header.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
