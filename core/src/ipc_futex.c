@@ -35,8 +35,10 @@ inline int ipc_futex_wake_all(_Atomic uint32_t *addr) {
 }
 
 #elif __linux__
+#include <limits.h>
 #include <linux/futex.h>
 #include <sys/syscall.h>
+#include <unistd.h>
 
 inline int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
                           const struct timespec *timeout) {
