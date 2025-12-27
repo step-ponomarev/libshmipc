@@ -168,18 +168,14 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
     return IpcChannelWriteResult_error_body(write_result.ipc_status,
                                             write_result.error.detail, error);
   }
-  /*
-      *
-      *
-    uint32_t need_notify = NEED_NOTIFY;
-    if (atomic_compare_exchange_strong(&channel->header->need_notify,
-                                       &need_notify, NOT_NEED_NOTIFY)) {
-    }
 
-      * */
-  atomic_fetch_add_explicit(&channel->header->notified, 1,
-                            memory_order_release);
-  ipc_futex_wake_all(&channel->header->notified);
+  uint32_t need_notify = NEED_NOTIFY;
+  if (atomic_compare_exchange_strong(&channel->header->need_notify,
+                                     &need_notify, NOT_NEED_NOTIFY)) {
+    atomic_fetch_add_explicit(&channel->header->notified, 1,
+                              memory_order_release);
+    ipc_futex_wake_all(&channel->header->notified);
+  }
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
 }
@@ -316,10 +312,15 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
           .tv_sec = (time_t)(remaining_ns / NANOS_PER_SEC),
           .tv_nsec = (long)(remaining_ns % NANOS_PER_SEC)};
 
+      uint32_t not_need_notify = NOT_NEED_NOTIFY;
       const uint32_t expected_notified = atomic_load_explicit(
           &channel->header->notified, memory_order_acquire);
-      ipc_futex_wait(&channel->header->notified, expected_notified,
-                     &remaining_timeout);
+
+      if (atomic_compare_exchange_strong(&channel->header->need_notify,
+                                         &not_need_notify, NEED_NOTIFY)) {
+        ipc_futex_wait(&channel->header->notified, expected_notified,
+                       &remaining_timeout);
+      }
 
       // Continue loop to check data again
       continue;
