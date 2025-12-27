@@ -9,7 +9,6 @@ extern int __ulock_wake(uint32_t operation, void *addr, uint64_t wake_value);
 #define UL_COMPARE_AND_WAIT 1
 #define ULF_WAKE_ALL 0x00000100
 
-// TODO: timeout to timespec, common style
 inline int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
                           const struct timespec *timeout) {
   return __ulock_wait(UL_COMPARE_AND_WAIT, addr, expected,
@@ -17,8 +16,7 @@ inline int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
 }
 
 inline int ipc_futex__wake_one(_Atomic uint32_t *addr) {
-  int res = __ulock_wake(UL_COMPARE_AND_WAIT, addr,
-                         0); // TODO: можно упростить в одну функцию
+  int res = __ulock_wake(UL_COMPARE_AND_WAIT, addr, 0);
   if (res == -1 && errno == ENOENT) {
     return 0;
   }
