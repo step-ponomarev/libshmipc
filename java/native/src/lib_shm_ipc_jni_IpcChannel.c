@@ -15,7 +15,8 @@
 static IpcChannel *get_channel(JNIEnv *env, jobject obj);
 
 JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
-    JNIEnv *env, jobject obj, jstring path_to_file, jlong size, jboolean is_producer) {
+    JNIEnv *env, jobject obj, jstring path_to_file, jlong size,
+    jboolean is_producer) {
   if (!path_to_file) {
     DBG("path_to_file=NULL");
     return 0;
@@ -38,8 +39,7 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
   IpcMemorySegmentResult mmap_result = ipc_mmap(path, aligned);
 
   if (IpcMemorySegmentResult_is_error(mmap_result)) {
-    DBG("ipc_mmap failed: status=%d, detail=%s",
-        (int)mmap_result.ipc_status,
+    DBG("ipc_mmap failed: status=%d, detail=%s", (int)mmap_result.ipc_status,
         mmap_result.error.detail ? mmap_result.error.detail : "unknown");
     (*env)->ReleaseStringUTFChars(env, path_to_file, path);
     return 0;
@@ -58,7 +58,8 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
 
   IpcChannel *ch = NULL;
   if (create) {
-    IpcChannelOpenResult create_result = ipc_channel_create(seg->memory, seg->size);
+    IpcChannelOpenResult create_result =
+        ipc_channel_create(seg->memory, seg->size);
     if (IpcChannelOpenResult_is_ok(create_result)) {
       ch = create_result.result;
     } else {
@@ -74,7 +75,8 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
     } else {
       DBG("ipc_channel_connect failed: status=%d, detail=%s",
           (int)connect_result.ipc_status,
-          connect_result.error.detail ? connect_result.error.detail : "unknown");
+          connect_result.error.detail ? connect_result.error.detail
+                                      : "unknown");
       return 0;
     }
   }
@@ -103,8 +105,9 @@ JNIEXPORT void JNICALL Java_lib_shm_ipc_jni_IpcChannel_write(JNIEnv *env,
     (*env)->ReleaseByteArrayElements(env, arr, bytes, JNI_ABORT);
     return;
   }
-  
-  IpcChannelWriteResult write_result = ipc_channel_write(channel, (const void *)bytes, arr_len);
+
+  IpcChannelWriteResult write_result =
+      ipc_channel_write(channel, (const void *)bytes, arr_len);
   if (IpcChannelWriteResult_is_error(write_result)) {
     DBG("ipc_channel_write failed: status=%d, detail=%s",
         (int)write_result.ipc_status,
@@ -128,7 +131,8 @@ JNIEXPORT jbyteArray JNICALL Java_lib_shm_ipc_jni_IpcChannel_read(JNIEnv *env,
 
   IpcEntry entry;
   struct timespec timeout = {.tv_sec = 1, .tv_nsec = 0}; // 1 second timeout
-  IpcChannelReadResult read_result = ipc_channel_read(channel, &entry, &timeout);
+  IpcChannelReadResult read_result =
+      ipc_channel_read(channel, &entry, &timeout);
 
   if (IpcChannelReadResult_is_error(read_result)) {
     DBG("ipc_channel_read failed: status=%d, detail=%s",
@@ -144,9 +148,10 @@ JNIEXPORT jbyteArray JNICALL Java_lib_shm_ipc_jni_IpcChannel_read(JNIEnv *env,
 
   jbyteArray arr = (*env)->NewByteArray(env, len);
   if (!arr) {
+
     return NULL;
   }
-  
+
   (*env)->SetByteArrayRegion(env, arr, 0, len, (const jbyte *)entry.payload);
 
   return arr;

@@ -238,8 +238,7 @@ TEST_CASE("futex blocks reader until writer writes") {
     while (!reader_ready.load(std::memory_order_acquire)) {
       std::this_thread::yield();
     }
-
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(3));
 
     test_utils::write_data(channel, 42);
     writer_done.store(true, std::memory_order_release);
