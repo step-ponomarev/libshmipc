@@ -231,41 +231,37 @@ TEST_CASE("futex blocks reader until writer writes") {
       ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
-  std::atomic<int> sequence{0};
+  std::atomic<bool> reader_ready{false};
+  std::atomic<bool> writer_done{false};
 
   std::thread writer([&]() {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    while (!reader_ready.load(std::memory_order_acquire)) {
+      std::this_thread::yield();
+    }
 
-    sequence.store(1, std::memory_order_release);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     test_utils::write_data(channel, 42);
-    sequence.store(2, std::memory_order_release);
+    writer_done.store(true, std::memory_order_release);
   });
 
-  while (sequence.load(std::memory_order_acquire) < 1) {
-    std::this_thread::yield();
-  }
-
-  CHECK(sequence.load(std::memory_order_acquire) == 1);
   IpcEntry entry;
   struct timespec timeout = {.tv_sec = 10, .tv_nsec = 0};
+
+  reader_ready.store(true, std::memory_order_release);
+
   const IpcChannelReadResult result =
       ipc_channel_read(channel, &entry, &timeout);
 
   CHECK(result.ipc_status == IPC_OK);
+  CHECK(writer_done.load(std::memory_order_acquire) == true);
 
   int value;
   memcpy(&value, entry.payload, sizeof(value));
   CHECK(value == 42);
   free(entry.payload);
 
-  sequence.store(3, std::memory_order_release);
-
   writer.join();
-
-  CHECK(sequence.load(std::memory_order_acquire) == 3);
 
   ipc_channel_destroy(channel);
 }

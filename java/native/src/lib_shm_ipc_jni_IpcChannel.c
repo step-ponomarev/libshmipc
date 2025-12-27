@@ -12,15 +12,10 @@
     fflush(stderr);                                                            \
   } while (0)
 
-typedef struct IpcChannelConfigurationJni {
-  bool create;
-} IpcChannelConfigurationJni;
-
 static IpcChannel *get_channel(JNIEnv *env, jobject obj);
-static IpcChannelConfigurationJni parce_config(JNIEnv *env, jobject conf);
 
 JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
-    JNIEnv *env, jobject obj, jstring path_to_file, jlong size, jobject conf) {
+    JNIEnv *env, jobject obj, jstring path_to_file, jlong size, jboolean is_producer) {
   if (!path_to_file) {
     DBG("path_to_file=NULL");
     return 0;
@@ -36,19 +31,20 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
     return 0;
   }
 
-  DBG("path='%s' size=%llu", path, (unsigned long long)size);
+  const bool create = (bool)is_producer;
+  DBG("path='%s' size=%llu create=%d", path, (unsigned long long)size, create);
 
   uint64_t aligned = ipc_channel_suggest_size((size_t)size);
   IpcMemorySegmentResult mmap_result = ipc_mmap(path, aligned);
-  
+
   if (IpcMemorySegmentResult_is_error(mmap_result)) {
-    DBG("ipc_mmap failed: status=%d, detail=%s", 
-        (int)mmap_result.ipc_status, 
+    DBG("ipc_mmap failed: status=%d, detail=%s",
+        (int)mmap_result.ipc_status,
         mmap_result.error.detail ? mmap_result.error.detail : "unknown");
     (*env)->ReleaseStringUTFChars(env, path_to_file, path);
     return 0;
   }
-  
+
   IpcMemorySegment *seg = mmap_result.result;
   DBG("ipc_mmap => seg=%p (mem=%p, size=%llu)", (void *)seg,
       seg ? seg->memory : NULL, seg ? (unsigned long long)seg->size : 0ULL);
@@ -60,9 +56,8 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
     return 0;
   }
 
-  IpcChannelConfigurationJni cfg = parce_config(env, conf);
   IpcChannel *ch = NULL;
-  if (cfg.create) {
+  if (create) {
     IpcChannelOpenResult create_result = ipc_channel_create(seg->memory, seg->size);
     if (IpcChannelOpenResult_is_ok(create_result)) {
       ch = create_result.result;
@@ -87,7 +82,7 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
   DBG("channel=%p", (void *)ch);
 
   if (!ch) {
-    DBG("ipc_channel_%s returned NULL", cfg.create ? "create" : "connect");
+    DBG("ipc_channel_%s returned NULL", create ? "create" : "connect");
     return 0;
   }
 
@@ -163,15 +158,6 @@ JNIEXPORT jbyteArray JNICALL Java_lib_shm_ipc_jni_IpcChannel_read(JNIEnv *env,
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_lib_shm_ipc_jni_IpcChannel_close(JNIEnv *, jobject);
-
-static IpcChannelConfigurationJni parce_config(JNIEnv *env, jobject conf) {
-  const jclass cls = (*env)->GetObjectClass(env, conf);
-
-  const jfieldID fid_create = (*env)->GetFieldID(env, cls, "create", "Z");
-  const bool create = (bool)(*env)->GetBooleanField(env, conf, fid_create);
-
-  return (IpcChannelConfigurationJni){.create = create};
-}
 
 static IpcChannel *get_channel(JNIEnv *env, jobject obj) {
   const jclass cls = (*env)->GetObjectClass(env, obj);
