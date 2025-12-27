@@ -12,9 +12,6 @@ SHMIPC_API uint64_t ipc_buffer_get_memory_overhead(void);
 SHMIPC_API uint64_t ipc_buffer_get_min_size(void);
 SHMIPC_API uint64_t ipc_buffer_suggest_size(size_t desired_capacity);
 
-// TODO: result with arg validation?
-SHMIPC_API bool ipc_buffer_is_empty(IpcBuffer *buffer);
-
 typedef struct IpcBufferCreateError {
   size_t requested_size;
   size_t min_size;

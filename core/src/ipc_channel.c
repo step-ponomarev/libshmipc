@@ -3,15 +3,20 @@
 #include <shmipc/ipc_buffer.h>
 #include <shmipc/ipc_channel.h>
 #include <shmipc/ipc_common.h>
+#include <stdatomic.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #define WAIT_EXPAND_FACTOR 2
 
 #define CHANNEL_HEADER_SIZE_ALIGNED                                            \
   ALIGN_UP_BY_CACHE_LINE(sizeof(IpcChannelHeader))
+#define NEED_NOTIFY 1
+#define NOT_NEED_NOTIFY 2
 
 typedef struct IpcChannelHeader {
   _Atomic uint32_t ready;
+  _Atomic uint32_t need_notify;
 } IpcChannelHeader;
 
 struct IpcChannel {
@@ -77,6 +82,7 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
 
   channel->header = (IpcChannelHeader *)mem;
   channel->buffer = buffer_result.result;
+  atomic_init(&channel->header->need_notify, NEED_NOTIFY);
 
   return IpcChannelOpenResult_ok(IPC_OK, channel);
 }
@@ -146,7 +152,6 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
         IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
   }
 
-  bool is_empty = ipc_buffer_is_empty(channel->buffer);
   const IpcBufferWriteResult write_result =
       ipc_buffer_write(channel->buffer, data, size);
   if (IpcBufferWriteResult_is_error(write_result)) {
@@ -162,8 +167,12 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
                                             write_result.error.detail, error);
   }
 
-  // TODO: not each time
-  ipc_futex_wake_all(&channel->header->ready);
+  uint32_t need_notify = NEED_NOTIFY;
+  if (atomic_compare_exchange_strong(&channel->header->need_notify,
+                                     &need_notify, NOT_NEED_NOTIFY)) {
+    // TODO: not each time
+    ipc_futex_wake_all(&channel->header->ready);
+  }
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
 }
@@ -280,6 +289,12 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
     }
 
     if (_is_retry_status(peek_result.ipc_status)) {
+      uint32_t not_need_notify = NOT_NEED_NOTIFY;
+      if (!atomic_compare_exchange_strong(&channel->header->ready,
+                                          &not_need_notify, true)) {
+        continue; // already notified
+      }
+
       ipc_futex_wait(&channel->header->ready,
                      atomic_load(&channel->header->ready), timeout);
       continue;

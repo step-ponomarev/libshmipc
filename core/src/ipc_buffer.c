@@ -294,28 +294,6 @@ IpcBufferReadResult ipc_buffer_read(IpcBuffer *buffer, IpcEntry *dest) {
                      : IpcBufferReadResult_ok(IPC_OK);
 }
 
-bool ipc_buffer_is_empty(IpcBuffer *buffer) {
-  if (buffer == NULL) {
-    return false;
-  }
-
-  uint64_t head;
-  do {
-    head = _read_head(buffer);
-    if (_is_locked(head)) {
-      return false;
-    }
-
-  } while (!_lock(&((struct IpcBuffer *)buffer)->header->head, head));
-
-  EntryHeader header;
-  const IpcStatus status =
-      _read_entry_header((struct IpcBuffer *)buffer, head, &header);
-  _unlock(&((struct IpcBuffer *)buffer)->header->head, head);
-
-  return status == IPC_EMPTY;
-}
-
 IpcBufferPeekResult ipc_buffer_peek(IpcBuffer *buffer, IpcEntry *dest) {
   IpcBufferPeekError error = {.offset = 0};
   if (buffer == NULL) {

@@ -232,13 +232,12 @@ TEST_CASE("futex blocks reader until writer writes") {
   IpcChannel *channel = channel_result.result;
 
   std::atomic<bool> reader_ready{false};
-  std::atomic<bool> writer_done{false};
 
   std::thread writer([&]() {
     while (!reader_ready.load(std::memory_order_acquire)) {
       std::this_thread::yield();
     }
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     test_utils::write_data(channel, 42);
   });
