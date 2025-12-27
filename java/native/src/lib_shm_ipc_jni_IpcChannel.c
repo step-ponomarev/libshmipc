@@ -13,7 +13,6 @@
   } while (0)
 
 typedef struct IpcChannelConfigurationJni {
-  IpcChannelConfiguration config;
   bool create;
 } IpcChannelConfigurationJni;
 
@@ -39,7 +38,7 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
 
   DBG("path='%s' size=%llu", path, (unsigned long long)size);
 
-  uint64_t aligned = ipc_channel_align_size((size_t)size);
+  uint64_t aligned = ipc_channel_suggest_size((size_t)size);
   IpcMemorySegmentResult mmap_result = ipc_mmap(path, aligned);
   
   if (IpcMemorySegmentResult_is_error(mmap_result)) {
@@ -64,8 +63,8 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
   IpcChannelConfigurationJni cfg = parce_config(env, conf);
   IpcChannel *ch = NULL;
   if (cfg.create) {
-    IpcChannelResult create_result = ipc_channel_create(seg->memory, seg->size, cfg.config);
-    if (IpcChannelResult_is_ok(create_result)) {
+    IpcChannelOpenResult create_result = ipc_channel_create(seg->memory, seg->size);
+    if (IpcChannelOpenResult_is_ok(create_result)) {
       ch = create_result.result;
     } else {
       DBG("ipc_channel_create failed: status=%d, detail=%s",
@@ -74,7 +73,7 @@ JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
       return 0;
     }
   } else {
-    IpcChannelConnectResult connect_result = ipc_channel_connect(seg->memory, cfg.config);
+    IpcChannelConnectResult connect_result = ipc_channel_connect(seg->memory);
     if (IpcChannelConnectResult_is_ok(connect_result)) {
       ch = connect_result.result;
     } else {
@@ -133,8 +132,9 @@ JNIEXPORT jbyteArray JNICALL Java_lib_shm_ipc_jni_IpcChannel_read(JNIEnv *env,
   }
 
   IpcEntry entry;
-  IpcChannelReadResult read_result = ipc_channel_read(channel, &entry);
-  
+  struct timespec timeout = {.tv_sec = 1, .tv_nsec = 0}; // 1 second timeout
+  IpcChannelReadResult read_result = ipc_channel_read(channel, &entry, &timeout);
+
   if (IpcChannelReadResult_is_error(read_result)) {
     DBG("ipc_channel_read failed: status=%d, detail=%s",
         (int)read_result.ipc_status,
@@ -170,10 +170,7 @@ static IpcChannelConfigurationJni parce_config(JNIEnv *env, jobject conf) {
   const jfieldID fid_create = (*env)->GetFieldID(env, cls, "create", "Z");
   const bool create = (bool)(*env)->GetBooleanField(env, conf, fid_create);
 
-  return (IpcChannelConfigurationJni){.config = {.max_round_trips = 100,
-                                                 .max_sleep_ns = 2000,
-                                                 .start_sleep_ns = 20},
-                                      .create = create};
+  return (IpcChannelConfigurationJni){.create = create};
 }
 
 static IpcChannel *get_channel(JNIEnv *env, jobject obj) {

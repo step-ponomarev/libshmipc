@@ -23,8 +23,7 @@ typedef enum {
   IPC_ERR_LOCKED = -9,
   IPC_ERR_OFFSET_MISMATCH = -10,
   IPC_ERR_TIMEOUT = -11,
-  IPC_ERR_RETRY_LIMIT = -12,
-  IPC_ERR_CORRUPTED = -13,
+  IPC_ERR_CORRUPTED = -12,
 } IpcStatus;
 
 #define IPC_RESULT(NAME, T, E)                                                 \

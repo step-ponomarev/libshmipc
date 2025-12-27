@@ -19,8 +19,7 @@ typedef struct IpcMmapError {
   int sys_errno;
 } IpcMmapError;
 IPC_RESULT(IpcMemorySegmentResult, IpcMemorySegment *, IpcMmapError)
-SHMIPC_API IpcMemorySegmentResult
-ipc_mmap(const char *name, uint64_t size); // size must be alligned by page_size
+SHMIPC_API IpcMemorySegmentResult ipc_mmap(const char *path, uint64_t size);
 
 typedef struct IpcMmapUnmapError {
   const char *name;

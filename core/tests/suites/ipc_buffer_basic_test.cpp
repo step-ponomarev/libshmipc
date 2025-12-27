@@ -1,5 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
+
 #include "shmipc/ipc_buffer.h"
 #include "test_utils.h"
 #include <cstring>

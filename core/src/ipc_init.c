@@ -107,9 +107,8 @@ IpcInitBufferAttachResult ipc_init_buffer_attach(const char *path,
   return IpcInitBufferAttachResult_ok(IPC_OK, buffer_result.result);
 }
 
-IpcInitChannelOpenResult
-ipc_init_channel_create(const char *path, const size_t size,
-                        const IpcChannelConfiguration config) {
+IpcInitChannelOpenResult ipc_init_channel_create(const char *path,
+                                                 const size_t size) {
   IpcInitChannelOpenError error = {.requested_size = size};
 
   const ValidationResult validation = _validate_size(
@@ -130,7 +129,7 @@ ipc_init_channel_create(const char *path, const size_t size,
   }
 
   const IpcChannelOpenResult channel_open_result =
-      ipc_channel_create(mmap.result, size, config);
+      ipc_channel_create(mmap.result, size);
   if (IpcChannelOpenResult_is_error(channel_open_result)) {
     error.sys_errno = channel_open_result.error.body.sys_errno;
     return IpcInitChannelOpenResult_error_body(channel_open_result.ipc_status,
@@ -141,9 +140,8 @@ ipc_init_channel_create(const char *path, const size_t size,
   return IpcInitChannelOpenResult_ok(IPC_OK, channel_open_result.result);
 }
 
-IpcInitChannelConnectResult
-ipc_init_channel_connect(const char *path, const size_t size,
-                         const IpcChannelConfiguration config) {
+IpcInitChannelConnectResult ipc_init_channel_connect(const char *path,
+                                                     const size_t size) {
   IpcInitChannelConnectError error = {.requested_size = size};
 
   const ValidationResult validation = _validate_size(
@@ -164,7 +162,7 @@ ipc_init_channel_connect(const char *path, const size_t size,
   }
 
   const IpcChannelConnectResult channel_connect_result =
-      ipc_channel_connect(mmap.result, config);
+      ipc_channel_connect(mmap.result);
 
   if (IpcChannelConnectResult_is_error(channel_connect_result)) {
     return IpcInitChannelConnectResult_error_body(

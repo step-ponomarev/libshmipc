@@ -8,11 +8,6 @@ SHMIPC_BEGIN_DECLS
 
 typedef struct IpcChannel IpcChannel;
 
-typedef struct IpcChannelConfiguration {
-  uint32_t max_round_trips;
-  long start_sleep_ns;
-  long max_sleep_ns;
-} IpcChannelConfiguration;
 SHMIPC_API uint64_t ipc_channel_get_memory_overhead(void);
 SHMIPC_API uint64_t ipc_channel_get_min_size(void);
 SHMIPC_API uint64_t ipc_channel_suggest_size(size_t desired_capacity);
@@ -21,19 +16,16 @@ typedef struct IpcChannelOpenError {
   size_t requested_size;
   size_t min_size;
   int sys_errno;
-  IpcChannelConfiguration config;
 } IpcChannelOpenError;
 IPC_RESULT(IpcChannelOpenResult, IpcChannel *, IpcChannelOpenError)
-SHMIPC_API IpcChannelOpenResult ipc_channel_create(
-    void *mem, const size_t size, const IpcChannelConfiguration config);
+SHMIPC_API IpcChannelOpenResult ipc_channel_create(void *mem,
+                                                    const size_t size);
 
 typedef struct IpcChannelConnectError {
   size_t min_size;
-  IpcChannelConfiguration config;
 } IpcChannelConnectError;
 IPC_RESULT(IpcChannelConnectResult, IpcChannel *, IpcChannelConnectError)
-SHMIPC_API IpcChannelConnectResult
-ipc_channel_connect(void *mem, const IpcChannelConfiguration config);
+SHMIPC_API IpcChannelConnectResult ipc_channel_connect(void *mem);
 
 typedef struct IpcChannelDestroyError {
   bool _unit;
@@ -54,18 +46,12 @@ SHMIPC_API IpcChannelWriteResult ipc_channel_write(IpcChannel *channel,
 
 typedef struct IpcChannelReadError {
   uint64_t offset;
+  struct timespec timeout_used;
 } IpcChannelReadError;
 IPC_RESULT_UNIT(IpcChannelReadResult, IpcChannelReadError)
 SHMIPC_API IpcChannelReadResult ipc_channel_read(IpcChannel *channel,
-                                                 IpcEntry *dest);
-
-typedef struct IpcChannelReadWithTimeoutError {
-  uint64_t offset;
-  struct timespec timeout_used;
-} IpcChannelReadWithTimeoutError;
-IPC_RESULT_UNIT(IpcChannelReadWithTimeoutResult, IpcChannelReadWithTimeoutError)
-SHMIPC_API IpcChannelReadWithTimeoutResult ipc_channel_read_with_timeout(
-    IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout);
+                                                 IpcEntry *dest,
+                                                 const struct timespec *timeout);
 
 typedef struct IpcChannelTryReadError {
   uint64_t offset;

@@ -33,22 +33,20 @@ typedef struct IpcInitChannelOpenError {
   size_t overhead;
   size_t min_size;
   int sys_errno;
-  IpcChannelConfiguration config;
 } IpcInitChannelOpenError;
 IPC_RESULT(IpcInitChannelOpenResult, IpcChannel *, IpcInitChannelOpenError)
-SHMIPC_API IpcInitChannelOpenResult ipc_init_channel_create(
-    const char *path, const size_t size, const IpcChannelConfiguration config);
+SHMIPC_API IpcInitChannelOpenResult ipc_init_channel_create(const char *path,
+                                                            const size_t size);
 
 typedef struct IpcInitChannelConnectError {
   size_t requested_size;
   size_t overhead;
   size_t min_size;
   int sys_errno;
-  IpcChannelConfiguration config;
 } IpcInitChannelConnectError;
 IPC_RESULT(IpcInitChannelConnectResult, IpcChannel *,
            IpcInitChannelConnectError)
-SHMIPC_API IpcInitChannelConnectResult ipc_init_channel_connect(
-    const char *path, const size_t size, const IpcChannelConfiguration config);
+SHMIPC_API IpcInitChannelConnectResult
+ipc_init_channel_connect(const char *path, const size_t size);
 
 SHMIPC_END_DECLS
