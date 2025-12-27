@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
 #define WAIT_EXPAND_FACTOR 2
+#define NANOS_PER_SEC 1000000000ULL
 
 #define CHANNEL_HEADER_SIZE_ALIGNED                                            \
   ALIGN_UP_BY_CACHE_LINE(sizeof(IpcChannelHeader))
@@ -295,8 +296,30 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
         continue; // already notified
       }
 
+      struct timespec curr_time;
+      if (clock_gettime(CLOCK_MONOTONIC, &curr_time) != 0) {
+        free(read_entry.payload);
+        error.offset = peek_entry.offset;
+        return IpcChannelReadResult_error_body(
+            IPC_ERR_SYSTEM, "system error: clock_gettime failed", error);
+      }
+
+      const uint64_t curr_ns = ipc_timespec_to_nanos(&curr_time);
+      const uint64_t elapsed_ns = curr_ns - start_ns;
+      if (elapsed_ns >= timeout_ns) {
+        free(read_entry.payload);
+        error.offset = peek_entry.offset;
+        return IpcChannelReadResult_error_body(
+            IPC_ERR_TIMEOUT, "timeout: read timed out", error);
+      }
+
+      const uint64_t remaining_ns = timeout_ns - elapsed_ns;
+      struct timespec remaining_timeout = {
+          .tv_sec = (time_t)(remaining_ns / NANOS_PER_SEC),
+          .tv_nsec = (long)(remaining_ns % NANOS_PER_SEC)};
+
       ipc_futex_wait(&channel->header->ready,
-                     atomic_load(&channel->header->ready), timeout);
+                     atomic_load(&channel->header->ready), &remaining_timeout);
       continue;
     }
 
