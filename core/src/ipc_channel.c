@@ -168,13 +168,17 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
     return IpcChannelWriteResult_error_body(write_result.ipc_status,
                                             write_result.error.detail, error);
   }
+  /*
+      *
+      *
+    uint32_t need_notify = NEED_NOTIFY;
+    if (atomic_compare_exchange_strong(&channel->header->need_notify,
+                                       &need_notify, NOT_NEED_NOTIFY)) {
+    }
 
-  uint32_t need_notify = NEED_NOTIFY;
-  if (atomic_compare_exchange_strong(&channel->header->need_notify,
-                                     &need_notify, NOT_NEED_NOTIFY)) {
-    atomic_fetch_add(&channel->header->notified, 1);
-    ipc_futex_wake_all(&channel->header->notified);
-  }
+      * */
+  atomic_fetch_add(&channel->header->notified, 1);
+  ipc_futex_wake_all(&channel->header->notified);
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
 }
@@ -290,39 +294,17 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
                                              "timeout: read timed out", error);
     }
 
+    // TODO: oprimize we need only one pointer
     if (_is_retry_status(peek_result.ipc_status)) {
-      uint32_t not_need_notify = NOT_NEED_NOTIFY;
-      if (!atomic_compare_exchange_strong(&channel->header->need_notify,
-                                          &not_need_notify, NEED_NOTIFY)) {
-        continue; // already notified
-      }
+      /*      uint32_t not_need_notify = NOT_NEED_NOTIFY;
+            if (!atomic_compare_exchange_strong(&channel->header->need_notify,
+                                                &not_need_notify, NEED_NOTIFY))
+         { continue; // already notified
+            }
+            */
 
       const uint32_t expected_ready = atomic_load(&channel->header->notified);
-
-      struct timespec curr_time;
-      if (clock_gettime(CLOCK_MONOTONIC, &curr_time) != 0) {
-        free(read_entry.payload);
-        error.offset = peek_entry.offset;
-        return IpcChannelReadResult_error_body(
-            IPC_ERR_SYSTEM, "system error: clock_gettime failed", error);
-      }
-
-      const uint64_t curr_ns = ipc_timespec_to_nanos(&curr_time);
-      const uint64_t elapsed_ns = curr_ns - start_ns;
-      if (elapsed_ns >= timeout_ns) {
-        free(read_entry.payload);
-        error.offset = peek_entry.offset;
-        return IpcChannelReadResult_error_body(
-            IPC_ERR_TIMEOUT, "timeout: read timed out", error);
-      }
-
-      const uint64_t remaining_ns = timeout_ns - elapsed_ns;
-      struct timespec remaining_timeout = {
-          .tv_sec = (time_t)(remaining_ns / NANOS_PER_SEC),
-          .tv_nsec = (long)(remaining_ns % NANOS_PER_SEC)};
-
-      ipc_futex_wait(&channel->header->notified, expected_ready,
-                     &remaining_timeout);
+      ipc_futex_wait(&channel->header->notified, expected_ready, timeout);
       continue;
     }
 
