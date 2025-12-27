@@ -232,44 +232,38 @@ TEST_CASE("futex blocks reader until writer writes") {
   IpcChannel *channel = channel_result.result;
 
   std::atomic<int> sequence{0};
-  std::atomic<bool> reader_started{false};
 
-  std::thread reader([&]() {
-    reader_started = true;
+  std::thread writer([&]() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    while (sequence.load(std::memory_order_acquire) < 1) {
-      std::this_thread::yield();
-    }
+    sequence.store(1, std::memory_order_release);
 
-    CHECK(sequence.load(std::memory_order_acquire) == 1);
-    IpcEntry entry;
-    struct timespec timeout = {.tv_sec = 10,
-                               .tv_nsec = 0}; // Long timeout for blocking test
-    const IpcChannelReadResult result =
-        ipc_channel_read(channel, &entry, &timeout);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    CHECK(result.ipc_status == IPC_OK);
-
-    int value;
-    memcpy(&value, entry.payload, sizeof(value));
-    CHECK(value == 42);
-    free(entry.payload);
-
-    sequence.store(3, std::memory_order_release);
+    test_utils::write_data(channel, 42);
+    sequence.store(2, std::memory_order_release);
   });
 
-  while (!reader_started.load(std::memory_order_acquire)) {
+  while (sequence.load(std::memory_order_acquire) < 1) {
     std::this_thread::yield();
   }
 
-  sequence.store(1, std::memory_order_release);
+  CHECK(sequence.load(std::memory_order_acquire) == 1);
+  IpcEntry entry;
+  struct timespec timeout = {.tv_sec = 10, .tv_nsec = 0};
+  const IpcChannelReadResult result =
+      ipc_channel_read(channel, &entry, &timeout);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  CHECK(result.ipc_status == IPC_OK);
 
-  test_utils::write_data(channel, 42);
-  sequence.store(2, std::memory_order_release);
+  int value;
+  memcpy(&value, entry.payload, sizeof(value));
+  CHECK(value == 42);
+  free(entry.payload);
 
-  reader.join();
+  sequence.store(3, std::memory_order_release);
+
+  writer.join();
 
   CHECK(sequence.load(std::memory_order_acquire) == 3);
 
