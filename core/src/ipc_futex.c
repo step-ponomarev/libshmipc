@@ -44,8 +44,15 @@ int ipc_futex_wake_all(_Atomic uint32_t *addr) {
 int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
                    const struct timespec *timeout) {
   int res = syscall(SYS_futex, addr, FUTEX_WAIT, expected, timeout);
-  if (res == -1 && (errno == EAGAIN || errno == EINTR)) {
-    return 0;
+  if (res == -1) {
+    // EAGAIN: value changed before we slept - this is normal, continue loop
+    // EINTR: interrupted by signal - continue waiting
+    // ETIMEDOUT: timeout expired - return error so caller can check
+    if (errno == EAGAIN || errno == EINTR) {
+      return 0; // Treat as success, continue loop
+    }
+    // For other errors (including ETIMEDOUT), return the error
+    // Caller should check timeout separately
   }
   return res;
 }

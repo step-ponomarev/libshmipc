@@ -177,7 +177,8 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
     }
 
       * */
-  atomic_fetch_add(&channel->header->notified, 1);
+  atomic_fetch_add_explicit(&channel->header->notified, 1,
+                            memory_order_release);
   ipc_futex_wake_all(&channel->header->notified);
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
@@ -296,15 +297,31 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
 
     // TODO: oprimize we need only one pointer
     if (_is_retry_status(peek_result.ipc_status)) {
-      /*      uint32_t not_need_notify = NOT_NEED_NOTIFY;
-            if (!atomic_compare_exchange_strong(&channel->header->need_notify,
-                                                &not_need_notify, NEED_NOTIFY))
-         { continue; // already notified
-            }
-            */
+      struct timespec wait_curr_time;
+      if (clock_gettime(CLOCK_MONOTONIC, &wait_curr_time) != 0) {
+        free(read_entry.payload);
+        error.offset = peek_entry.offset;
+        return IpcChannelReadResult_error_body(
+            IPC_ERR_SYSTEM, "system error: clock_gettime failed", error);
+      }
 
-      const uint32_t expected_ready = atomic_load(&channel->header->notified);
-      ipc_futex_wait(&channel->header->notified, expected_ready, timeout);
+      const uint64_t wait_curr_ns = ipc_timespec_to_nanos(&wait_curr_time);
+      const uint64_t wait_elapsed_ns = wait_curr_ns - start_ns;
+      if (wait_elapsed_ns >= timeout_ns) {
+        continue;
+      }
+
+      const uint64_t remaining_ns = timeout_ns - wait_elapsed_ns;
+      struct timespec remaining_timeout = {
+          .tv_sec = (time_t)(remaining_ns / NANOS_PER_SEC),
+          .tv_nsec = (long)(remaining_ns % NANOS_PER_SEC)};
+
+      const uint32_t expected_notified = atomic_load_explicit(
+          &channel->header->notified, memory_order_acquire);
+      ipc_futex_wait(&channel->header->notified, expected_notified,
+                     &remaining_timeout);
+
+      // Continue loop to check data again
       continue;
     }
 
