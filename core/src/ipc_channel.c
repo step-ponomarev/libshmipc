@@ -163,6 +163,11 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
       error.buffer_size = b.buffer_size;
     }
 
+    if (write_result.ipc_status == IPC_ERR_NO_SPACE_CONTIGUOUS) {
+      atomic_fetch_add(&channel->header->notified, 1);
+      ipc_futex_wake_all(&channel->header->notified);
+    }
+
     return IpcChannelWriteResult_error_body(write_result.ipc_status,
                                             write_result.error.detail, error);
   }

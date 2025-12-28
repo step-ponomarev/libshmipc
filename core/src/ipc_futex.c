@@ -12,8 +12,18 @@ extern int __ulock_wake(uint32_t operation, void *addr, uint64_t wake_value);
 
 int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
                    const struct timespec *timeout) {
-  return __ulock_wait(UL_COMPARE_AND_WAIT, addr, expected,
-                      timeout->tv_sec * 1000000 + timeout->tv_nsec / 1000);
+  int res = __ulock_wait(UL_COMPARE_AND_WAIT, addr, expected,
+                         timeout->tv_sec * 1000000 + timeout->tv_nsec / 1000);
+  if (res == -1) {
+    // EAGAIN/EWOULDBLOCK: value changed before we slept - this is normal
+    // EINTR: interrupted by signal - continue waiting
+    // ETIMEDOUT: timeout expired - return error so caller can check
+    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+      return 0; // Treat as success, continue loop
+    }
+    // For ETIMEDOUT and other errors, return -1
+  }
+  return res;
 }
 
 int ipc_futex_wake_one(_Atomic uint32_t *addr) {
