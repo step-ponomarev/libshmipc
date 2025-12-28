@@ -17,7 +17,7 @@
 
 typedef struct IpcChannelHeader {
   _Atomic uint32_t notified;
-  _Atomic uint32_t need_notify;
+  _Atomic uint32_t waiters;
 } IpcChannelHeader;
 
 struct IpcChannel {
@@ -83,7 +83,7 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
 
   channel->header = (IpcChannelHeader *)mem;
   channel->buffer = buffer_result.result;
-  atomic_init(&channel->header->need_notify, NOT_NEED_NOTIFY);
+  atomic_init(&channel->header->waiters, NOT_NEED_NOTIFY);
   atomic_init(&channel->header->notified, 0);
 
   return IpcChannelOpenResult_ok(IPC_OK, channel);
@@ -169,13 +169,19 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
                                             write_result.error.detail, error);
   }
 
-  uint32_t need_notify = atomic_load(&channel->header->need_notify);
-  if (need_notify == NEED_NOTIFY) {
-    if (atomic_compare_exchange_strong(&channel->header->need_notify,
-                                       &need_notify, NOT_NEED_NOTIFY)) {
-      atomic_fetch_add_explicit(&channel->header->notified, 1,
-                                memory_order_release);
+  const uint32_t waiters_init = atomic_load(&channel->header->waiters);
+  uint32_t waiters = waiters_init;
+  if (waiters > 0) {
+    while (!atomic_compare_exchange_strong(&channel->header->waiters, &waiters,
+                                           0)) {
+      waiters = atomic_load(&channel->header->waiters);
+      if (waiters < waiters_init) {
+        break;
+      }
+    }
 
+    if (waiters >= waiters_init) {
+      atomic_fetch_add(&channel->header->notified, 1);
       ipc_futex_wake_all(&channel->header->notified);
     }
   }
@@ -315,17 +321,25 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
           .tv_sec = (time_t)(remaining_ns / NANOS_PER_SEC),
           .tv_nsec = (long)(remaining_ns % NANOS_PER_SEC)};
 
-      uint32_t need_notify = atomic_load(&channel->header->need_notify);
-      if (need_notify == NOT_NEED_NOTIFY) {
-        const uint32_t expected_notified = atomic_load_explicit(
-            &channel->header->notified, memory_order_acquire);
+      const uint32_t waiters_count_init =
+          atomic_load(&channel->header->waiters);
+      uint32_t waiters_count = waiters_count_init;
+      while (!atomic_compare_exchange_strong(
+          &channel->header->waiters, &waiters_count, waiters_count + 1)) {
+        waiters_count = atomic_load(&channel->header->waiters);
 
-        if (atomic_compare_exchange_strong(&channel->header->need_notify,
-                                           &need_notify, NEED_NOTIFY)) {
-          ipc_futex_wait(&channel->header->notified, expected_notified,
-                         &remaining_timeout);
+        if (waiters_count < waiters_count_init) {
+          break;
         }
       }
+
+      if (waiters_count < waiters_count_init) {
+        continue; // writer notify -> already has data
+      }
+
+      ipc_futex_wait(&channel->header->notified,
+                     atomic_load(&channel->header->notified),
+                     &remaining_timeout);
 
       // Continue loop to check data again
       continue;
