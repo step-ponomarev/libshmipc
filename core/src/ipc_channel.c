@@ -17,7 +17,6 @@
 
 typedef struct IpcChannelHeader {
   _Atomic uint32_t notified;
-  _Atomic uint32_t waiters;
 } IpcChannelHeader;
 
 struct IpcChannel {
@@ -83,7 +82,6 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
 
   channel->header = (IpcChannelHeader *)mem;
   channel->buffer = buffer_result.result;
-  atomic_init(&channel->header->waiters, NOT_NEED_NOTIFY);
   atomic_init(&channel->header->notified, 0);
 
   return IpcChannelOpenResult_ok(IPC_OK, channel);
@@ -169,22 +167,8 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
                                             write_result.error.detail, error);
   }
 
-  const uint32_t waiters_init = atomic_load(&channel->header->waiters);
-  uint32_t waiters = waiters_init;
-  if (waiters > 0) {
-    while (!atomic_compare_exchange_strong(&channel->header->waiters, &waiters,
-                                           0)) {
-      waiters = atomic_load(&channel->header->waiters);
-      if (waiters < waiters_init) {
-        break;
-      }
-    }
-
-    if (waiters >= waiters_init) {
-      atomic_fetch_add(&channel->header->notified, 1);
-      ipc_futex_wake_all(&channel->header->notified);
-    }
-  }
+  atomic_fetch_add(&channel->header->notified, 1);
+  ipc_futex_wake_all(&channel->header->notified);
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
 }
@@ -320,22 +304,6 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
       struct timespec remaining_timeout = {
           .tv_sec = (time_t)(remaining_ns / NANOS_PER_SEC),
           .tv_nsec = (long)(remaining_ns % NANOS_PER_SEC)};
-
-      const uint32_t waiters_count_init =
-          atomic_load(&channel->header->waiters);
-      uint32_t waiters_count = waiters_count_init;
-      while (!atomic_compare_exchange_strong(
-          &channel->header->waiters, &waiters_count, waiters_count + 1)) {
-        waiters_count = atomic_load(&channel->header->waiters);
-
-        if (waiters_count < waiters_count_init) {
-          break;
-        }
-      }
-
-      if (waiters_count < waiters_count_init) {
-        continue; // writer notify -> already has data
-      }
 
       ipc_futex_wait(&channel->header->notified,
                      atomic_load(&channel->header->notified),
