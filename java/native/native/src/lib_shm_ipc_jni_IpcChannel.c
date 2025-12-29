@@ -130,7 +130,7 @@ JNIEXPORT jbyteArray JNICALL Java_lib_shm_ipc_jni_IpcChannel_read(JNIEnv *env,
   }
 
   IpcEntry entry;
-  struct timespec timeout = {.tv_sec = 2};
+  struct timespec timeout = {.tv_nsec = 5000};
   IpcChannelReadResult read_result =
       ipc_channel_read(channel, &entry, &timeout);
 
