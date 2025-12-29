@@ -1,7 +1,6 @@
 #include "ipc_futex.h"
 #include "ipc_utils.h"
 #include <errno.h>
-#include <pthread.h>
 #include <shmipc/ipc_buffer.h>
 #include <shmipc/ipc_channel.h>
 #include <shmipc/ipc_common.h>
@@ -19,7 +18,6 @@
 typedef struct IpcChannelHeader {
   _Atomic uint32_t notify;
   _Atomic uint32_t waiters;
-  pthread_mutex_t mutex;
 } IpcChannelHeader;
 
 struct IpcChannel {
@@ -86,20 +84,6 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
 
   channel->header = (IpcChannelHeader *)mem;
   channel->buffer = buffer_result.result;
-
-  pthread_mutexattr_t mutex_attr;
-  pthread_mutexattr_init(&mutex_attr);
-  pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
-
-  if (pthread_mutex_init(&channel->header->mutex, &mutex_attr) != 0) {
-    pthread_mutexattr_destroy(&mutex_attr);
-    free(channel);
-    error.requested_size = size;
-    error.sys_errno = errno;
-    return IpcChannelOpenResult_error_body(
-        IPC_ERR_SYSTEM, "system error: pthread_mutex_init failed", error);
-  }
-  pthread_mutexattr_destroy(&mutex_attr);
 
   return IpcChannelOpenResult_ok(IPC_OK, channel);
 }
@@ -172,6 +156,13 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
   const IpcBufferWriteResult write_result =
       ipc_buffer_write(channel->buffer, data, size);
   if (IpcBufferWriteResult_is_error(write_result)) {
+    if (write_result.ipc_status == IPC_ERR_NO_SPACE_CONTIGUOUS) {
+      if (atomic_load(&channel->header->waiters) > 0) {
+        atomic_fetch_add(&channel->header->notify, 1);
+        ipc_futex_wake_all(&channel->header->notify);
+      }
+    }
+
     if (IpcBufferWriteResult_is_error_has_body(write_result.error)) {
       const IpcBufferWriteError b = write_result.error.body;
       error.offset = b.offset;
@@ -322,8 +313,6 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
     atomic_fetch_add(&channel->header->waiters, 1);
     ipc_futex_wait(&channel->header->notify, expected_notify, timeout);
     atomic_fetch_sub(&channel->header->waiters, 1);
-
-    pthread_mutex_unlock(&channel->header->mutex);
   }
 }
 
