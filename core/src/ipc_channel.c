@@ -44,8 +44,7 @@ uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
     return min_size;
   }
 
-  const uint64_t aligned_capacity = find_next_power_of_2(desired_capacity);
-  return aligned_capacity + overhead;
+  return find_next_power_of_2(desired_capacity) + overhead;
 }
 
 IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
