@@ -17,7 +17,6 @@
 
 typedef struct IpcChannelHeader {
   _Atomic uint32_t notify;
-  _Atomic uint32_t waiters;
 } IpcChannelHeader;
 
 struct IpcChannel {
@@ -86,7 +85,6 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
   channel->buffer = buffer_result.result;
 
   atomic_init(&channel->header->notify, 0);
-  atomic_init(&channel->header->waiters, 0);
 
   return IpcChannelOpenResult_ok(IPC_OK, channel);
 }
@@ -160,10 +158,8 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
       ipc_buffer_write(channel->buffer, data, size);
   if (IpcBufferWriteResult_is_error(write_result)) {
     if (write_result.ipc_status == IPC_ERR_NO_SPACE_CONTIGUOUS) {
-      if (atomic_load(&channel->header->waiters) > 0) {
-        atomic_fetch_add(&channel->header->notify, 1);
-        ipc_futex_wake_all(&channel->header->notify);
-      }
+      atomic_fetch_add(&channel->header->notify, 1);
+      ipc_futex_wake_all(&channel->header->notify);
     }
 
     if (IpcBufferWriteResult_is_error_has_body(write_result.error)) {
@@ -178,10 +174,8 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
                                             write_result.error.detail, error);
   }
 
-  if (atomic_load(&channel->header->waiters) > 0) {
-    atomic_fetch_add(&channel->header->notify, 1);
-    ipc_futex_wake_all(&channel->header->notify);
-  }
+  atomic_fetch_add(&channel->header->notify, 1);
+  ipc_futex_wake_all(&channel->header->notify);
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
 }
@@ -312,10 +306,8 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
                                              "timeout: read timed out", error);
     }
 
-    uint32_t expected_notify = atomic_load(&channel->header->notify);
-    atomic_fetch_add(&channel->header->waiters, 1);
-    ipc_futex_wait(&channel->header->notify, expected_notify, timeout);
-    atomic_fetch_sub(&channel->header->waiters, 1);
+    ipc_futex_wait(&channel->header->notify,
+                   atomic_load(&channel->header->notify), timeout);
   }
 }
 
