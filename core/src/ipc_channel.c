@@ -184,16 +184,9 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
                                             write_result.error.detail, error);
   }
 
-  // TODO: handle errors
   if (atomic_load(&channel->header->waiters) > 0) {
-    pthread_mutex_lock(&channel->header->mutex);
-    // can i read after lock without atomic_load?
-    if (atomic_load(&channel->header->waiters) != 0) {
-      atomic_store(&channel->header->waiters, 0);
-      atomic_fetch_add(&channel->header->notify, 1);
-      ipc_futex_wake_all(&channel->header->notify);
-    }
-    pthread_mutex_unlock(&channel->header->mutex);
+    atomic_fetch_add(&channel->header->notify, 1);
+    ipc_futex_wake_all(&channel->header->notify);
   }
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
@@ -325,13 +318,10 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
                                              "timeout: read timed out", error);
     }
 
-    // TODO: handle errors
     uint32_t expected_notify = atomic_load(&channel->header->notify);
-    pthread_mutex_lock(&channel->header->mutex);
-    if (atomic_load(&channel->header->notify) == expected_notify) {
-      atomic_fetch_add(&channel->header->waiters, 1);
-      ipc_futex_wait(&channel->header->notify, expected_notify, timeout);
-    }
+    atomic_fetch_add(&channel->header->waiters, 1);
+    ipc_futex_wait(&channel->header->notify, expected_notify, timeout);
+    atomic_fetch_sub(&channel->header->waiters, 1);
 
     pthread_mutex_unlock(&channel->header->mutex);
   }
