@@ -113,10 +113,12 @@ JNIEXPORT void JNICALL Java_lib_shm_ipc_jni_IpcChannel_write(JNIEnv *env,
 
   IpcChannelWriteResult write_result =
       ipc_channel_write(channel, (const void *)bytes, arr_len);
-  if (IpcChannelWriteResult_is_error(write_result)) {
+  while (IpcChannelWriteResult_is_error(write_result)) {
     DBG("ipc_channel_write failed: status=%d, detail=%s",
         (int)write_result.ipc_status,
         write_result.error.detail ? write_result.error.detail : "unknown");
+
+    write_result = ipc_channel_write(channel, (const void *)bytes, arr_len);
   }
 
   (*env)->ReleaseByteArrayElements(env, arr, bytes, JNI_ABORT);
@@ -133,12 +135,12 @@ JNIEXPORT jbyteArray JNICALL Java_lib_shm_ipc_jni_IpcChannel_read(JNIEnv *env,
   struct timespec timeout = {.tv_nsec = 5000};
   IpcChannelReadResult read_result =
       ipc_channel_read(channel, &entry, &timeout);
-
-  if (IpcChannelReadResult_is_error(read_result)) {
+  while (IpcChannelReadResult_is_error(read_result) &&
+         read_result.ipc_status == IPC_ERR_TIMEOUT) {
     DBG("ipc_channel_read failed: status=%d, detail=%s",
         (int)read_result.ipc_status,
         read_result.error.detail ? read_result.error.detail : "unknown");
-    return NULL;
+    read_result = ipc_channel_read(channel, &entry, &timeout);
   }
 
   const jsize len = (jsize)entry.size;
