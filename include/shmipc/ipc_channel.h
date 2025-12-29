@@ -47,6 +47,7 @@ SHMIPC_API IpcChannelWriteResult ipc_channel_write(IpcChannel *channel,
 typedef struct IpcChannelReadError {
   uint64_t offset;
   struct timespec timeout_used;
+  int sys_errno;
 } IpcChannelReadError;
 IPC_RESULT_UNIT(IpcChannelReadResult, IpcChannelReadError)
 SHMIPC_API IpcChannelReadResult ipc_channel_read(

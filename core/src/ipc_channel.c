@@ -73,8 +73,10 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
                                            buffer_result.error.detail, error);
   }
 
+  // TODO: destroy buffer on any error below
   IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
   if (channel == NULL) {
+    free(buffer_result.result);
     error.requested_size = size;
     return IpcChannelOpenResult_error_body(
         IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
@@ -83,7 +85,6 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
   channel->header = (IpcChannelHeader *)mem;
   channel->buffer = buffer_result.result;
 
-  // Initialize process-shared mutex
   pthread_mutexattr_t mutex_attr;
   pthread_mutexattr_init(&mutex_attr);
   pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
@@ -98,7 +99,6 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
   }
   pthread_mutexattr_destroy(&mutex_attr);
 
-  // Initialize process-shared condition variable
   pthread_condattr_t cond_attr;
   pthread_condattr_init(&cond_attr);
   pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
@@ -160,10 +160,7 @@ IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel) {
         IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
   }
 
-  // Destroy pthread synchronization objects
-  pthread_cond_destroy(&channel->header->cond);
-  pthread_mutex_destroy(&channel->header->mutex);
-
+  // TODO: destroy buffer?
   free(channel->buffer);
   free(channel);
   return IpcChannelDestroyResult_ok(IPC_OK);
@@ -205,7 +202,6 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
                                             write_result.error.detail, error);
   }
 
-  // Wake waiting readers
   pthread_cond_broadcast(&channel->header->cond);
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
@@ -322,11 +318,14 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
                                              "timeout: read timed out", error);
     }
 
-    // TODO: oprimize we need only one pointer
     if (_is_retry_status(peek_result.ipc_status)) {
-      // TODO: handle res
-      pthread_cond_timedwait(&channel->header->cond, &channel->header->mutex,
-                             timeout);
+      if (pthread_cond_timedwait(&channel->header->cond,
+                                 &channel->header->mutex, timeout) == EINVAL) {
+        error.sys_errno = EINVAL;
+        // not timeout
+        return IpcChannelReadResult_error_body(
+            IPC_ERR_SYSTEM, "system error: illegal pthrread state", error);
+      }
 
       // Continue loop to check data again
       continue;
