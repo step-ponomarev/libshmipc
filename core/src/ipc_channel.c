@@ -73,7 +73,6 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
                                            buffer_result.error.detail, error);
   }
 
-  // TODO: destroy buffer on any error below
   IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
   if (channel == NULL) {
     free(buffer_result.result);
@@ -160,7 +159,6 @@ IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel) {
         IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
   }
 
-  // TODO: destroy buffer?
   free(channel->buffer);
   free(channel);
   return IpcChannelDestroyResult_ok(IPC_OK);
@@ -294,8 +292,23 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
     IpcEntry peek_entry;
     const IpcBufferPeekResult peek_result =
         ipc_buffer_peek(channel->buffer, &peek_entry);
-    if (IpcBufferPeekResult_is_error(peek_result) &&
-        !_is_retry_status(peek_result.ipc_status)) {
+
+    if (peek_result.ipc_status == IPC_OK) {
+      const IpcChannelReadResult read_result = _try_read(channel, &read_entry);
+      if (_is_error_status(read_result.ipc_status)) {
+        free(read_entry.payload);
+        return read_result;
+      }
+
+      if (read_result.ipc_status == IPC_OK) {
+        dest->payload = read_entry.payload;
+        dest->size = read_entry.size;
+        dest->offset = read_entry.offset;
+        return read_result;
+      }
+    }
+
+    if (!_is_retry_status(peek_result.ipc_status)) {
       free(read_entry.payload);
       error.offset = peek_entry.offset;
       return IpcChannelReadResult_error_body(peek_result.ipc_status,
@@ -318,30 +331,12 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
                                              "timeout: read timed out", error);
     }
 
-    if (_is_retry_status(peek_result.ipc_status)) {
-      if (pthread_cond_timedwait(&channel->header->cond,
-                                 &channel->header->mutex, timeout) == EINVAL) {
-        error.sys_errno = EINVAL;
-        // not timeout
-        return IpcChannelReadResult_error_body(
-            IPC_ERR_SYSTEM, "system error: illegal pthrread state", error);
-      }
-
-      // Continue loop to check data again
-      continue;
-    }
-
-    const IpcChannelReadResult read_result = _try_read(channel, &read_entry);
-    if (_is_error_status(read_result.ipc_status)) {
-      free(read_entry.payload);
-      return read_result;
-    }
-
-    if (read_result.ipc_status == IPC_OK) {
-      dest->payload = read_entry.payload;
-      dest->size = read_entry.size;
-      dest->offset = read_entry.offset;
-      return read_result;
+    if (pthread_cond_timedwait(&channel->header->cond, &channel->header->mutex,
+                               timeout) == EINVAL) {
+      error.sys_errno = EINVAL;
+      // not timeout
+      return IpcChannelReadResult_error_body(
+          IPC_ERR_SYSTEM, "system error: illegal pthrread state", error);
     }
   }
 }
