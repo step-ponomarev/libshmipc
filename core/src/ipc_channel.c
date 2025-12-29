@@ -1,9 +1,11 @@
+#include "ipc_futex.h"
 #include "ipc_utils.h"
 #include <errno.h>
 #include <pthread.h>
 #include <shmipc/ipc_buffer.h>
 #include <shmipc/ipc_channel.h>
 #include <shmipc/ipc_common.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <time.h>
@@ -15,8 +17,9 @@
   ALIGN_UP_BY_CACHE_LINE(sizeof(IpcChannelHeader))
 
 typedef struct IpcChannelHeader {
+  _Atomic uint32_t notify;
+  _Atomic uint32_t waiters;
   pthread_mutex_t mutex;
-  pthread_cond_t cond;
 } IpcChannelHeader;
 
 struct IpcChannel {
@@ -98,21 +101,6 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
   }
   pthread_mutexattr_destroy(&mutex_attr);
 
-  pthread_condattr_t cond_attr;
-  pthread_condattr_init(&cond_attr);
-  pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
-
-  if (pthread_cond_init(&channel->header->cond, &cond_attr) != 0) {
-    pthread_condattr_destroy(&cond_attr);
-    pthread_mutex_destroy(&channel->header->mutex);
-    free(channel);
-    error.requested_size = size;
-    error.sys_errno = errno;
-    return IpcChannelOpenResult_error_body(
-        IPC_ERR_SYSTEM, "system error: pthread_cond_init failed", error);
-  }
-  pthread_condattr_destroy(&cond_attr);
-
   return IpcChannelOpenResult_ok(IPC_OK, channel);
 }
 
@@ -192,15 +180,21 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
       error.buffer_size = b.buffer_size;
     }
 
-    if (write_result.ipc_status == IPC_ERR_NO_SPACE_CONTIGUOUS) {
-      pthread_cond_broadcast(&channel->header->cond);
-    }
-
     return IpcChannelWriteResult_error_body(write_result.ipc_status,
                                             write_result.error.detail, error);
   }
 
-  pthread_cond_broadcast(&channel->header->cond);
+  // TODO: handle errors
+  if (atomic_load(&channel->header->waiters) > 0) {
+    pthread_mutex_lock(&channel->header->mutex);
+    // can i read after lock without atomic_load?
+    if (atomic_load(&channel->header->waiters) != 0) {
+      atomic_store(&channel->header->waiters, 0);
+      atomic_fetch_add(&channel->header->notify, 1);
+      ipc_futex_wake_all(&channel->header->notify);
+    }
+    pthread_mutex_unlock(&channel->header->mutex);
+  }
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
 }
@@ -331,13 +325,15 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
                                              "timeout: read timed out", error);
     }
 
-    if (pthread_cond_timedwait(&channel->header->cond, &channel->header->mutex,
-                               timeout) == EINVAL) {
-      error.sys_errno = EINVAL;
-      // not timeout
-      return IpcChannelReadResult_error_body(
-          IPC_ERR_SYSTEM, "system error: illegal pthrread state", error);
+    // TODO: handle errors
+    uint32_t expected_notify = atomic_load(&channel->header->notify);
+    pthread_mutex_lock(&channel->header->mutex);
+    if (atomic_load(&channel->header->notify) != expected_notify) {
+      atomic_fetch_add(&channel->header->waiters, 1);
+      ipc_futex_wait(&channel->header->notify, expected_notify, timeout);
     }
+
+    pthread_mutex_unlock(&channel->header->mutex);
   }
 }
 
