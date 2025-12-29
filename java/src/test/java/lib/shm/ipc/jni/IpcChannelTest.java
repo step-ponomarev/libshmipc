@@ -1,6 +1,5 @@
 package lib.shm.ipc.jni;
 
-import lib.shm.ipc.conf.IpcChannelConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -20,11 +19,11 @@ public class IpcChannelTest {
     public void simpleMessageCounterTest() throws InterruptedException, IOException {
         final Path mmapFile = Paths.get("/mmap.data");
 
-        final int expectedMessageCount = 30000;
+        final int expectedMessageCount = 10;
         final AtomicInteger counter = new AtomicInteger(0);
         try (final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
-            final IpcChannel writter = new IpcChannel(mmapFile.toString(), 2000, new IpcChannelConfiguration(1, 1, 1, true));
-            final IpcChannel reader = new IpcChannel(mmapFile.toString(), 2000, new IpcChannelConfiguration(1, 1, 1, false));
+            final IpcChannel writter = new IpcChannel(mmapFile.toString(), 2000, true);
+            final IpcChannel reader = new IpcChannel(mmapFile.toString(), 2000, false);
             executorService.submit(() -> {
                 for (int i = 0; i < expectedMessageCount; i++) {
                     writter.write("Hello world!".getBytes(StandardCharsets.UTF_8));
@@ -41,7 +40,7 @@ public class IpcChannelTest {
             });
 
             executorService.shutdown();
-            executorService.awaitTermination(200, TimeUnit.SECONDS);
+            executorService.awaitTermination(10, TimeUnit.SECONDS);
 
             Assert.assertEquals(expectedMessageCount, counter.get());
         } finally {

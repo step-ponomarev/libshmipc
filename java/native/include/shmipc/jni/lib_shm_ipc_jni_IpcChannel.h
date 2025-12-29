@@ -26,10 +26,10 @@ JNIEXPORT jbyteArray JNICALL Java_lib_shm_ipc_jni_IpcChannel_read
 /*
  * Class:     lib_shm_ipc_jni_IpcChannel
  * Method:    init
- * Signature: (Ljava/lang/String;JLlib/shm/ipc/conf/IpcChannelConfiguration;)J
+ * Signature: (Ljava/lang/String;JZ)J
  */
 JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init
-  (JNIEnv *, jobject, jstring, jlong, jobject);
+  (JNIEnv *, jobject, jstring, jlong, jboolean);
 
 #ifdef __cplusplus
 }
