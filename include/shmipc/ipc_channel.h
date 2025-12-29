@@ -22,6 +22,7 @@ SHMIPC_API IpcChannelOpenResult ipc_channel_create(void *mem,
                                                    const size_t size);
 
 typedef struct IpcChannelConnectError {
+  int sys_errno;
   size_t min_size;
 } IpcChannelConnectError;
 IPC_RESULT(IpcChannelConnectResult, IpcChannel *, IpcChannelConnectError)

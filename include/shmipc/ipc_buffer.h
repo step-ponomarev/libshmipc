@@ -23,6 +23,7 @@ SHMIPC_API IpcBufferCreateResult ipc_buffer_create(void *mem,
 
 typedef struct IpcBufferAttachError {
   size_t min_size;
+  int sys_errno;
 } IpcBufferAttachError;
 IPC_RESULT(IpcBufferAttachResult, IpcBuffer *, IpcBufferAttachError)
 SHMIPC_API IpcBufferAttachResult ipc_buffer_attach(void *mem);

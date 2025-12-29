@@ -75,6 +75,7 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
   IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
   if (channel == NULL) {
     free(buffer_result.result);
+    error.sys_errno = errno;
     error.requested_size = size;
     return IpcChannelOpenResult_error_body(
         IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
@@ -99,6 +100,7 @@ IpcChannelConnectResult ipc_channel_connect(void *mem) {
 
   IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
   if (channel == NULL) {
+    error.sys_errno = errno;
     return IpcChannelConnectResult_error_body(
         IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
   }
@@ -255,6 +257,7 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
   uint64_t timeout_ns = 0;
   struct timespec start_time;
   if (clock_gettime(CLOCK_MONOTONIC, &start_time) != 0) {
+    error.sys_errno = errno;
     return IpcChannelReadResult_error_body(
         IPC_ERR_SYSTEM, "system error: clock_gettime failed", error);
   }
@@ -292,6 +295,7 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
     struct timespec curr_time;
     if (clock_gettime(CLOCK_MONOTONIC, &curr_time) != 0) {
       free(read_entry.payload);
+      error.sys_errno = errno;
       error.offset = peek_entry.offset;
       return IpcChannelReadResult_error_body(
           IPC_ERR_SYSTEM, "system error: clock_gettime failed", error);
@@ -312,8 +316,15 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
                                              remaining_ns % NANOS_PER_SEC};
 
     uint32_t expected_notify = atomic_load(&channel->header->notify);
-    ipc_futex_wait(&channel->header->notify, expected_notify,
-                   &remaining_timeout);
+    int wait_res = ipc_futex_wait(&channel->header->notify, expected_notify,
+                                  &remaining_timeout);
+    if (wait_res != 0 && wait_res != ETIMEDOUT) {
+      free(read_entry.payload);
+      error.sys_errno = errno;
+      error.offset = peek_entry.offset;
+      return IpcChannelReadResult_error_body(
+          IPC_ERR_SYSTEM, "system error: futex wait failed", error);
+    }
   }
 }
 
@@ -430,6 +441,7 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
       dest->payload = malloc(peek_entry.size);
       if (dest->payload == NULL) {
         error.offset = peek_entry.offset;
+        error.sys_errno = errno;
         return IpcChannelReadResult_error_body(
             IPC_ERR_SYSTEM, "system error: allocation failed", error);
       }
@@ -438,6 +450,7 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
     } else if (dest->size < peek_entry.size) {
       void *new_buf = realloc(dest->payload, peek_entry.size);
       if (new_buf == NULL) {
+        error.sys_errno = errno;
         error.offset = peek_entry.offset;
         return IpcChannelReadResult_error_body(
             IPC_ERR_SYSTEM, "system error: allocation failed", error);

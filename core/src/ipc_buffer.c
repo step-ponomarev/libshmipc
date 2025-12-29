@@ -104,7 +104,7 @@ IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
 }
 
 IpcBufferAttachResult ipc_buffer_attach(void *mem) {
-  const IpcBufferAttachError error = {.min_size = BUFFER_HEADER_SIZE_ALIGNED};
+  IpcBufferAttachError error = {.min_size = BUFFER_HEADER_SIZE_ALIGNED};
   if (mem == NULL) {
     return IpcBufferAttachResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
@@ -114,6 +114,7 @@ IpcBufferAttachResult ipc_buffer_attach(void *mem) {
       (struct IpcBuffer *)malloc(sizeof(struct IpcBuffer));
 
   if (buffer == NULL) {
+    error.sys_errno = errno;
     return IpcBufferAttachResult_error_body(
         IPC_ERR_SYSTEM, "system error: allocation failed", error);
   }
