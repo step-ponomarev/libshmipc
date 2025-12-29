@@ -33,7 +33,7 @@ inline uint64_t ipc_channel_get_memory_overhead(void) {
 }
 
 inline uint64_t ipc_channel_get_min_size(void) {
-  return ipc_channel_get_memory_overhead() + ipc_buffer_get_min_size();
+  return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_get_min_size();
 }
 
 uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
