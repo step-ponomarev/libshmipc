@@ -19,7 +19,7 @@ public class IpcChannelTest {
     public void simpleMessageCounterTest() throws InterruptedException, IOException {
         final Path mmapFile = Paths.get("/mmap.data");
 
-        final int expectedMessageCount = 10;
+        final int expectedMessageCount = 100;
         final AtomicInteger counter = new AtomicInteger(0);
         try (final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
             final IpcChannel writter = new IpcChannel(mmapFile.toString(), 2000, true);
@@ -40,7 +40,7 @@ public class IpcChannelTest {
             });
 
             executorService.shutdown();
-            executorService.awaitTermination(200, TimeUnit.SECONDS);
+            executorService.awaitTermination(10, TimeUnit.SECONDS);
 
             Assert.assertEquals(expectedMessageCount, counter.get());
         } finally {

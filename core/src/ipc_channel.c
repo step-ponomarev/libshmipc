@@ -299,15 +299,22 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
     }
 
     const uint64_t curr_ns = ipc_timespec_to_nanos(&curr_time);
-    if (curr_ns - start_ns > timeout_ns) {
+    const uint64_t elapsed_ns = curr_ns - start_ns;
+    if (elapsed_ns >= timeout_ns) {
       free(read_entry.payload);
       error.offset = peek_entry.offset;
       return IpcChannelReadResult_error_body(IPC_ERR_TIMEOUT,
                                              "timeout: read timed out", error);
     }
 
-    ipc_futex_wait(&channel->header->notify,
-                   atomic_load(&channel->header->notify), timeout);
+    const uint64_t remaining_ns = timeout_ns - elapsed_ns;
+    struct timespec remaining_timeout = {.tv_sec = remaining_ns / NANOS_PER_SEC,
+                                         .tv_nsec =
+                                             remaining_ns % NANOS_PER_SEC};
+
+    uint32_t expected_notify = atomic_load(&channel->header->notify);
+    ipc_futex_wait(&channel->header->notify, expected_notify,
+                   &remaining_timeout);
   }
 }
 
