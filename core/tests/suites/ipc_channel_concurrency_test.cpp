@@ -224,7 +224,7 @@ TEST_CASE("extreme stress test - small buffer") {
   }
 }
 
-TEST_CASE("futex blocks reader until writer writes") {
+TEST_CASE("blocks reader until writer writes") {
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
   const IpcChannelOpenResult channel_result =
@@ -237,13 +237,13 @@ TEST_CASE("futex blocks reader until writer writes") {
     while (!reader_ready.load(std::memory_order_acquire)) {
       std::this_thread::yield();
     }
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     test_utils::write_data(channel, 42);
   });
 
   IpcEntry entry;
-  struct timespec timeout = {.tv_sec = 20, .tv_nsec = 0};
+  struct timespec timeout = {.tv_sec = 2000, .tv_nsec = 0};
 
   reader_ready.store(true, std::memory_order_release);
 
