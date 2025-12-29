@@ -85,6 +85,9 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
   channel->header = (IpcChannelHeader *)mem;
   channel->buffer = buffer_result.result;
 
+  atomic_init(&channel->header->notify, 0);
+  atomic_init(&channel->header->waiters, 0);
+
   return IpcChannelOpenResult_ok(IPC_OK, channel);
 }
 
