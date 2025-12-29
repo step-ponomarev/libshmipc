@@ -9,15 +9,17 @@
 
 #define IPC_DATA_ALIGN 0x8
 
-#define BUFFER_HEADER_SIZE_ALIGNED                                             \
-  ALIGN_UP_BY_CACHE_LINE(sizeof(IpcBufferHeader))
+#define BUFFER_HEADER_SIZE_ALIGNED sizeof(IpcBufferHeader)
 #define UNLOCK(offset) (((offset) & (~(0x1))))
 #define LOCK(offset) ((offset) | 0x1)
 
 typedef struct IpcBufferHeader {
   _Atomic uint64_t head;
-  _Atomic uint64_t tail;
   _Atomic uint64_t data_size;
+  uint8_t _r_padding[64 - 2 * sizeof(uint64_t)];
+
+  _Atomic uint64_t tail;
+  uint8_t _w_padding[64 - sizeof(uint64_t)];
 } IpcBufferHeader;
 
 struct IpcBuffer {
