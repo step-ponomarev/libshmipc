@@ -1,22 +1,22 @@
-#include "ipc_futex.h"
 #include "ipc_utils.h"
+#include <errno.h>
+#include <pthread.h>
 #include <shmipc/ipc_buffer.h>
 #include <shmipc/ipc_channel.h>
 #include <shmipc/ipc_common.h>
-#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define WAIT_EXPAND_FACTOR 2
 #define NANOS_PER_SEC 1000000000ULL
 
 #define CHANNEL_HEADER_SIZE_ALIGNED                                            \
   ALIGN_UP_BY_CACHE_LINE(sizeof(IpcChannelHeader))
-#define NEED_NOTIFY 1
-#define NOT_NEED_NOTIFY 2
 
 typedef struct IpcChannelHeader {
-  _Atomic uint32_t notified;
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
 } IpcChannelHeader;
 
 struct IpcChannel {
@@ -82,7 +82,37 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
 
   channel->header = (IpcChannelHeader *)mem;
   channel->buffer = buffer_result.result;
-  atomic_init(&channel->header->notified, 0);
+
+  // Initialize process-shared mutex
+  pthread_mutexattr_t mutex_attr;
+  pthread_mutexattr_init(&mutex_attr);
+  pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
+
+  if (pthread_mutex_init(&channel->header->mutex, &mutex_attr) != 0) {
+    pthread_mutexattr_destroy(&mutex_attr);
+    free(channel);
+    error.requested_size = size;
+    error.sys_errno = errno;
+    return IpcChannelOpenResult_error_body(
+        IPC_ERR_SYSTEM, "system error: pthread_mutex_init failed", error);
+  }
+  pthread_mutexattr_destroy(&mutex_attr);
+
+  // Initialize process-shared condition variable
+  pthread_condattr_t cond_attr;
+  pthread_condattr_init(&cond_attr);
+  pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
+
+  if (pthread_cond_init(&channel->header->cond, &cond_attr) != 0) {
+    pthread_condattr_destroy(&cond_attr);
+    pthread_mutex_destroy(&channel->header->mutex);
+    free(channel);
+    error.requested_size = size;
+    error.sys_errno = errno;
+    return IpcChannelOpenResult_error_body(
+        IPC_ERR_SYSTEM, "system error: pthread_cond_init failed", error);
+  }
+  pthread_condattr_destroy(&cond_attr);
 
   return IpcChannelOpenResult_ok(IPC_OK, channel);
 }
@@ -130,6 +160,10 @@ IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel) {
         IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
   }
 
+  // Destroy pthread synchronization objects
+  pthread_cond_destroy(&channel->header->cond);
+  pthread_mutex_destroy(&channel->header->mutex);
+
   free(channel->buffer);
   free(channel);
   return IpcChannelDestroyResult_ok(IPC_OK);
@@ -164,16 +198,15 @@ IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
     }
 
     if (write_result.ipc_status == IPC_ERR_NO_SPACE_CONTIGUOUS) {
-      atomic_fetch_add(&channel->header->notified, 1);
-      ipc_futex_wake_all(&channel->header->notified);
+      pthread_cond_broadcast(&channel->header->cond);
     }
 
     return IpcChannelWriteResult_error_body(write_result.ipc_status,
                                             write_result.error.detail, error);
   }
 
-  atomic_fetch_add(&channel->header->notified, 1);
-  ipc_futex_wake_all(&channel->header->notified);
+  // Wake waiting readers
+  pthread_cond_broadcast(&channel->header->cond);
 
   return IpcChannelWriteResult_ok(write_result.ipc_status);
 }
@@ -291,28 +324,9 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
 
     // TODO: oprimize we need only one pointer
     if (_is_retry_status(peek_result.ipc_status)) {
-      struct timespec wait_curr_time;
-      if (clock_gettime(CLOCK_MONOTONIC, &wait_curr_time) != 0) {
-        free(read_entry.payload);
-        error.offset = peek_entry.offset;
-        return IpcChannelReadResult_error_body(
-            IPC_ERR_SYSTEM, "system error: clock_gettime failed", error);
-      }
-
-      const uint64_t wait_curr_ns = ipc_timespec_to_nanos(&wait_curr_time);
-      const uint64_t wait_elapsed_ns = wait_curr_ns - start_ns;
-      if (wait_elapsed_ns >= timeout_ns) {
-        continue;
-      }
-
-      const uint64_t remaining_ns = timeout_ns - wait_elapsed_ns;
-      struct timespec remaining_timeout = {
-          .tv_sec = (time_t)(remaining_ns / NANOS_PER_SEC),
-          .tv_nsec = (long)(remaining_ns % NANOS_PER_SEC)};
-
-      ipc_futex_wait(&channel->header->notified,
-                     atomic_load(&channel->header->notified),
-                     &remaining_timeout);
+      // TODO: handle res
+      pthread_cond_timedwait(&channel->header->cond, &channel->header->mutex,
+                             timeout);
 
       // Continue loop to check data again
       continue;

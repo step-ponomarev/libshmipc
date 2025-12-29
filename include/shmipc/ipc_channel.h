@@ -19,7 +19,7 @@ typedef struct IpcChannelOpenError {
 } IpcChannelOpenError;
 IPC_RESULT(IpcChannelOpenResult, IpcChannel *, IpcChannelOpenError)
 SHMIPC_API IpcChannelOpenResult ipc_channel_create(void *mem,
-                                                    const size_t size);
+                                                   const size_t size);
 
 typedef struct IpcChannelConnectError {
   size_t min_size;
@@ -49,9 +49,8 @@ typedef struct IpcChannelReadError {
   struct timespec timeout_used;
 } IpcChannelReadError;
 IPC_RESULT_UNIT(IpcChannelReadResult, IpcChannelReadError)
-SHMIPC_API IpcChannelReadResult ipc_channel_read(IpcChannel *channel,
-                                                 IpcEntry *dest,
-                                                 const struct timespec *timeout);
+SHMIPC_API IpcChannelReadResult ipc_channel_read(
+    IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout);
 
 typedef struct IpcChannelTryReadError {
   uint64_t offset;
