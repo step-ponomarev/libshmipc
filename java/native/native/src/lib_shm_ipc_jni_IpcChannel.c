@@ -113,7 +113,8 @@ JNIEXPORT void JNICALL Java_lib_shm_ipc_jni_IpcChannel_write(JNIEnv *env,
 
   IpcChannelWriteResult write_result =
       ipc_channel_write(channel, (const void *)bytes, arr_len);
-  while (IpcChannelWriteResult_is_error(write_result)) {
+  while (IpcChannelWriteResult_is_error(write_result) &&
+         write_result.ipc_status == IPC_ERR_NO_SPACE_CONTIGUOUS) {
     DBG("ipc_channel_write failed: status=%d, detail=%s",
         (int)write_result.ipc_status,
         write_result.error.detail ? write_result.error.detail : "unknown");
