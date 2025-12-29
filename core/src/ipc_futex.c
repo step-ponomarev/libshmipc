@@ -66,7 +66,7 @@ int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
     // For other errors (including ETIMEDOUT), return the error
     // Caller should check timeout separately
 
-    return errno
+    return errno;
   }
 
   return res;
