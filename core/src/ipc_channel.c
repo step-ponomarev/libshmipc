@@ -328,7 +328,7 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
     // TODO: handle errors
     uint32_t expected_notify = atomic_load(&channel->header->notify);
     pthread_mutex_lock(&channel->header->mutex);
-    if (atomic_load(&channel->header->notify) != expected_notify) {
+    if (atomic_load(&channel->header->notify) == expected_notify) {
       atomic_fetch_add(&channel->header->waiters, 1);
       ipc_futex_wait(&channel->header->notify, expected_notify, timeout);
     }
