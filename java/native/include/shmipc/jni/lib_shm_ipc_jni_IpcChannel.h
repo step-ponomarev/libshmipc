@@ -9,27 +9,38 @@ extern "C" {
 #endif
 /*
  * Class:     lib_shm_ipc_jni_IpcChannel
- * Method:    write
- * Signature: ([B)V
+ * Method:    suggestSize
+ * Signature: (J)J
  */
-JNIEXPORT void JNICALL Java_lib_shm_ipc_jni_IpcChannel_write
-  (JNIEnv *, jobject, jbyteArray);
+JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_suggestSize(JNIEnv *,
+                                                                    jclass,
+                                                                    jlong);
 
 /*
  * Class:     lib_shm_ipc_jni_IpcChannel
- * Method:    read
- * Signature: ()[B
+ * Method:    write
+ * Signature: ([B)Llib/shm/ipc/IpcResultWrapper;
  */
-JNIEXPORT jbyteArray JNICALL Java_lib_shm_ipc_jni_IpcChannel_read
-  (JNIEnv *, jobject);
+JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_write(JNIEnv *,
+                                                                jobject,
+                                                                jbyteArray);
+
+/*
+ * Class:     lib_shm_ipc_jni_IpcChannel
+ * Method:    tryRead
+ * Signature: ()Llib/shm/ipc/IpcResultWrapper;
+ */
+JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_tryRead(JNIEnv *,
+                                                                  jobject);
 
 /*
  * Class:     lib_shm_ipc_jni_IpcChannel
  * Method:    init
- * Signature: (Ljava/lang/String;JZ)J
+ * Signature: (Ljava/lang/String;JZ)Llib/shm/ipc/IpcResultWrapper;
  */
-JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init
-  (JNIEnv *, jobject, jstring, jlong, jboolean);
+JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(JNIEnv *, jclass,
+                                                               jstring, jlong,
+                                                               jboolean);
 
 #ifdef __cplusplus
 }

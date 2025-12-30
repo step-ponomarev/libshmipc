@@ -1,6 +1,9 @@
 package lib.shm.ipc.jni;
 
 import lib.shm.ipc.LibLoader;
+import lib.shm.ipc.result.IpcBooleanResult;
+import lib.shm.ipc.result.IpcBytesResult;
+import lib.shm.ipc.result.IpcLongResult;
 
 public class IpcChannel {
     static {
@@ -9,16 +12,41 @@ public class IpcChannel {
 
     private final long channelAddress;
 
-    public IpcChannel(String fileName, long sizeBytes, boolean isProducer) {
-        this.channelAddress = init(fileName, sizeBytes, isProducer);
-        System.out.println(this.channelAddress);
+    // firstly addres
+    private IpcChannel(long channelAddress) {
+        this.channelAddress = channelAddress;
+
+        long pollingAddress = getPollingAddress();
     }
 
-    public native void write(byte[] data);
+    public static IpcChannel create(String fileName, long sizeBytes) {
+        //TODO: handle error
 
-    public native byte[] read();
+        IpcLongResult init = init(fileName, sizeBytes, true);
 
-    private native long init(String fileName, long sizeBytes, boolean isProducer);
+        return new IpcChannel(init.getResult());
+    }
+
+    public static IpcChannel attach(String fileName, long sizeBytes) {
+        //TODO: handle error
+        IpcLongResult init = init(fileName, sizeBytes, false);
+
+        return new IpcChannel(init.getResult());
+    }
+
+    public static native long suggestSize(long desiredCapacity);
+
+    public IpcBytesResult read() {
+        throw new UnsupportedOperationException();
+    }
+
+    public native IpcBooleanResult write(byte[] data);
+
+    public native IpcBytesResult tryRead();
+
+    private static native IpcLongResult init(String fileName, long sizeBytes, boolean create);
+
+    private native long getPollingAddress();
 
 //    @Override
 //    public native void close() throws IOException;

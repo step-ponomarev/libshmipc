@@ -7,92 +7,108 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
+
+#define CLASS_LONG_RESULT_PATH "lib/shm/ipc/result/IpcLongResult"
+#define CLASS_ERROR_PATH "lib/shm/ipc/result/IpcError"
+#define CLASS_ERROR_CODE_PATH CLASS_ERROR_PATH "$ErrorCode"
+
 #define DBG(fmt, ...)                                                          \
   do {                                                                         \
     fprintf(stderr, "[jni:init] " fmt "\n", ##__VA_ARGS__);                    \
     fflush(stderr);                                                            \
   } while (0)
 
-typedef struct IpcChannelConfigurationJni {
-  bool create;
-} IpcChannelConfigurationJni;
-
 static IpcChannel *get_channel(JNIEnv *env, jobject obj);
-static IpcChannelConfigurationJni parce_config(JNIEnv *env, jobject conf);
+static jobject create_error_long_response(JNIEnv *env, IpcStatus status_code,
+                                          const char *msg);
 
-JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
+static jobject create_error(JNIEnv *env, IpcStatus status_code,
+                            const char *msg);
+
+// TODO: cache classes
+// TODO: handle null results
+// TODO: dont forget release objects
+
+/*
+ * Class:     lib_shm_ipc_jni_IpcChannel
+ * Method:    write
+ * Signature: ([B)Llib/shm/ipc/IpcResultWrapper;
+ */
+JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_write(JNIEnv *,
+                                                                jobject,
+                                                                jbyteArray);
+
+/*
+ * Class:     lib_shm_ipc_jni_IpcChannel
+ * Method:    tryRead
+ * Signature: ()Llib/shm/ipc/IpcResultWrapper;
+ */
+JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_tryRead(JNIEnv *,
+                                                                  jobject);
+
+/*
+ * Class:     lib_shm_ipc_jni_IpcChannel
+ * Method:    init
+ * Signature: (Ljava/lang/String;JZ)Llib/shm/ipc/IpcResultWrapper;
+ */
+
+JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_suggestSize(
+    JNIEnv *___, jclass __, jlong desired_capacity) {
+  return (jlong)ipc_channel_suggest_size((size_t)desired_capacity);
+}
+
+JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(
     JNIEnv *env, jobject obj, jstring path_to_file, jlong size,
-    jboolean is_producer) {
-  if (!path_to_file) {
-    DBG("path_to_file=NULL");
-    return 0;
+    jboolean create) {
+  if (path_to_file == NULL) {
+    return create_error_long_response(env, IPC_ERR_INVALID_ARGUMENT,
+                                      "Path to file is empty");
   }
+
   if (size <= 0) {
-    DBG("size<=0");
-    return 0;
+    return create_error_long_response(env, IPC_ERR_INVALID_ARGUMENT,
+                                      "Illegal size");
   }
 
   const char *path = (*env)->GetStringUTFChars(env, path_to_file, NULL);
-  if (!path) {
-    DBG("GetStringUTFChars failed (OOM/pending ex)");
-    return 0;
+  if (path == NULL) {
+    return create_error_long_response(env, IPC_ERR_SYSTEM, "Failed path parse");
   }
 
-  DBG("path='%s' size=%llu", path, (unsigned long long)size);
-
-  uint64_t aligned = ipc_channel_suggest_size((size_t)size);
-  IpcMemorySegmentResult mmap_result = ipc_mmap(path, aligned);
-
-  if (IpcMemorySegmentResult_is_error(mmap_result)) {
-    DBG("ipc_mmap failed: status=%d, detail=%s", (int)mmap_result.ipc_status,
-        mmap_result.error.detail ? mmap_result.error.detail : "unknown");
-    (*env)->ReleaseStringUTFChars(env, path_to_file, path);
-    return 0;
-  }
-
-  IpcMemorySegment *seg = mmap_result.result;
-  DBG("ipc_mmap => seg=%p (mem=%p, size=%llu)", (void *)seg,
-      seg ? seg->memory : NULL, seg ? (unsigned long long)seg->size : 0ULL);
-
+  // TODO: check if size correct
+  const IpcMemorySegmentResult mmap_result = ipc_mmap(path, size);
   (*env)->ReleaseStringUTFChars(env, path_to_file, path);
 
-  if (!seg || !seg->memory || seg->size == 0) {
-    DBG("mmap failed or invalid segment");
-    return 0;
+  if (IpcMemorySegmentResult_is_error(mmap_result)) {
+    return create_error_long_response(env, mmap_result.ipc_status,
+                                      mmap_result.error.detail);
   }
 
+  const IpcMemorySegment *seg = mmap_result.result;
+
   IpcChannel *ch = NULL;
-  if ((bool)is_producer) {
-    IpcChannelOpenResult create_result =
+  if ((bool)create) {
+    const IpcChannelOpenResult create_result =
         ipc_channel_create(seg->memory, seg->size);
     if (IpcChannelOpenResult_is_ok(create_result)) {
       ch = create_result.result;
     } else {
-      DBG("ipc_channel_create failed: status=%d, detail=%s",
-          (int)create_result.ipc_status,
-          create_result.error.detail ? create_result.error.detail : "unknown");
-      return 0;
+      return create_error_long_response(env, create_result.ipc_status,
+                                        create_result.error.detail);
     }
   } else {
-    IpcChannelConnectResult connect_result = ipc_channel_connect(seg->memory);
+    const IpcChannelConnectResult connect_result =
+        ipc_channel_connect(seg->memory);
     if (IpcChannelConnectResult_is_ok(connect_result)) {
       ch = connect_result.result;
     } else {
-      DBG("ipc_channel_connect failed: status=%d, detail=%s",
-          (int)connect_result.ipc_status,
-          connect_result.error.detail ? connect_result.error.detail
-                                      : "unknown");
-      return 0;
+      return create_error_long_response(env, connect_result.ipc_status,
+                                        connect_result.error.detail);
     }
   }
 
-  DBG("channel=%p", (void *)ch);
-
-  if (!ch) {
-    DBG("ipc_channel_%s returned NULL",
-        (bool)is_producer ? "create" : "connect");
-    return 0;
-  }
+  // if success -> need to save channel address;
+  // then get address of byte
 
   return (jlong)(intptr_t)ch;
 }
@@ -160,6 +176,48 @@ JNIEXPORT jbyteArray JNICALL Java_lib_shm_ipc_jni_IpcChannel_read(JNIEnv *env,
 }
 
 JNIEXPORT void JNICALL Java_lib_shm_ipc_jni_IpcChannel_close(JNIEnv *, jobject);
+
+static jobject create_error_long_response(JNIEnv *env, IpcStatus status_code,
+                                          const char *msg) {
+  const jclass long_result_class =
+      (*env)->FindClass(env, CLASS_LONG_RESULT_PATH);
+  const jmethodID error_method = (*env)->GetStaticMethodID(
+      env, long_result_class, "error",
+      "(Llib/shm/ipc/result/IpcError;)Llib/shm/ipc/result/IpcLongResult;");
+
+  return (*env)->CallStaticObjectMethod(env, long_result_class, error_method,
+                                        create_error(env, status_code, msg));
+}
+
+static jobject create_error(JNIEnv *env, IpcStatus status_code,
+                            const char *msg) {
+  const jclass error_code_class = (*env)->FindClass(env, CLASS_ERROR_CODE_PATH);
+  // TODO: handle null
+
+  const jmethodID value_of_method =
+      (*env)->GetStaticMethodID(env, error_code_class, "valueOf",
+                                "(I)Llib/shm/ipc/result/IpcError$ErrorCode;");
+  // TODO: handle null
+
+  jobject error_code_instance = (*env)->CallStaticObjectMethod(
+      env, error_code_class, value_of_method, (int32_t)status_code);
+  // TODO: handle null
+
+  const jclass error_class = (*env)->FindClass(env, CLASS_ERROR_PATH);
+  // TODO: handle null
+
+  const jmethodID error_constructor =
+      (*env)->GetMethodID(env, error_class, "<init>",
+                          "(Llib/shm/ipc/result/IpcError$ErrorCode;Ljava/lang/"
+                          "String;)V");
+  // TODO: handle null
+
+  jstring error_message = (*env)->NewStringUTF(env, msg);
+  // TODO: handle null
+
+  return (*env)->NewObject(env, error_class, error_constructor,
+                           error_code_instance, error_message);
+}
 
 static IpcChannel *get_channel(JNIEnv *env, jobject obj) {
   const jclass cls = (*env)->GetObjectClass(env, obj);

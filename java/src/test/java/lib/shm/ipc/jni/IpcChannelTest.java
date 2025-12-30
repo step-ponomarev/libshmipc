@@ -21,9 +21,10 @@ public class IpcChannelTest {
 
         final int expectedMessageCount = 10;
         final AtomicInteger counter = new AtomicInteger(0);
+        final long size = IpcChannel.suggestSize(2000);
         try (final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
-            final IpcChannel writter = new IpcChannel(mmapFile.toString(), 2000, true);
-            final IpcChannel reader = new IpcChannel(mmapFile.toString(), 2000, false);
+            final IpcChannel writter = IpcChannel.create(mmapFile.toString(), size);
+            final IpcChannel reader = IpcChannel.attach(mmapFile.toString(), size);
             executorService.submit(() -> {
                 for (int i = 0; i < expectedMessageCount; i++) {
                     writter.write("Hello world!".getBytes(StandardCharsets.UTF_8));
