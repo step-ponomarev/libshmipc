@@ -2,6 +2,7 @@ package lib.shm.ipc.result;
 
 public final class IpcError {
     public enum ErrorCode {
+        EMPTY(1),
         UNKNOWN_ERROR(Integer.MIN_VALUE);
         private final int code;
 

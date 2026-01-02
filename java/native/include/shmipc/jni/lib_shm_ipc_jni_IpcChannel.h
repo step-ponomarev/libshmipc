@@ -9,38 +9,43 @@ extern "C" {
 #endif
 /*
  * Class:     lib_shm_ipc_jni_IpcChannel
+ * Method:    create
+ * Signature: (Ljava/lang/String;J)Llib/shm/ipc/result/IpcChannelResult;
+ */
+JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_create
+  (JNIEnv *, jclass, jstring, jlong);
+
+/*
+ * Class:     lib_shm_ipc_jni_IpcChannel
+ * Method:    attach
+ * Signature: (Ljava/lang/String;J)Llib/shm/ipc/result/IpcChannelResult;
+ */
+JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_attach
+  (JNIEnv *, jclass, jstring, jlong);
+
+/*
+ * Class:     lib_shm_ipc_jni_IpcChannel
  * Method:    suggestSize
  * Signature: (J)J
  */
-JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_suggestSize(JNIEnv *,
-                                                                    jclass,
-                                                                    jlong);
+JNIEXPORT jlong JNICALL Java_lib_shm_ipc_jni_IpcChannel_suggestSize
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     lib_shm_ipc_jni_IpcChannel
  * Method:    write
- * Signature: ([B)Llib/shm/ipc/IpcResultWrapper;
+ * Signature: ([B)Llib/shm/ipc/result/IpcBooleanResult;
  */
-JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_write(JNIEnv *,
-                                                                jobject,
-                                                                jbyteArray);
+JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_write
+  (JNIEnv *, jobject, jbyteArray);
 
 /*
  * Class:     lib_shm_ipc_jni_IpcChannel
  * Method:    tryRead
- * Signature: ()Llib/shm/ipc/IpcResultWrapper;
+ * Signature: ()Llib/shm/ipc/result/IpcBytesResult;
  */
-JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_tryRead(JNIEnv *,
-                                                                  jobject);
-
-/*
- * Class:     lib_shm_ipc_jni_IpcChannel
- * Method:    init
- * Signature: (Ljava/lang/String;JZ)Llib/shm/ipc/IpcResultWrapper;
- */
-JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_init(JNIEnv *, jclass,
-                                                               jstring, jlong,
-                                                               jboolean);
+JNIEXPORT jobject JNICALL Java_lib_shm_ipc_jni_IpcChannel_tryRead
+  (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }
