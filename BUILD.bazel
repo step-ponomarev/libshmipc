@@ -22,12 +22,6 @@ alias(
     visibility = ["//visibility:public"],
 )
 
-alias(
-    name = "jni",
-    actual = "//java/native:shmipc_jni",
-    visibility = ["//visibility:public"],
-)
-
 filegroup(
     name = "build_all",
     srcs = [
