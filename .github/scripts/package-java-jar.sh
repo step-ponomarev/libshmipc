@@ -19,7 +19,7 @@ for platform_dir in "${NATIVE_LIBS_DIR}"/native-*/; do
   [ -d "$platform_dir" ] || continue
   platform=$(basename "$platform_dir" | sed 's/^native-//')
 
-  lib_file=$(find "$platform_dir" -name "libshmipc.*" -type f | head -1)
+  lib_file=$(find "$platform_dir" -name "libshmipc_shared.*" -type f | head -1)
   if [ -n "$lib_file" ]; then
     mkdir -p "native/${platform}"
     cp "$lib_file" "native/${platform}/"
@@ -28,7 +28,7 @@ for platform_dir in "${NATIVE_LIBS_DIR}"/native-*/; do
 done
 
 for platform in "${EXPECTED_PLATFORMS[@]}"; do
-  if ! ls native/"${platform}"/libshmipc.* >/dev/null 2>&1; then
+  if ! ls native/"${platform}"/libshmipc_shared.* >/dev/null 2>&1; then
     echo "ERROR: Missing native library for ${platform}" >&2
     exit 1
   fi
