@@ -1,10 +1,6 @@
-load("//tools/copts:defs.bzl", "shmipc_copts", "shmipc_defines")
-load("//java:tools/jni_headers.bzl", "jni_header_outs", "gen_jni_headers_cmd")
 load("//java:tools/java_tests.bzl", "java_tests")
 
 package(default_visibility = ["//visibility:private"])
-
-exports_files(["tools/gen_jni_headers.sh"])
 
 java_library(
     name = "shmipc_java_core",
@@ -12,34 +8,10 @@ java_library(
     visibility = ["//visibility:private"],
 )
 
-JNI_JAVA_SRCS = glob(["src/main/java/lib/shm/ipc/jni/**/*.java"])
-JNI_HEADER_OUTS = jni_header_outs(JNI_JAVA_SRCS)
-
-genrule(
-    name = "jni_headers",
-    srcs = JNI_JAVA_SRCS,
-    outs = JNI_HEADER_OUTS,
-    tools = [
-        ":shmipc_java_core",
-        "//java:tools/gen_jni_headers.sh",
-    ],
-    cmd = gen_jni_headers_cmd(":shmipc_java_core"),
-    local = 1,
-    tags = ["no-remote"],
-    visibility = ["//java/native:__pkg__"],
-)
-
-filegroup(
-    name = "jni_headers_files",
-    srcs = [":jni_headers"],
-    visibility = ["//java/native:__pkg__"],
-)
-
-
 java_library(
     name = "shmipc_java",
     srcs = glob(["src/main/java/**/*.java"]),
-    runtime_deps = ["//java/native:shmipc_jni"],
+    runtime_deps = ["//core:shmipc_shared"],
     visibility = ["//visibility:public"],
 )
 
@@ -60,4 +32,3 @@ java_tests(
     ],
     visibility = ["//visibility:private"],
 )
-

@@ -81,6 +81,12 @@ jobs:
       - name: Sync MODULE.bazel version to tag
         run: .github/scripts/bump-version.sh "$VERSION"
 
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelrc: common --enable_bzlmod
@@ -88,10 +94,10 @@ jobs:
           repository-cache: true
           disk-cache: ${{ github.workflow }}
 
-      - name: Download all JNI libraries
+      - name: Download all native libraries
         uses: actions/download-artifact@v4
         with:
-          path: jni_libs_all
+          path: native_libs_all
 
       - name: Build Java core library
         run: bazel build $BAZEL_BUILD_FLAGS //java:shmipc_java_core
@@ -101,7 +107,7 @@ jobs:
           .github/scripts/package-java-jar.sh \
             "$VERSION" \
             "${BIN_DIR}/java/libshmipc_java_core.jar" \
-            "jni_libs_all"
+            "native_libs_all"
 
       - name: Upload Java JAR artifact
         uses: actions/upload-artifact@v4

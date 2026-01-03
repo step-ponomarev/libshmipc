@@ -16,25 +16,12 @@ alias(
     visibility = ["//visibility:public"],
 )
 
-alias(
-    name = "shmipc_jni",
-    actual = "//java/native:shmipc_jni",
-    visibility = ["//visibility:public"],
-)
-
-alias(
-    name = "jni",
-    actual = "//java/native:shmipc_jni",
-    visibility = ["//visibility:public"],
-)
-
 filegroup(
     name = "build_all",
     srcs = [
         ":shmipc",
         ":shmipc_shared",
         ":shmipc_java",
-        ":shmipc_jni",
     ],
     visibility = ["//visibility:public"],
 )
