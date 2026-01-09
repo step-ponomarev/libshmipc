@@ -16,7 +16,7 @@ TEST_CASE("single writer single reader") {
 
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelOpenResult channel_result =
+  const IpcChannelCreateResult channel_result =
       ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
@@ -43,7 +43,7 @@ TEST_CASE("single writer single reader") {
 TEST_CASE("multiple writer single reader") {
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelOpenResult channel_result =
+  const IpcChannelCreateResult channel_result =
       ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
@@ -76,7 +76,7 @@ TEST_CASE("multiple writer single reader") {
 TEST_CASE("multiple writer multiple reader stress") {
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelOpenResult channel_result =
+  const IpcChannelCreateResult channel_result =
       ipc_channel_create(mem.data(), size);
 
   const size_t total = 500000;
@@ -177,7 +177,7 @@ TEST_CASE("extreme stress test - small buffer") {
     const uint64_t size =
         ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
     std::vector<uint8_t> mem(size);
-    const IpcChannelOpenResult channel_result =
+    const IpcChannelCreateResult channel_result =
         ipc_channel_create(mem.data(), size);
     IpcChannel *channel = channel_result.result;
 
@@ -227,7 +227,7 @@ TEST_CASE("extreme stress test - small buffer") {
 TEST_CASE("blocks reader until writer writes") {
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelOpenResult channel_result =
+  const IpcChannelCreateResult channel_result =
       ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 

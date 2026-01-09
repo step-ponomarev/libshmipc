@@ -11,7 +11,6 @@ java_library(
 java_library(
     name = "shmipc_java",
     srcs = glob(["src/main/java/**/*.java"]),
-    runtime_deps = ["//core:shmipc_shared"],
     visibility = ["//visibility:public"],
 )
 
@@ -26,6 +25,10 @@ java_library(
 java_tests(
     name = "all_tests",
     srcs = glob(["src/test/java/**/*.java"]),
+    runtime_deps = ["//core:shmipc_shared"],
+    jvm_flags = [
+            "--enable-native-access=ALL-UNNAMED"
+        ],
     deps = [
         ":shmipc_java",
         ":junit4",

@@ -1,5 +1,6 @@
-def java_tests(name, srcs, deps = [], runtime_deps = [], **kwargs):
+def java_tests(name, srcs, runtime_deps = [], jvm_flags = [], deps = [],  **kwargs):
     tests = []
+    
     for src in srcs:
         test_path = src.replace("src/test/java/", "").replace(".java", "")
         test_class = test_path.replace("/", ".")
@@ -11,6 +12,7 @@ def java_tests(name, srcs, deps = [], runtime_deps = [], **kwargs):
             test_class = test_class,
             deps = deps,
             runtime_deps = runtime_deps,
+            jvm_flags = jvm_flags,
             **kwargs
         )
         tests.append(":" + test_name)

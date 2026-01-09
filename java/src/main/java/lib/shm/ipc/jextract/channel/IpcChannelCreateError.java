@@ -14,25 +14,25 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 /**
  * {@snippet lang=c :
- * struct IpcChannelOpenResultError {
- *     const char *detail;
- *     IpcChannelOpenError body;
- *     bool hasBody;
+ * struct IpcChannelCreateError {
+ *     size_t requested_size;
+ *     size_t min_size;
+ *     int sys_errno;
  * }
  * }
  */
-public class IpcChannelOpenResultError {
+public class IpcChannelCreateError {
 
-    IpcChannelOpenResultError() {
+    IpcChannelCreateError() {
         // Should not be called directly
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        ipc_channel_h.C_POINTER.withName("detail"),
-        IpcChannelOpenError.layout().withName("body"),
-        ipc_channel_h.C_BOOL.withName("hasBody"),
-        MemoryLayout.paddingLayout(7)
-    ).withName("IpcChannelOpenResultError");
+        ipc_channel_h.C_LONG.withName("requested_size"),
+        ipc_channel_h.C_LONG.withName("min_size"),
+        ipc_channel_h.C_INT.withName("sys_errno"),
+        MemoryLayout.paddingLayout(4)
+    ).withName("IpcChannelCreateError");
 
     /**
      * The layout of this struct
@@ -41,136 +41,136 @@ public class IpcChannelOpenResultError {
         return $LAYOUT;
     }
 
-    private static final AddressLayout detail$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("detail"));
+    private static final OfLong requested_size$LAYOUT = (OfLong)$LAYOUT.select(groupElement("requested_size"));
 
     /**
      * Layout for field:
      * {@snippet lang=c :
-     * const char *detail
+     * size_t requested_size
      * }
      */
-    public static final AddressLayout detail$layout() {
-        return detail$LAYOUT;
+    public static final OfLong requested_size$layout() {
+        return requested_size$LAYOUT;
     }
 
-    private static final long detail$OFFSET = $LAYOUT.byteOffset(groupElement("detail"));
+    private static final long requested_size$OFFSET = $LAYOUT.byteOffset(groupElement("requested_size"));
 
     /**
      * Offset for field:
      * {@snippet lang=c :
-     * const char *detail
+     * size_t requested_size
      * }
      */
-    public static final long detail$offset() {
-        return detail$OFFSET;
+    public static final long requested_size$offset() {
+        return requested_size$OFFSET;
     }
 
     /**
      * Getter for field:
      * {@snippet lang=c :
-     * const char *detail
+     * size_t requested_size
      * }
      */
-    public static MemorySegment detail(MemorySegment struct) {
-        return struct.get(detail$LAYOUT, detail$OFFSET);
+    public static long requested_size(MemorySegment struct) {
+        return struct.get(requested_size$LAYOUT, requested_size$OFFSET);
     }
 
     /**
      * Setter for field:
      * {@snippet lang=c :
-     * const char *detail
+     * size_t requested_size
      * }
      */
-    public static void detail(MemorySegment struct, MemorySegment fieldValue) {
-        struct.set(detail$LAYOUT, detail$OFFSET, fieldValue);
+    public static void requested_size(MemorySegment struct, long fieldValue) {
+        struct.set(requested_size$LAYOUT, requested_size$OFFSET, fieldValue);
     }
 
-    private static final GroupLayout body$LAYOUT = (GroupLayout)$LAYOUT.select(groupElement("body"));
+    private static final OfLong min_size$LAYOUT = (OfLong)$LAYOUT.select(groupElement("min_size"));
 
     /**
      * Layout for field:
      * {@snippet lang=c :
-     * IpcChannelOpenError body
+     * size_t min_size
      * }
      */
-    public static final GroupLayout body$layout() {
-        return body$LAYOUT;
+    public static final OfLong min_size$layout() {
+        return min_size$LAYOUT;
     }
 
-    private static final long body$OFFSET = $LAYOUT.byteOffset(groupElement("body"));
+    private static final long min_size$OFFSET = $LAYOUT.byteOffset(groupElement("min_size"));
 
     /**
      * Offset for field:
      * {@snippet lang=c :
-     * IpcChannelOpenError body
+     * size_t min_size
      * }
      */
-    public static final long body$offset() {
-        return body$OFFSET;
+    public static final long min_size$offset() {
+        return min_size$OFFSET;
     }
 
     /**
      * Getter for field:
      * {@snippet lang=c :
-     * IpcChannelOpenError body
+     * size_t min_size
      * }
      */
-    public static MemorySegment body(MemorySegment struct) {
-        return struct.asSlice(body$OFFSET, body$LAYOUT.byteSize());
+    public static long min_size(MemorySegment struct) {
+        return struct.get(min_size$LAYOUT, min_size$OFFSET);
     }
 
     /**
      * Setter for field:
      * {@snippet lang=c :
-     * IpcChannelOpenError body
+     * size_t min_size
      * }
      */
-    public static void body(MemorySegment struct, MemorySegment fieldValue) {
-        MemorySegment.copy(fieldValue, 0L, struct, body$OFFSET, body$LAYOUT.byteSize());
+    public static void min_size(MemorySegment struct, long fieldValue) {
+        struct.set(min_size$LAYOUT, min_size$OFFSET, fieldValue);
     }
 
-    private static final OfBoolean hasBody$LAYOUT = (OfBoolean)$LAYOUT.select(groupElement("hasBody"));
+    private static final OfInt sys_errno$LAYOUT = (OfInt)$LAYOUT.select(groupElement("sys_errno"));
 
     /**
      * Layout for field:
      * {@snippet lang=c :
-     * bool hasBody
+     * int sys_errno
      * }
      */
-    public static final OfBoolean hasBody$layout() {
-        return hasBody$LAYOUT;
+    public static final OfInt sys_errno$layout() {
+        return sys_errno$LAYOUT;
     }
 
-    private static final long hasBody$OFFSET = $LAYOUT.byteOffset(groupElement("hasBody"));
+    private static final long sys_errno$OFFSET = $LAYOUT.byteOffset(groupElement("sys_errno"));
 
     /**
      * Offset for field:
      * {@snippet lang=c :
-     * bool hasBody
+     * int sys_errno
      * }
      */
-    public static final long hasBody$offset() {
-        return hasBody$OFFSET;
+    public static final long sys_errno$offset() {
+        return sys_errno$OFFSET;
     }
 
     /**
      * Getter for field:
      * {@snippet lang=c :
-     * bool hasBody
+     * int sys_errno
      * }
      */
-    public static boolean hasBody(MemorySegment struct) {
-        return struct.get(hasBody$LAYOUT, hasBody$OFFSET);
+    public static int sys_errno(MemorySegment struct) {
+        return struct.get(sys_errno$LAYOUT, sys_errno$OFFSET);
     }
 
     /**
      * Setter for field:
      * {@snippet lang=c :
-     * bool hasBody
+     * int sys_errno
      * }
      */
-    public static void hasBody(MemorySegment struct, boolean fieldValue) {
-        struct.set(hasBody$LAYOUT, hasBody$OFFSET, fieldValue);
+    public static void sys_errno(MemorySegment struct, int fieldValue) {
+        struct.set(sys_errno$LAYOUT, sys_errno$OFFSET, fieldValue);
     }
 
     /**

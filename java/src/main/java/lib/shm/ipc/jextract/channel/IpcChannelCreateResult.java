@@ -14,18 +14,18 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 /**
  * {@snippet lang=c :
- * struct IpcChannelOpenResult {
+ * struct IpcChannelCreateResult {
  *     IpcStatus ipc_status;
  *     union {
  *         IpcChannel *result;
- *         IpcChannelOpenResultError error;
+ *         IpcChannelCreateResultError error;
  *     };
  * }
  * }
  */
-public class IpcChannelOpenResult {
+public class IpcChannelCreateResult {
 
-    IpcChannelOpenResult() {
+    IpcChannelCreateResult() {
         // Should not be called directly
     }
 
@@ -34,9 +34,9 @@ public class IpcChannelOpenResult {
         MemoryLayout.paddingLayout(4),
         MemoryLayout.unionLayout(
             ipc_channel_h.C_POINTER.withName("result"),
-            IpcChannelOpenResultError.layout().withName("error")
+            IpcChannelCreateResultError.layout().withName("error")
         ).withName("$anon$20:1")
-    ).withName("IpcChannelOpenResult");
+    ).withName("IpcChannelCreateResult");
 
     /**
      * The layout of this struct
@@ -138,7 +138,7 @@ public class IpcChannelOpenResult {
     /**
      * Layout for field:
      * {@snippet lang=c :
-     * IpcChannelOpenResultError error
+     * IpcChannelCreateResultError error
      * }
      */
     public static final GroupLayout error$layout() {
@@ -150,7 +150,7 @@ public class IpcChannelOpenResult {
     /**
      * Offset for field:
      * {@snippet lang=c :
-     * IpcChannelOpenResultError error
+     * IpcChannelCreateResultError error
      * }
      */
     public static final long error$offset() {
@@ -160,7 +160,7 @@ public class IpcChannelOpenResult {
     /**
      * Getter for field:
      * {@snippet lang=c :
-     * IpcChannelOpenResultError error
+     * IpcChannelCreateResultError error
      * }
      */
     public static MemorySegment error(MemorySegment struct) {
@@ -170,7 +170,7 @@ public class IpcChannelOpenResult {
     /**
      * Setter for field:
      * {@snippet lang=c :
-     * IpcChannelOpenResultError error
+     * IpcChannelCreateResultError error
      * }
      */
     public static void error(MemorySegment struct, MemorySegment fieldValue) {

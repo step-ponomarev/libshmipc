@@ -47,18 +47,18 @@ uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
   return find_next_power_of_2(desired_capacity) + overhead;
 }
 
-IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
+IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size) {
   const size_t min_total = ipc_channel_get_memory_overhead();
-  IpcChannelOpenError error = {
+  IpcChannelCreateError error = {
       .requested_size = size, .min_size = min_total, .sys_errno = 0};
 
   if (mem == NULL) {
-    return IpcChannelOpenResult_error_body(
+    return IpcChannelCreateResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
   }
 
   if (size == 0) {
-    return IpcChannelOpenResult_error_body(
+    return IpcChannelCreateResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer size is 0", error);
   }
 
@@ -68,8 +68,8 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
   if (IpcBufferCreateResult_is_error(buffer_result)) {
     error.requested_size = size;
     error.sys_errno = buffer_result.error.body.sys_errno;
-    return IpcChannelOpenResult_error_body(buffer_result.ipc_status,
-                                           buffer_result.error.detail, error);
+    return IpcChannelCreateResult_error_body(buffer_result.ipc_status,
+                                             buffer_result.error.detail, error);
   }
 
   IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
@@ -77,7 +77,7 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
     free(buffer_result.result);
     error.sys_errno = errno;
     error.requested_size = size;
-    return IpcChannelOpenResult_error_body(
+    return IpcChannelCreateResult_error_body(
         IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
   }
 
@@ -86,7 +86,7 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
 
   atomic_init(&channel->header->notify, 0);
 
-  return IpcChannelOpenResult_ok(IPC_OK, channel);
+  return IpcChannelCreateResult_ok(IPC_OK, channel);
 }
 
 IpcChannelConnectResult ipc_channel_connect(void *mem) {

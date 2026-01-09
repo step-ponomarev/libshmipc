@@ -57,9 +57,9 @@ private:
 class ChannelWrapper {
 public:
   explicit ChannelWrapper(size_t size) : mem_(ipc_channel_suggest_size(size)) {
-    const IpcChannelOpenResult result =
+    const IpcChannelCreateResult result =
         ipc_channel_create(mem_.data(), ipc_channel_suggest_size(size));
-    CHECK(IpcChannelOpenResult_is_ok(result));
+    CHECK(IpcChannelCreateResult_is_ok(result));
     channel_ = result.result;
   }
 
@@ -219,13 +219,13 @@ inline void CHECK_ERROR(const IpcBufferPeekResult &result,
   CHECK(result.ipc_status == expected_status);
 }
 
-inline void CHECK_OK(const IpcChannelOpenResult &result) {
-  CHECK(IpcChannelOpenResult_is_ok(result));
+inline void CHECK_OK(const IpcChannelCreateResult &result) {
+  CHECK(IpcChannelCreateResult_is_ok(result));
 }
 
-inline void CHECK_ERROR(const IpcChannelOpenResult &result,
+inline void CHECK_ERROR(const IpcChannelCreateResult &result,
                         IpcStatus expected_status) {
-  CHECK(IpcChannelOpenResult_is_error(result));
+  CHECK(IpcChannelCreateResult_is_error(result));
   CHECK(result.ipc_status == expected_status);
 }
 
@@ -332,9 +332,11 @@ template <typename T> void write_data(IpcChannel *channel, const T &data) {
   CHECK(IpcChannelWriteResult_is_ok(result));
 }
 
-template <typename T> T read_data(IpcChannel *channel, const struct timespec *timeout) {
+template <typename T>
+T read_data(IpcChannel *channel, const struct timespec *timeout) {
   IpcEntry entry;
-  const IpcChannelReadResult result = ipc_channel_read(channel, &entry, timeout);
+  const IpcChannelReadResult result =
+      ipc_channel_read(channel, &entry, timeout);
   CHECK(result.ipc_status == IPC_OK);
 
   T data;
@@ -394,9 +396,11 @@ template <typename T> T read_data_safe(IpcBuffer *buffer) {
   return data;
 }
 
-template <typename T> T read_data_safe(IpcChannel *channel, const struct timespec *timeout) {
+template <typename T>
+T read_data_safe(IpcChannel *channel, const struct timespec *timeout) {
   IpcEntry entry;
-  const IpcChannelReadResult result = ipc_channel_read(channel, &entry, timeout);
+  const IpcChannelReadResult result =
+      ipc_channel_read(channel, &entry, timeout);
   if (result.ipc_status != IPC_OK) {
     throw std::runtime_error("Failed to read from channel");
   }

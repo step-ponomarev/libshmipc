@@ -20,8 +20,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     static final Arena LIBRARY_ARENA = Arena.ofAuto();
 
-    static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.libraryLookup(System.mapLibraryName("libshmipc"), LIBRARY_ARENA)
-            .or(SymbolLookup.loaderLookup())
+    static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.loaderLookup()
             .or(Linker.nativeLinker().defaultLookup());
 
     private static final int true_ = (int)1L;
@@ -6229,7 +6228,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     private static class ipc_channel_create {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelOpenResult.layout(),
+            IpcChannelCreateResult.layout(),
             ipc_channel_h.C_POINTER,
             ipc_channel_h.C_LONG
         );
@@ -6242,7 +6241,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size)
+     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
      * }
      */
     public static FunctionDescriptor ipc_channel_create$descriptor() {
@@ -6252,7 +6251,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size)
+     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
      * }
      */
     public static MethodHandle ipc_channel_create$handle() {
@@ -6262,7 +6261,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size)
+     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
      * }
      */
     public static MemorySegment ipc_channel_create$address() {
@@ -6271,7 +6270,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     /**
      * {@snippet lang=c :
-     * IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size)
+     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
      * }
      */
     public static MemorySegment ipc_channel_create(SegmentAllocator allocator, MemorySegment mem, long size) {
