@@ -40,6 +40,35 @@ TEST_CASE("single writer single reader") {
   ipc_channel_destroy(channel);
 }
 
+TEST_CASE("single writer single reader with timeout") {
+  const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
+  std::vector<uint8_t> mem(size);
+  const IpcChannelCreateResult channel_result =
+      ipc_channel_create(mem.data(), size);
+  IpcChannel *channel = channel_result.result;
+
+  UnsafeCollector<size_t> collector;
+  ConcurrencyManager<size_t> manager;
+
+  manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
+                       test_utils::DEFAULT_COUNT);
+
+  const timespec timeout = {.tv_sec = 0, .tv_nsec = 10 * 1000000};
+  manager.add_consumer(concurrent_test_utils::consume_channel_with_timeout,
+                       channel, std::ref(collector),
+                       std::ref(manager.get_manager()), &timeout);
+
+  manager.run_and_wait();
+
+  auto collected = collector.get_all_collected();
+  CHECK(collected.size() == test_utils::DEFAULT_COUNT);
+  for (size_t i = 0; i < test_utils::DEFAULT_COUNT; i++) {
+    CHECK(collected.contains(i));
+  }
+
+  ipc_channel_destroy(channel);
+}
+
 TEST_CASE("multiple writer single reader") {
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);

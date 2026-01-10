@@ -283,9 +283,7 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
         dest->offset = read_entry.offset;
         return read_result;
       }
-    }
-
-    if (!_is_retry_status(peek_result.ipc_status)) {
+    } else if (!_is_retry_status(peek_result.ipc_status)) {
       free(read_entry.payload);
       error.offset = peek_entry.offset;
       return IpcChannelReadResult_error_body(peek_result.ipc_status,

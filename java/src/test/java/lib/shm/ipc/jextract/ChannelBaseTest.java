@@ -20,24 +20,17 @@ public class ChannelBaseTest {
         LibLoader.load();
 
         final long size = ipc_channel_h.ipc_channel_suggest_size(2000);
-        System.out.println("Buffer size: " + size);
-
         try (final Arena arena = Arena.ofConfined()) {
             final MemorySegment buffer = arena.allocate(size);
 
-            // Create — получаем Result, извлекаем канал
             MemorySegment createResult = ipc_channel_h.ipc_channel_create(arena, buffer, size);
             Assert.assertEquals("create failed", 0, IpcChannelCreateResult.ipc_status(createResult));
             MemorySegment producer = IpcChannelCreateResult.result(createResult);
-            System.out.println("Producer: " + producer);
 
-            // Connect — получаем Result, извлекаем канал
             MemorySegment connectResult = ipc_channel_h.ipc_channel_connect(arena, buffer);
             Assert.assertEquals("connect failed", 0, IpcChannelConnectResult.ipc_status(connectResult));
             MemorySegment consumer = IpcChannelConnectResult.result(connectResult);
-            System.out.println("Consumer: " + consumer);
 
-            // Write
             String testMsg = "Hello";
             byte[] bytes = testMsg.getBytes(StandardCharsets.UTF_8);
             MemorySegment msg = arena.allocateFrom(ValueLayout.JAVA_BYTE, bytes);
@@ -47,15 +40,13 @@ public class ChannelBaseTest {
             System.out.println("Write status: " + writeStatus);
             Assert.assertEquals("write failed", 0, writeStatus);
 
-            // Read
             MemorySegment entry = IpcEntry.allocate(arena);
             MemorySegment timeout = timespec.allocate(arena);
-            timespec.tv_sec(timeout, 10);
+            timespec.tv_sec(timeout, 1);
             timespec.tv_nsec(timeout, 0L);
 
             MemorySegment readResult = ipc_channel_h.ipc_channel_read(arena, consumer, entry, timeout);
             int readStatus = IpcChannelReadResult.ipc_status(readResult);
-            System.out.println("Read status: " + readStatus);
             Assert.assertEquals("read failed", 0, readStatus);
         }
     }
@@ -64,20 +55,18 @@ public class ChannelBaseTest {
     public void basicProducerConsumerTest() throws InterruptedException {
         LibLoader.load();
 
-        final int count = 10000;
-        final long size = ipc_channel_h.ipc_channel_suggest_size(1000);
+        final int count = 1_000_000;
+        final long size = ipc_channel_h.ipc_channel_suggest_size(1024 * 1024);
         try (final Arena arena = Arena.ofShared();
              final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
         ) {
             final AtomicInteger received = new AtomicInteger(0);
             final MemorySegment buffer = arena.allocate(size);
 
-            // Create — извлекаем канал из Result
             MemorySegment createResult = ipc_channel_h.ipc_channel_create(arena, buffer, size);
             Assert.assertEquals("create failed", 0, IpcChannelCreateResult.ipc_status(createResult));
             MemorySegment producer = IpcChannelCreateResult.result(createResult);
 
-            // Connect — извлекаем канал из Result
             MemorySegment connectResult = ipc_channel_h.ipc_channel_connect(arena, buffer);
             Assert.assertEquals("connect failed", 0, IpcChannelConnectResult.ipc_status(connectResult));
             MemorySegment consumer = IpcChannelConnectResult.result(connectResult);
@@ -97,7 +86,7 @@ public class ChannelBaseTest {
             });
 
             final MemorySegment timeout = timespec.allocate(arena);
-            timespec.tv_sec(timeout, 100);
+            timespec.tv_sec(timeout, 1);
             timespec.tv_nsec(timeout, 0L);
             exec.execute(() -> {
                 while (true) {
@@ -106,9 +95,12 @@ public class ChannelBaseTest {
                     MemorySegment readResult = ipc_channel_h.ipc_channel_read(arena, consumer, entry, timeout);
                     int status = IpcChannelReadResult.ipc_status(readResult);
                     if (status != 0) {
+                        if (received.get() == count) {
+                            return;
+                        }
+
                         continue;
                     }
-
                     final String expectedMessage = messageTemplate.formatted(received.getAndIncrement());
                     MemorySegment payload = IpcEntry.payload(entry);
                     long len = IpcEntry.size(entry);
