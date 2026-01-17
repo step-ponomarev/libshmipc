@@ -11,6 +11,8 @@ typedef struct IpcChannel IpcChannel;
 SHMIPC_API uint64_t ipc_channel_get_memory_overhead(void);
 SHMIPC_API uint64_t ipc_channel_get_min_size(void);
 SHMIPC_API uint64_t ipc_channel_suggest_size(size_t desired_capacity);
+SHMIPC_API uint32_t ipc_channel_get_notify_signal(IpcChannel *channel);
+SHMIPC_API bool ipc_channel_is_retry_status(const IpcStatus);
 
 typedef struct IpcChannelCreateError {
   size_t requested_size;

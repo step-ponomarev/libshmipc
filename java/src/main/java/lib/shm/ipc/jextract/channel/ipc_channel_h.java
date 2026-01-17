@@ -6226,6 +6226,126 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
+    private static class ipc_channel_get_notify_signal {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            ipc_channel_h.C_INT,
+            ipc_channel_h.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_get_notify_signal");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
+     * }
+     */
+    public static FunctionDescriptor ipc_channel_get_notify_signal$descriptor() {
+        return ipc_channel_get_notify_signal.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
+     * }
+     */
+    public static MethodHandle ipc_channel_get_notify_signal$handle() {
+        return ipc_channel_get_notify_signal.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
+     * }
+     */
+    public static MemorySegment ipc_channel_get_notify_signal$address() {
+        return ipc_channel_get_notify_signal.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
+     * }
+     */
+    public static int ipc_channel_get_notify_signal(MemorySegment channel) {
+        var mh$ = ipc_channel_get_notify_signal.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("ipc_channel_get_notify_signal", channel);
+            }
+            return (int)mh$.invokeExact(channel);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class ipc_channel_is_retry_status {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            ipc_channel_h.C_BOOL,
+            ipc_channel_h.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_is_retry_status");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * bool ipc_channel_is_retry_status(const IpcStatus)
+     * }
+     */
+    public static FunctionDescriptor ipc_channel_is_retry_status$descriptor() {
+        return ipc_channel_is_retry_status.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * bool ipc_channel_is_retry_status(const IpcStatus)
+     * }
+     */
+    public static MethodHandle ipc_channel_is_retry_status$handle() {
+        return ipc_channel_is_retry_status.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * bool ipc_channel_is_retry_status(const IpcStatus)
+     * }
+     */
+    public static MemorySegment ipc_channel_is_retry_status$address() {
+        return ipc_channel_is_retry_status.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * bool ipc_channel_is_retry_status(const IpcStatus)
+     * }
+     */
+    public static boolean ipc_channel_is_retry_status(int x0) {
+        var mh$ = ipc_channel_is_retry_status.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("ipc_channel_is_retry_status", x0);
+            }
+            return (boolean)mh$.invokeExact(x0);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     private static class ipc_channel_create {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             IpcChannelCreateResult.layout(),

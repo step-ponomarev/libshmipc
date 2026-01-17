@@ -17,6 +17,7 @@
 
 typedef struct IpcChannelHeader {
   _Atomic uint32_t notify;
+  uint8_t __align[64 - sizeof(uint32_t)];
 } IpcChannelHeader;
 
 struct IpcChannel {
@@ -26,7 +27,6 @@ struct IpcChannel {
 
 static IpcChannelReadResult _try_read(IpcChannel *, IpcEntry *);
 static bool _is_error_status(const IpcStatus);
-static bool _is_retry_status(const IpcStatus);
 
 inline uint64_t ipc_channel_get_memory_overhead(void) {
   return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_get_memory_overhead();
@@ -34,6 +34,15 @@ inline uint64_t ipc_channel_get_memory_overhead(void) {
 
 inline uint64_t ipc_channel_get_min_size(void) {
   return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_get_min_size();
+}
+
+inline uint32_t ipc_channel_get_notify_signal(IpcChannel *channel) {
+  return atomic_load(&channel->header->notify);
+}
+
+inline bool ipc_channel_is_retry_status(const IpcStatus status) {
+  return status == IPC_ERR_NOT_READY || status == IPC_EMPTY ||
+         status == IPC_ERR_CORRUPTED || status == IPC_ERR_LOCKED;
 }
 
 uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
@@ -283,7 +292,7 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
         dest->offset = read_entry.offset;
         return read_result;
       }
-    } else if (!_is_retry_status(peek_result.ipc_status)) {
+    } else if (!ipc_channel_is_retry_status(peek_result.ipc_status)) {
       free(read_entry.payload);
       error.offset = peek_entry.offset;
       return IpcChannelReadResult_error_body(peek_result.ipc_status,
@@ -475,10 +484,5 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
 }
 
 static inline bool _is_error_status(const IpcStatus status) {
-  return status != IPC_OK && !_is_retry_status(status);
-}
-
-static inline bool _is_retry_status(const IpcStatus status) {
-  return status == IPC_ERR_NOT_READY || status == IPC_EMPTY ||
-         status == IPC_ERR_CORRUPTED || status == IPC_ERR_LOCKED;
+  return status != IPC_OK && !ipc_channel_is_retry_status(status);
 }

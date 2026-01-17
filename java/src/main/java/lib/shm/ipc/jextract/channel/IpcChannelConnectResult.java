@@ -35,7 +35,7 @@ public class IpcChannelConnectResult {
         MemoryLayout.unionLayout(
             ipc_channel_h.C_POINTER.withName("result"),
             IpcChannelConnectResultError.layout().withName("error")
-        ).withName("$anon$28:1")
+        ).withName("$anon$30:1")
     ).withName("IpcChannelConnectResult");
 
     /**
@@ -89,7 +89,7 @@ public class IpcChannelConnectResult {
         struct.set(ipc_status$LAYOUT, ipc_status$OFFSET, fieldValue);
     }
 
-    private static final AddressLayout result$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("$anon$28:1"), groupElement("result"));
+    private static final AddressLayout result$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("$anon$30:1"), groupElement("result"));
 
     /**
      * Layout for field:
@@ -101,7 +101,7 @@ public class IpcChannelConnectResult {
         return result$LAYOUT;
     }
 
-    private static final long result$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$28:1"), groupElement("result"));
+    private static final long result$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$30:1"), groupElement("result"));
 
     /**
      * Offset for field:
@@ -133,7 +133,7 @@ public class IpcChannelConnectResult {
         struct.set(result$LAYOUT, result$OFFSET, fieldValue);
     }
 
-    private static final GroupLayout error$LAYOUT = (GroupLayout)$LAYOUT.select(groupElement("$anon$28:1"), groupElement("error"));
+    private static final GroupLayout error$LAYOUT = (GroupLayout)$LAYOUT.select(groupElement("$anon$30:1"), groupElement("error"));
 
     /**
      * Layout for field:
@@ -145,7 +145,7 @@ public class IpcChannelConnectResult {
         return error$LAYOUT;
     }
 
-    private static final long error$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$28:1"), groupElement("error"));
+    private static final long error$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$30:1"), groupElement("error"));
 
     /**
      * Offset for field:

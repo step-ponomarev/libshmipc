@@ -35,7 +35,7 @@ public class IpcChannelDestroyResult {
         MemoryLayout.unionLayout(
             ipc_channel_h.C_CHAR.withName("_u"),
             IpcChannelDestroyResultError.layout().withName("error")
-        ).withName("$anon$34:1")
+        ).withName("$anon$36:1")
     ).withName("IpcChannelDestroyResult");
 
     /**
@@ -89,7 +89,7 @@ public class IpcChannelDestroyResult {
         struct.set(ipc_status$LAYOUT, ipc_status$OFFSET, fieldValue);
     }
 
-    private static final OfByte _u$LAYOUT = (OfByte)$LAYOUT.select(groupElement("$anon$34:1"), groupElement("_u"));
+    private static final OfByte _u$LAYOUT = (OfByte)$LAYOUT.select(groupElement("$anon$36:1"), groupElement("_u"));
 
     /**
      * Layout for field:
@@ -101,7 +101,7 @@ public class IpcChannelDestroyResult {
         return _u$LAYOUT;
     }
 
-    private static final long _u$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$34:1"), groupElement("_u"));
+    private static final long _u$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$36:1"), groupElement("_u"));
 
     /**
      * Offset for field:
@@ -133,7 +133,7 @@ public class IpcChannelDestroyResult {
         struct.set(_u$LAYOUT, _u$OFFSET, fieldValue);
     }
 
-    private static final GroupLayout error$LAYOUT = (GroupLayout)$LAYOUT.select(groupElement("$anon$34:1"), groupElement("error"));
+    private static final GroupLayout error$LAYOUT = (GroupLayout)$LAYOUT.select(groupElement("$anon$36:1"), groupElement("error"));
 
     /**
      * Layout for field:
@@ -145,7 +145,7 @@ public class IpcChannelDestroyResult {
         return error$LAYOUT;
     }
 
-    private static final long error$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$34:1"), groupElement("error"));
+    private static final long error$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$36:1"), groupElement("error"));
 
     /**
      * Offset for field:

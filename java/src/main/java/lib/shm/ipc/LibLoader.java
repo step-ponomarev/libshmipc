@@ -6,11 +6,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LibLoader {
+    private static final AtomicBoolean loaded = new AtomicBoolean(false);
+
     private LibLoader() {}
 
     public static void load() {
+        if (!loaded.compareAndSet(false, true)) {
+            return;
+        }
+
         String libPath = findLibraryInRunfiles();
         if (libPath != null) {
             System.load(libPath);

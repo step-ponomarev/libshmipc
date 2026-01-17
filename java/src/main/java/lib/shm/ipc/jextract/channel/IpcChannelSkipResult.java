@@ -35,7 +35,7 @@ public class IpcChannelSkipResult {
         MemoryLayout.unionLayout(
             ipc_channel_h.C_LONG_LONG.withName("result"),
             IpcChannelSkipResultError.layout().withName("error")
-        ).withName("$anon$74:1")
+        ).withName("$anon$76:1")
     ).withName("IpcChannelSkipResult");
 
     /**
@@ -89,7 +89,7 @@ public class IpcChannelSkipResult {
         struct.set(ipc_status$LAYOUT, ipc_status$OFFSET, fieldValue);
     }
 
-    private static final OfLong result$LAYOUT = (OfLong)$LAYOUT.select(groupElement("$anon$74:1"), groupElement("result"));
+    private static final OfLong result$LAYOUT = (OfLong)$LAYOUT.select(groupElement("$anon$76:1"), groupElement("result"));
 
     /**
      * Layout for field:
@@ -101,7 +101,7 @@ public class IpcChannelSkipResult {
         return result$LAYOUT;
     }
 
-    private static final long result$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$74:1"), groupElement("result"));
+    private static final long result$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$76:1"), groupElement("result"));
 
     /**
      * Offset for field:
@@ -133,7 +133,7 @@ public class IpcChannelSkipResult {
         struct.set(result$LAYOUT, result$OFFSET, fieldValue);
     }
 
-    private static final GroupLayout error$LAYOUT = (GroupLayout)$LAYOUT.select(groupElement("$anon$74:1"), groupElement("error"));
+    private static final GroupLayout error$LAYOUT = (GroupLayout)$LAYOUT.select(groupElement("$anon$76:1"), groupElement("error"));
 
     /**
      * Layout for field:
@@ -145,7 +145,7 @@ public class IpcChannelSkipResult {
         return error$LAYOUT;
     }
 
-    private static final long error$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$74:1"), groupElement("error"));
+    private static final long error$OFFSET = $LAYOUT.byteOffset(groupElement("$anon$76:1"), groupElement("error"));
 
     /**
      * Offset for field:
