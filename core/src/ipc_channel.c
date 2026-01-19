@@ -42,7 +42,7 @@ inline uint32_t ipc_channel_get_notify_signal(IpcChannel *channel) {
 
 inline bool ipc_channel_is_retry_status(const IpcStatus status) {
   return status == IPC_ERR_NOT_READY || status == IPC_EMPTY ||
-         status == IPC_ERR_CORRUPTED || status == IPC_ERR_LOCKED;
+         status == IPC_ERR_LOCKED;
 }
 
 uint64_t ipc_channel_suggest_size(size_t desired_capacity) {

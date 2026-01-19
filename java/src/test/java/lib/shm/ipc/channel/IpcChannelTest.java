@@ -2,7 +2,7 @@ package lib.shm.ipc.channel;
 
 import lib.shm.ipc.IpcStatus;
 import lib.shm.ipc.LibLoader;
-import lib.shm.ipc.jextract.channel.*;
+import lib.shm.ipc.exeption.IpcException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -19,7 +19,7 @@ import lib.shm.ipc.result.*;
 
 public class IpcChannelTest {
     @Test
-    public void basicSingleThreadTest() {
+    public void basicSingleThreadTest() throws IpcException {
         final long size = IpcChannel.getSuggestedSize(2000);
         try (final Arena arena = Arena.ofConfined()) {
             final MemorySegment memory = arena.allocate(size);
@@ -40,7 +40,7 @@ public class IpcChannelTest {
     }
 
     @Test
-    public void basicProducerConsumerTest() throws InterruptedException {
+    public void basicProducerConsumerTest() throws InterruptedException, IpcException {
         LibLoader.load();
 
         final int count = 1_000_000;
@@ -58,30 +58,31 @@ public class IpcChannelTest {
                 for (int i = 0; i < count; i++) {
                     String formatted = messageTemplate.formatted(i);
                     byte[] bytes = formatted.getBytes(StandardCharsets.UTF_8);
-                    IpcResultWrapper<Void> write = producer.write(bytes);
-                    if (IpcStatus.IPC_OK != write.getStatus()) {
+                    try {
+                        IpcResultWrapper<Void> write = producer.write(bytes);
+                    } catch (IpcException e) {
                         i--;
                     }
+
                 }
             });
 
-            final MemorySegment timeout = timespec.allocate(arena);
-            timespec.tv_sec(timeout, 1);
-            timespec.tv_nsec(timeout, 0L);
             exec.execute(() -> {
                 while (true) {
-                    final IpcResultWrapper<byte[]> readResult = consumer.read(TimeUnit.SECONDS.toMillis(200));
-                    if (readResult.getStatus() != IpcStatus.IPC_OK) {
-                        if (received.get() == count) {
-                            return;
+                    final IpcResultWrapper<byte[]> readResult;
+                    try {
+                        readResult = consumer.read(TimeUnit.SECONDS.toMillis(1));
+                        if (readResult.getStatus() == IpcStatus.IPC_OK) {
+                            final String expectedMessage = messageTemplate.formatted(received.getAndIncrement());
+                            String message = new String(readResult.getResult(), StandardCharsets.UTF_8);
+                            Assert.assertEquals(expectedMessage, message);
                         }
-
-                        continue;
+                    } catch (IpcException e) {
                     }
 
-                    final String expectedMessage = messageTemplate.formatted(received.getAndIncrement());
-                    String message = new String(readResult.getResult(), StandardCharsets.UTF_8);
-                    Assert.assertEquals(expectedMessage, message);
+                    if (received.get() == count) {
+                        return;
+                    }
                 }
             });
 

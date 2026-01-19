@@ -6,7 +6,6 @@ import lib.shm.ipc.IpcStatus;
 public final class IpcResultWrapper<T> {
     private final IpcStatus status;
     private final T result;
-    //TODO: add error
 
     public IpcResultWrapper(IpcStatus status, T result) {
         this.status = status;
