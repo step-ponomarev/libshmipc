@@ -4,15 +4,26 @@ module(
 )
 
 bazel_dep(name = "doctest", version = "2.4.12")
+
+git_override(
+    module_name = "doctest",
+    remote = "https://github.com/doctest/doctest.git",
+    commit = "7b9885133108ae301ddd16e2651320f54cafeba7",  # v2.4.12
+    patches = ["//tools/patches:doctest_full.patch"],
+    patch_strip = 1,
+)
+
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 git_override(
     module_name = "hedron_compile_commands",
-    remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
     commit = "abb61a688167623088f8768cc9264798df6a9d10",
+    remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
 )
 
-bazel_dep(name = "rules_java", version = "5.4.1")
-bazel_dep(name = "rules_jvm_external", version = "6.3")
+bazel_dep(name = "rules_cc", version = "0.2.14")
+bazel_dep(name = "rules_java", version = "9.0.3")
+bazel_dep(name = "rules_jvm_external", version = "6.7")
+bazel_dep(name = "rules_python", version = "1.7.0")
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(

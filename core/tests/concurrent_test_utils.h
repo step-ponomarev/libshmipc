@@ -1,12 +1,13 @@
 #pragma once
 
+#include "concurrency_manager.hpp"
+#include "include/shmipc/ipc_common.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_channel.h"
 #include "shmipc/ipc_common.h"
-#include "concurrency_manager.hpp"
-#include "unsafe_collector.hpp"
 #include "test_utils.h"
-#include <cstring>
+#include "unsafe_collector.hpp"
+#include <cstddef>
 
 namespace concurrent_test_utils {
 
@@ -70,4 +71,26 @@ inline void consume_channel(IpcChannel *channel,
   }
 }
 
+inline void consume_channel_with_timeout(IpcChannel *channel,
+                                         UnsafeCollector<size_t> &collector,
+                                         ConcurrencyManager<size_t> &manager,
+                                         const timespec *timeout) {
+
+  bool finished = false;
+  while (true) {
+    IpcEntry entry;
+
+    finished = manager.all_producers_finished();
+    IpcChannelReadResult result = ipc_channel_read(channel, &entry, timeout);
+    if (result.ipc_status == IPC_OK) {
+      size_t res;
+      memcpy(&res, entry.payload, entry.size);
+      collector.collect(res);
+      free(entry.payload);
+    } else if (finished && (result.ipc_status == IPC_EMPTY ||
+                            result.ipc_status == IPC_ERR_TIMEOUT)) {
+      break;
+    }
+  }
+}
 } // namespace concurrent_test_utils
