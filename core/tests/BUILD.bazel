@@ -1,3 +1,4 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//core:tools/cc_tests.bzl", "cc_tests")
 
 package(default_visibility = ["//visibility:private"])

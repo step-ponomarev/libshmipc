@@ -1,3 +1,4 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load("//tools/copts:defs.bzl", "shmipc_copts", "shmipc_defines")
 
 cc_library(

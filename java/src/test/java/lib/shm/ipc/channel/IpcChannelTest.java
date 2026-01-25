@@ -3,6 +3,7 @@ package lib.shm.ipc.channel;
 import lib.shm.ipc.IpcStatus;
 import lib.shm.ipc.LibLoader;
 import lib.shm.ipc.exeption.IpcException;
+import lib.shm.ipc.result.IpcResultWrapper;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -13,9 +14,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import lib.shm.ipc.result.*;
-
 
 public class IpcChannelTest {
     @Test
@@ -59,7 +57,7 @@ public class IpcChannelTest {
                     String formatted = messageTemplate.formatted(i);
                     byte[] bytes = formatted.getBytes(StandardCharsets.UTF_8);
                     try {
-                        IpcResultWrapper<Void> write = producer.write(bytes);
+                        producer.write(bytes);
                     } catch (IpcException e) {
                         i--;
                     }
@@ -88,6 +86,21 @@ public class IpcChannelTest {
 
             exec.shutdown();
             exec.awaitTermination(10, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test(timeout = 1500)
+    public void timeout() throws IpcException {
+        final long readTimeoutMs = 1000;
+        final long size = IpcChannel.getSuggestedSize(2000);
+        try (final Arena arena = Arena.ofConfined()) {
+            final MemorySegment memory = arena.allocate(size);
+            IpcChannel.create(arena, memory, size);
+            IpcChannel consumer = IpcChannel.connect(arena, memory).getResult();
+
+            long beforeRead = System.currentTimeMillis();
+            consumer.read(readTimeoutMs);
+            Assert.assertTrue(System.currentTimeMillis() - beforeRead >= readTimeoutMs);
         }
     }
 }

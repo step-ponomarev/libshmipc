@@ -1,0 +1,7 @@
+--- a/doctest/BUILD.bazel
++++ b/doctest/BUILD.bazel
+@@ -0,0 +1,2 @@
++load("@rules_cc//cc:defs.bzl", "cc_library")
++
+ cc_library(
+     name = "doctest",
