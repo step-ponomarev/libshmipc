@@ -13,6 +13,8 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
 // TODO: Prepare exceptions
+//TODO: не палить статусы на ружу.
+// TODO: либо результат либо соотв ошибка
 public final class IpcChannel implements Closeable {
     static {
         LibLoader.load();
