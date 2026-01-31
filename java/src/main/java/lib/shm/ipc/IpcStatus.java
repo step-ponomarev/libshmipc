@@ -19,8 +19,7 @@ public enum IpcStatus {
     IPC_ERR_LOCKED(ipc_common_h.IPC_ERR_LOCKED()),
     IPC_ERR_OFFSET_MISMATCH(ipc_common_h.IPC_ERR_OFFSET_MISMATCH()),
     IPC_ERR_TIMEOUT(ipc_common_h.IPC_ERR_TIMEOUT()),
-    IPC_ERR_CORRUPTED(ipc_common_h.IPC_ERR_CORRUPTED()),
-    IPC_UNKNOWN(404);
+    IPC_ERR_CORRUPTED(ipc_common_h.IPC_ERR_CORRUPTED());
     private final int status;
 
     IpcStatus(int status) {
@@ -34,10 +33,10 @@ public enum IpcStatus {
             }
         }
 
-        return IpcStatus.IPC_UNKNOWN;
+        throw new IllegalArgumentException("Unknown IPC status: " + status);
     }
 
     public int getStatus() {
         return status;
     }
-}
+    }

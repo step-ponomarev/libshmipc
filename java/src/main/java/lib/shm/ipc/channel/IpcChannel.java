@@ -29,7 +29,7 @@ public final class IpcChannel implements Closeable {
         return ipc_channel_h.ipc_channel_suggest_size(desired);
     }
 
-    public static IpcChannel create(Arena arena, MemorySegment mem, long size) throws IpcSystemError, IpcUnknownException {
+    public static IpcChannel create(Arena arena, MemorySegment mem, long size) throws IpcSystemError {
         try {
             final MemorySegment createResult = ipc_channel_h.ipc_channel_create(arena, mem, size);
             final IpcStatus ipcStatus = IpcStatus.of(IpcChannelCreateResult.ipc_status(createResult));
@@ -42,15 +42,15 @@ public final class IpcChannel implements Closeable {
                 throw new IpcSystemError(errorMessage);
             }
 
-            throw new IpcUnknownException(errorMessage);
+            throw new IpcUnexpectedException(errorMessage);
         } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
-            throw new IpcUnknownException(e);
+            throw new IpcUnexpectedException(e);
         }
     }
 
-    public static IpcChannel connect(Arena arena, MemorySegment mem) throws IpcSystemError, IpcUnknownException {
+    public static IpcChannel connect(Arena arena, MemorySegment mem) throws IpcSystemError {
         try {
             final MemorySegment createResult = ipc_channel_h.ipc_channel_connect(arena, mem);
             final IpcStatus ipcStatus = IpcStatus.of(IpcChannelConnectResult.ipc_status(createResult));
@@ -63,15 +63,15 @@ public final class IpcChannel implements Closeable {
                 throw new IpcSystemError(errorMessage);
             }
 
-            throw new IpcUnknownException(errorMessage);
+            throw new IpcUnexpectedException(errorMessage);
         } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
-            throw new IpcUnknownException(e);
+            throw new IpcUnexpectedException(e);
         }
     }
 
-    public void write(byte[] bytes) throws IpcSystemError, IpcUnknownException {
+    public void write(byte[] bytes) throws IpcSystemError, IpcWriteException {
         try {
             final MemorySegment writeResult = ipc_channel_h.ipc_channel_write(arena, channel, arena.allocateFrom(ValueLayout.JAVA_BYTE, bytes), bytes.length);
 
@@ -85,15 +85,19 @@ public final class IpcChannel implements Closeable {
                 throw new IpcSystemError(errorMsg);
             }
 
-            throw new IpcUnknownException(errorMsg);
+            if (ipcStatus == IpcStatus.IPC_ERR_NO_SPACE_CONTIGUOUS) {
+                throw new IpcWriteException(ipcStatus, errorMsg);
+            }
+
+            throw new IpcUnexpectedException(errorMsg);
         } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
-            throw new IpcUnknownException(e);
+            throw new IpcUnexpectedException(e);
         }
     }
 
-    public byte[] read(long timeoutMs) throws IpcReadException, IpcTimeoutException, IpcUnknownException {
+    public byte[] read(long timeoutMs) throws IpcReadException, IpcTimeoutException {
         try {
             final long start = System.currentTimeMillis();
             long notify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
@@ -120,11 +124,11 @@ public final class IpcChannel implements Closeable {
         } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
-            throw new IpcUnknownException(e);
+            throw new IpcUnexpectedException(e);
         }
     }
 
-    public byte[] tryRead() throws IpcReadException, IpcUnknownException {
+    public byte[] tryRead() throws IpcReadException {
         try {
             final MemorySegment entry = IpcEntry.allocate(arena);
             final MemorySegment tryReadResult = ipc_channel_h.ipc_channel_try_read(arena, channel, entry);
@@ -141,7 +145,7 @@ public final class IpcChannel implements Closeable {
         } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
-            throw new IpcUnknownException(e);
+            throw new IpcUnexpectedException(e);
         }
     }
 
