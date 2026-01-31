@@ -88,7 +88,7 @@ public class IpcChannelTest {
     public void basicMultiProducerMultiConsumerTest() throws InterruptedException, IpcException {
         LibLoader.load();
 
-        final int count = 100_000;
+        final int count = 1_000_000;
         final long size = IpcChannel.getSuggestedSize(200);
         try (final Arena arena = Arena.ofShared();
              final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
@@ -102,8 +102,13 @@ public class IpcChannelTest {
             for (int i = 0; i < 2; i++) {
                 IpcChannel producer = IpcChannel.connect(arena, memory);
                 exec.execute(() -> {
-                    int num;
-                    while ((num = send.getAndIncrement()) < count) {
+
+                    while (true) {
+                        final int num = send.getAndIncrement();
+                        if (num >= count) {
+                            break;
+                        }
+
                         final String msg = messageTemplate.formatted(num);
                         while (true) {
                             try {
