@@ -2,14 +2,13 @@ package lib.shm.ipc.exeption;
 
 import lib.shm.ipc.IpcStatus;
 
-public final class IpcException extends Exception {
+public abstract class IpcException extends Exception {
+    private final IpcStatus status;
 
     public IpcException(IpcStatus status, Throwable cause) {
         super(cause);
         this.status = status;
     }
-
-    private final IpcStatus status;
 
     public IpcException(IpcStatus status, String message) {
         super(message);

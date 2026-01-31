@@ -2,9 +2,9 @@ package lib.shm.ipc.channel;
 
 import lib.shm.ipc.IpcStatus;
 import lib.shm.ipc.LibLoader;
-import lib.shm.ipc.exeption.IpcException;
+import lib.shm.ipc.exeption.*;
 import jextract.*;
-import lib.shm.ipc.result.IpcResultWrapper;
+import lib.shm.ipc.exeption.IpcReadException;
 
 import java.io.Closeable;
 
@@ -12,9 +12,6 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
-// TODO: Prepare exceptions
-//TODO: не палить статусы на ружу.
-// TODO: либо результат либо соотв ошибка
 public final class IpcChannel implements Closeable {
     static {
         LibLoader.load();
@@ -32,77 +29,84 @@ public final class IpcChannel implements Closeable {
         return ipc_channel_h.ipc_channel_suggest_size(desired);
     }
 
-    public static IpcResultWrapper<IpcChannel> create(Arena arena, MemorySegment mem, long size) throws IpcException {
+    public static IpcChannel create(Arena arena, MemorySegment mem, long size) throws IpcSystemError, IpcUnknownException {
         try {
             final MemorySegment createResult = ipc_channel_h.ipc_channel_create(arena, mem, size);
             final IpcStatus ipcStatus = IpcStatus.of(IpcChannelCreateResult.ipc_status(createResult));
-
-            if (ipcStatus != IpcStatus.IPC_OK) {
-                throw new IpcException(ipcStatus, parseErrorMessage(IpcChannelCreateResultError.detail(IpcChannelCreateResult.error(createResult))));
+            if (ipcStatus == IpcStatus.IPC_OK) {
+                return new IpcChannel(arena, IpcChannelCreateResult.result(createResult));
             }
 
-            return new IpcResultWrapper<>(ipcStatus, new IpcChannel(arena, IpcChannelCreateResult.result(createResult)));
+            final String errorMessage = parseErrorMessage(IpcChannelCreateResultError.detail(IpcChannelCreateResult.error(createResult)));
+            if (ipcStatus == IpcStatus.IPC_ERR_SYSTEM) {
+                throw new IpcSystemError(errorMessage);
+            }
+
+            throw new IpcUnknownException(errorMessage);
         } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
-            throw new IpcException(IpcStatus.IPC_ERR_SYSTEM, e);
+            throw new IpcUnknownException(e);
         }
     }
 
-    public static IpcResultWrapper<IpcChannel> connect(Arena arena, MemorySegment mem) throws IpcException {
+    public static IpcChannel connect(Arena arena, MemorySegment mem) throws IpcSystemError, IpcUnknownException {
         try {
             final MemorySegment createResult = ipc_channel_h.ipc_channel_connect(arena, mem);
             final IpcStatus ipcStatus = IpcStatus.of(IpcChannelConnectResult.ipc_status(createResult));
-
-            if (ipcStatus != IpcStatus.IPC_OK) {
-                throw new IpcException(ipcStatus, parseErrorMessage(IpcChannelConnectResultError.detail(IpcChannelConnectResult.error(createResult))));
+            if (ipcStatus == IpcStatus.IPC_OK) {
+                return new IpcChannel(arena, IpcChannelConnectResult.result(createResult));
             }
 
-            return new IpcResultWrapper<>(ipcStatus, new IpcChannel(arena, IpcChannelConnectResult.result(createResult)));
+            final String errorMessage = parseErrorMessage(IpcChannelConnectResultError.detail(IpcChannelConnectResult.error(createResult)));
+            if (ipcStatus == IpcStatus.IPC_ERR_SYSTEM) {
+                throw new IpcSystemError(errorMessage);
+            }
+
+            throw new IpcUnknownException(errorMessage);
         } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
-            throw new IpcException(IpcStatus.IPC_ERR_SYSTEM, e);
+            throw new IpcUnknownException(e);
         }
     }
 
-    public IpcResultWrapper<Void> write(byte[] bytes) throws IpcException {
+    public void write(byte[] bytes) throws IpcSystemError, IpcUnknownException {
         try {
             final MemorySegment writeResult = ipc_channel_h.ipc_channel_write(arena, channel, arena.allocateFrom(ValueLayout.JAVA_BYTE, bytes), bytes.length);
 
             final IpcStatus ipcStatus = IpcStatus.of(IpcChannelWriteResult.ipc_status(writeResult));
-            if (ipcStatus != IpcStatus.IPC_OK) {
-                throw new IpcException(ipcStatus, parseErrorMessage(IpcChannelWriteResultError.detail(IpcChannelWriteResult.error(writeResult))));
+            if (ipcStatus == IpcStatus.IPC_OK) {
+                return;
             }
 
-            return new IpcResultWrapper<>(ipcStatus, null);
+            final String errorMsg = parseErrorMessage(IpcChannelWriteResultError.detail(IpcChannelWriteResult.error(writeResult)));
+            if (ipcStatus == IpcStatus.IPC_ERR_SYSTEM) {
+                throw new IpcSystemError(errorMsg);
+            }
+
+            throw new IpcUnknownException(errorMsg);
         } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
-            throw new IpcException(IpcStatus.IPC_ERR_SYSTEM, e);
+            throw new IpcUnknownException(e);
         }
     }
 
-    public IpcResultWrapper<byte[]> read(long timeoutMs) throws IpcException {
+    public byte[] read(long timeoutMs) throws IpcReadException, IpcTimeoutException, IpcUnknownException {
         try {
             final long start = System.currentTimeMillis();
             long notify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
+            byte[] res;
 
             do {
-                try {
-                    IpcResultWrapper<byte[]> readResult = tryRead();
-                    if (readResult.getStatus() == IpcStatus.IPC_OK) {
-                        return readResult;
-                    }
-                } catch (IpcException e) {
-                    if (!ipc_channel_h.ipc_channel_is_retry_status(e.getStatus().getStatus())) {
-                        throw e;
-                    }
+                if ((res = tryRead()) != null) {
+                    return res;
                 }
 
                 while (true) {
                     if (System.currentTimeMillis() - start >= timeoutMs) {
-                        return new IpcResultWrapper<>(IpcStatus.IPC_ERR_TIMEOUT, null);
+                        throw new IpcTimeoutException("Read timed outed timeout %d".formatted(start));
                     }
 
                     long currNotify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
@@ -116,28 +120,28 @@ public final class IpcChannel implements Closeable {
         } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
-            throw new IpcException(IpcStatus.IPC_ERR_SYSTEM, e);
+            throw new IpcUnknownException(e);
         }
     }
 
-    public IpcResultWrapper<byte[]> tryRead() throws IpcException {
+    public byte[] tryRead() throws IpcReadException, IpcUnknownException {
         try {
             final MemorySegment entry = IpcEntry.allocate(arena);
             final MemorySegment tryReadResult = ipc_channel_h.ipc_channel_try_read(arena, channel, entry);
             IpcStatus ipcStatus = IpcStatus.of(IpcChannelTryReadResult.ipc_status(tryReadResult));
             if (ipcStatus == IpcStatus.IPC_OK) {
-                return new IpcResultWrapper<>(ipcStatus, ipcEntryToBytes(entry));
+                return ipcEntryToBytes(entry);
             }
 
-            if (ipcStatus == IpcStatus.IPC_EMPTY) {
-                return new IpcResultWrapper<>(ipcStatus, null);
+            if (ipc_channel_h.ipc_channel_is_retry_status(ipcStatus.getStatus())) {
+                return null;
             }
 
-            throw new IpcException(ipcStatus, parseErrorMessage(IpcChannelTryReadResultError.detail(IpcChannelTryReadResult.error(tryReadResult))));
+            throw new IpcReadException(ipcStatus, parseErrorMessage(IpcChannelTryReadResultError.detail(IpcChannelTryReadResult.error(tryReadResult))));
         } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
-            throw new IpcException(IpcStatus.IPC_ERR_SYSTEM, e);
+            throw new IpcUnknownException(e);
         }
     }
 
