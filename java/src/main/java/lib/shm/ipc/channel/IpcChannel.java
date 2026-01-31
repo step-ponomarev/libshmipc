@@ -71,7 +71,7 @@ public final class IpcChannel implements Closeable {
         }
     }
 
-    public void write(byte[] bytes) throws IpcSystemError, IpcWriteException {
+    public void write(byte[] bytes) throws IpcSystemError, IpcLockedException, IpcWriteException {
         try {
             final MemorySegment writeResult = ipc_channel_h.ipc_channel_write(arena, channel, arena.allocateFrom(ValueLayout.JAVA_BYTE, bytes), bytes.length);
 
@@ -87,6 +87,10 @@ public final class IpcChannel implements Closeable {
 
             if (ipcStatus == IpcStatus.IPC_ERR_NO_SPACE_CONTIGUOUS) {
                 throw new IpcWriteException(ipcStatus, errorMsg);
+            }
+
+            if (ipcStatus == IpcStatus.IPC_ERR_LOCKED) {
+                throw new IpcLockedException(errorMsg);
             }
 
             throw new IpcUnexpectedException(errorMsg);

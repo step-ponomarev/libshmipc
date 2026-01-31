@@ -102,7 +102,6 @@ public class IpcChannelTest {
             for (int i = 0; i < 2; i++) {
                 IpcChannel producer = IpcChannel.connect(arena, memory);
                 exec.execute(() -> {
-
                     while (true) {
                         final int num = send.getAndIncrement();
                         if (num >= count) {
@@ -115,7 +114,7 @@ public class IpcChannelTest {
                                 producer.write(msg.getBytes(StandardCharsets.UTF_8));
                                 sendEntities.put(msg, STUB);
                                 break;
-                            } catch (IpcException e) {}
+                            } catch (Exception e) {}
                         }
                     }
                 });
@@ -139,6 +138,7 @@ public class IpcChannelTest {
             exec.shutdown();
             exec.awaitTermination(10, TimeUnit.SECONDS);
             Assert.assertEquals(sendEntities.keySet(), receivedEntities.keySet());
+            Assert.assertEquals(count, sendEntities.size());
         }
     }
 
