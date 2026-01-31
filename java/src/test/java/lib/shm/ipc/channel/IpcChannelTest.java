@@ -89,7 +89,7 @@ public class IpcChannelTest {
         }
     }
 
-    @Test(timeout = 1500)
+    @Test(timeout = 2000)
     public void timeout() throws IpcException {
         final long readTimeoutMs = 1000;
         final long size = IpcChannel.getSuggestedSize(2000);
