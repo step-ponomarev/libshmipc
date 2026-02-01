@@ -9,6 +9,7 @@ import org.junit.Test;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,7 +32,7 @@ public class IpcChannelTest {
 
             producer.write(bytes);
 
-            byte[] readResult = consumer.read(200);
+            byte[] readResult = consumer.read(Duration.ofMillis(200));
             Assert.assertEquals(testMsg, new String(readResult, StandardCharsets.UTF_8));
         }
     }
@@ -67,7 +68,7 @@ public class IpcChannelTest {
                 while (true) {
                     final byte[] readResult;
                     try {
-                        readResult = consumer.read(TimeUnit.SECONDS.toMillis(1));
+                        readResult = consumer.read(Duration.ofSeconds(1));
                         final String expectedMessage = messageTemplate.formatted(received.getAndIncrement());
                         String message = new String(readResult, StandardCharsets.UTF_8);
                         Assert.assertEquals(expectedMessage, message);
@@ -127,7 +128,7 @@ public class IpcChannelTest {
                     while (receivedEntities.size() != count) {
                         final byte[] readResult;
                         try {
-                            readResult = consumer.read(TimeUnit.SECONDS.toMillis(1));
+                            readResult = consumer.read(Duration.ofSeconds(1));
                             String message = new String(readResult, StandardCharsets.UTF_8);
                             receivedEntities.put(message, STUB);
                         } catch (IpcException e) {}
@@ -144,7 +145,7 @@ public class IpcChannelTest {
 
     @Test(timeout = 1000)
     public void timeout() throws IpcException {
-        final long readTimeoutMs = 250;
+        final Duration readTimeoutMs = Duration.ofMillis(250);
         final long size = IpcChannel.getSuggestedSize(2000);
         try (final Arena arena = Arena.ofConfined()) {
             final MemorySegment memory = arena.allocate(size);
@@ -157,7 +158,7 @@ public class IpcChannelTest {
                 Assert.fail();
             } catch (IpcTimeoutException e) {}
 
-            Assert.assertTrue(System.currentTimeMillis() - beforeRead >= readTimeoutMs);
+            Assert.assertTrue(System.currentTimeMillis() - beforeRead >= readTimeoutMs.toMillis());
         }
     }
 }

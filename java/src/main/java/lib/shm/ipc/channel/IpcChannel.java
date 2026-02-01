@@ -11,6 +11,7 @@ import java.io.Closeable;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.time.Duration;
 
 public final class IpcChannel implements Closeable {
     static {
@@ -101,9 +102,10 @@ public final class IpcChannel implements Closeable {
         }
     }
 
-    public byte[] read(long timeoutMs) throws IpcReadException, IpcTimeoutException {
+    public byte[] read(Duration timeout) throws IpcReadException, IpcTimeoutException {
         try {
             final long start = System.currentTimeMillis();
+            final long timeoutMs = timeout.toMillis();
             long notify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
             byte[] res;
 
