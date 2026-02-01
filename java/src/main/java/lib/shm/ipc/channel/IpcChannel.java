@@ -18,11 +18,11 @@ public final class IpcChannel implements Closeable {
         LibLoader.load();
     }
 
-    private final Arena arena;
+    private final Arena channelArena;
     private final MemorySegment channel;
 
-    private IpcChannel(Arena arena, MemorySegment channel) {
-        this.arena = arena;
+    private IpcChannel(Arena channelArena, MemorySegment channel) {
+        this.channelArena = channelArena;
         this.channel = channel;
     }
 
@@ -30,8 +30,10 @@ public final class IpcChannel implements Closeable {
         return ipc_channel_h.ipc_channel_suggest_size(desired);
     }
 
-    public static IpcChannel create(Arena arena, MemorySegment mem, long size) throws IpcSystemError {
+    public static IpcChannel create(MemorySegment mem, long size) throws IpcSystemError {
+        Arena arena = null;
         try {
+            arena = Arena.ofShared();
             final MemorySegment createResult = ipc_channel_h.ipc_channel_create(arena, mem, size);
             final IpcStatus ipcStatus = IpcStatus.of(IpcChannelCreateResult.ipc_status(createResult));
             if (ipcStatus == IpcStatus.IPC_OK) {
@@ -45,14 +47,24 @@ public final class IpcChannel implements Closeable {
 
             throw new IpcUnexpectedException(errorMessage);
         } catch (IpcException e) {
+            if (arena != null) {
+                close(arena);
+            }
+
             throw e;
         } catch (Exception e) {
+            if (arena != null) {
+                close(arena);
+            }
+
             throw new IpcUnexpectedException(e);
         }
     }
 
-    public static IpcChannel connect(Arena arena, MemorySegment mem) throws IpcSystemError {
+    public static IpcChannel connect(MemorySegment mem) throws IpcSystemError {
+        Arena arena = null;
         try {
+            arena = Arena.ofShared();
             final MemorySegment createResult = ipc_channel_h.ipc_channel_connect(arena, mem);
             final IpcStatus ipcStatus = IpcStatus.of(IpcChannelConnectResult.ipc_status(createResult));
             if (ipcStatus == IpcStatus.IPC_OK) {
@@ -66,15 +78,34 @@ public final class IpcChannel implements Closeable {
 
             throw new IpcUnexpectedException(errorMessage);
         } catch (IpcException e) {
+            if (arena != null) {
+                close(arena);
+            }
+
+            throw e;
+        } catch (Exception e) {
+            if (arena != null) {
+                close(arena);
+            }
+
+            throw new IpcUnexpectedException(e);
+        }
+    }
+
+    public void write(byte[] bytes) throws IpcSystemError, IpcLockedException, IpcWriteException {
+        try (final Arena arena = Arena.ofConfined()) {
+            final MemorySegment data = arena.allocateFrom(ValueLayout.JAVA_BYTE, bytes);
+            write(data, bytes.length);
+        } catch (IpcException e) {
             throw e;
         } catch (Exception e) {
             throw new IpcUnexpectedException(e);
         }
     }
 
-    public void write(byte[] bytes) throws IpcSystemError, IpcLockedException, IpcWriteException {
-        try {
-            final MemorySegment writeResult = ipc_channel_h.ipc_channel_write(arena, channel, arena.allocateFrom(ValueLayout.JAVA_BYTE, bytes), bytes.length);
+    public void write(MemorySegment data, long size) throws IpcSystemError, IpcLockedException, IpcWriteException {
+        try (final Arena arena = Arena.ofConfined()) {
+            final MemorySegment writeResult = ipc_channel_h.ipc_channel_write(arena, channel, data, size);
 
             final IpcStatus ipcStatus = IpcStatus.of(IpcChannelWriteResult.ipc_status(writeResult));
             if (ipcStatus == IpcStatus.IPC_OK) {
@@ -135,12 +166,12 @@ public final class IpcChannel implements Closeable {
     }
 
     public byte[] tryRead() throws IpcReadException {
-        try {
-            final MemorySegment entry = IpcEntry.allocate(arena);
-            final MemorySegment tryReadResult = ipc_channel_h.ipc_channel_try_read(arena, channel, entry);
+        try (final Arena arena = Arena.ofConfined()) {
+            final MemorySegment readEntry = IpcEntry.allocate(arena);
+            final MemorySegment tryReadResult = ipc_channel_h.ipc_channel_try_read(arena, channel, readEntry);
             IpcStatus ipcStatus = IpcStatus.of(IpcChannelTryReadResult.ipc_status(tryReadResult));
             if (ipcStatus == IpcStatus.IPC_OK) {
-                return ipcEntryToBytes(entry);
+                return ipcEntryToBytes(readEntry);
             }
 
             if (ipc_channel_h.ipc_channel_is_retry_status(ipcStatus.getStatus())) {
@@ -171,6 +202,10 @@ public final class IpcChannel implements Closeable {
 
     @Override
     public synchronized void close() {
+        close(channelArena);
+    }
+
+    private static void close(Arena arena) {
         if (!arena.scope().isAlive()) {
             return;
         }

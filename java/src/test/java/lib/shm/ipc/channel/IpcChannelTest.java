@@ -24,8 +24,8 @@ public class IpcChannelTest {
         final long size = IpcChannel.getSuggestedSize(2000);
         try (final Arena arena = Arena.ofConfined()) {
             final MemorySegment memory = arena.allocate(size);
-            IpcChannel producer = IpcChannel.create(arena, memory, size);
-            IpcChannel consumer = IpcChannel.connect(arena, memory);
+            IpcChannel producer = IpcChannel.create(memory, size);
+            IpcChannel consumer = IpcChannel.connect(memory);
 
             String testMsg = "Hello";
             byte[] bytes = testMsg.getBytes(StandardCharsets.UTF_8);
@@ -37,7 +37,7 @@ public class IpcChannelTest {
         }
     }
 
-    @Test
+    @Test(timeout = 30000)
     public void basicProducerConsumerTest() throws InterruptedException, IpcException {
         LibLoader.load();
 
@@ -46,35 +46,36 @@ public class IpcChannelTest {
         try (final Arena arena = Arena.ofShared();
              final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
         ) {
-            final AtomicInteger received = new AtomicInteger(0);
             final MemorySegment memory = arena.allocate(size);
-            IpcChannel producer = IpcChannel.create(arena, memory, size);
-            IpcChannel consumer = IpcChannel.connect(arena, memory);
+            IpcChannel producer = IpcChannel.create(memory, size);
+            IpcChannel consumer = IpcChannel.connect(memory);
 
             final String messageTemplate = "Message %d";
+            final ConcurrentHashMap<String, Object> sendEntities = new ConcurrentHashMap<>();
             exec.execute(() -> {
                 for (int i = 0; i < count; i++) {
                     String formatted = messageTemplate.formatted(i);
                     byte[] bytes = formatted.getBytes(StandardCharsets.UTF_8);
                     try {
                         producer.write(bytes);
+                        sendEntities.put(formatted, STUB);
                     } catch (IpcException e) {
                         i--;
                     }
                 }
             });
 
+            final ConcurrentHashMap<String, Object> receivedEntities = new ConcurrentHashMap<>();
             exec.execute(() -> {
                 while (true) {
                     final byte[] readResult;
                     try {
                         readResult = consumer.read(Duration.ofSeconds(1));
-                        final String expectedMessage = messageTemplate.formatted(received.getAndIncrement());
                         String message = new String(readResult, StandardCharsets.UTF_8);
-                        Assert.assertEquals(expectedMessage, message);
+                        receivedEntities.put(message, STUB);
                     } catch (IpcException e) {}
 
-                    if (received.get() == count) {
+                    if (receivedEntities.size() == count) {
                         return;
                     }
                 }
@@ -82,6 +83,8 @@ public class IpcChannelTest {
 
             exec.shutdown();
             exec.awaitTermination(10, TimeUnit.SECONDS);
+            Assert.assertEquals(sendEntities.keySet(), receivedEntities.keySet());
+            Assert.assertEquals(count, sendEntities.size());
         }
     }
 
@@ -89,7 +92,7 @@ public class IpcChannelTest {
     public void basicMultiProducerMultiConsumerTest() throws InterruptedException, IpcException {
         LibLoader.load();
 
-        final int count = 100_000;
+        final int count = 1_000_000;
         final long size = IpcChannel.getSuggestedSize(200);
         try (final Arena arena = Arena.ofShared();
              final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
@@ -99,9 +102,9 @@ public class IpcChannelTest {
             final ConcurrentHashMap<String, Object> sendEntities = new ConcurrentHashMap<>();
             final String messageTemplate = "Message %d";
 
-            IpcChannel.create(arena, memory, size); // initialize
+            IpcChannel.create(memory, size); // initialize
             for (int i = 0; i < 2; i++) {
-                IpcChannel producer = IpcChannel.connect(arena, memory);
+                IpcChannel producer = IpcChannel.connect( memory);
                 exec.execute(() -> {
                     while (true) {
                         final int num = send.getAndIncrement();
@@ -123,7 +126,7 @@ public class IpcChannelTest {
 
             final ConcurrentHashMap<String, Object> receivedEntities = new ConcurrentHashMap<>();
             for (int i = 0; i < 10; i++) {
-                IpcChannel consumer = IpcChannel.connect(arena, memory);
+                IpcChannel consumer = IpcChannel.connect(memory);
                 exec.execute(() -> {
                     while (receivedEntities.size() != count) {
                         final byte[] readResult;
@@ -149,8 +152,8 @@ public class IpcChannelTest {
         final long size = IpcChannel.getSuggestedSize(2000);
         try (final Arena arena = Arena.ofConfined()) {
             final MemorySegment memory = arena.allocate(size);
-            IpcChannel.create(arena, memory, size);
-            IpcChannel consumer = IpcChannel.connect(arena, memory);
+            IpcChannel.create(memory, size);
+            IpcChannel consumer = IpcChannel.connect(memory);
 
             long beforeRead = System.currentTimeMillis();
             try {
