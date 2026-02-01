@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-# Benchmark configuration
 MESSAGE_COUNT=${MESSAGE_COUNT:-100000}
 WARMUP_COUNT=${WARMUP_COUNT:-10000}
 MESSAGE_SIZE=${MESSAGE_SIZE:-64}
@@ -21,8 +20,7 @@ echo ""
 
 # Build benchmarks
 echo "Building benchmarks..."
-cd "$(dirname "$0")/.."
-bazel build //java:pingpong_producer //java:pingpong_consumer //java:socket_pingpong_server //java:socket_pingpong_client
+bazel build //benchmarks:java_benchmarks
 echo ""
 
 # Get paths to built binaries

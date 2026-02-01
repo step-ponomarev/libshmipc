@@ -1,0 +1,5 @@
+alias(
+    name = "java_benchmarks",
+    actual = "//benchmarks/java:shmipc_benchmark_java",
+    visibility = ["//visibility:public"],
+)
