@@ -1,65 +1,12 @@
 load("@rules_java//java:defs.bzl", "java_binary", "java_library")
 load("//java:tools/java_tests.bzl", "java_tests")
 
-package(default_visibility = ["//visibility:private"])
-
-java_library(
-    name = "shmipc_java_core",
-    srcs = glob(
-        ["src/main/java/**/*.java"],
-        exclude = ["src/main/java/lib/shm/ipc/benchmark/**/*.java"],
-    ),
-    visibility = ["//visibility:private"],
-)
-
 java_library(
     name = "shmipc_java",
     srcs = glob(
-        ["src/main/java/**/*.java"],
-        exclude = ["src/main/java/lib/shm/ipc/benchmark/**/*.java"],
+        ["src/main/java/**/*.java"]
     ),
     visibility = ["//visibility:public"],
-)
-
-# Benchmark library
-java_library(
-    name = "benchmark_lib",
-    srcs = glob(["src/main/java/lib/shm/ipc/benchmark/**/*.java"]),
-    visibility = ["//visibility:private"],
-    deps = [":shmipc_java"],
-)
-
-# Ping-pong benchmarks
-java_binary(
-    name = "pingpong_producer",
-    jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
-    main_class = "lib.shm.ipc.benchmark.PingPongProducer",
-    runtime_deps = [
-        ":benchmark_lib",
-        "//core:shmipc_shared",
-    ],
-)
-
-java_binary(
-    name = "pingpong_consumer",
-    jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
-    main_class = "lib.shm.ipc.benchmark.PingPongConsumer",
-    runtime_deps = [
-        ":benchmark_lib",
-        "//core:shmipc_shared",
-    ],
-)
-
-java_binary(
-    name = "socket_pingpong_server",
-    main_class = "lib.shm.ipc.benchmark.SocketPingPongServer",
-    runtime_deps = [":benchmark_lib"],
-)
-
-java_binary(
-    name = "socket_pingpong_client",
-    main_class = "lib.shm.ipc.benchmark.SocketPingPongClient",
-    runtime_deps = [":benchmark_lib"],
 )
 
 java_library(

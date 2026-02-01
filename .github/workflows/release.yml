@@ -100,7 +100,7 @@ jobs:
           path: native_libs_all
 
       - name: Build Java core library
-        run: bazel build $BAZEL_BUILD_FLAGS //java:shmipc_java_core
+        run: bazel build $BAZEL_BUILD_FLAGS //java:shmipc_java
       - name: Create multi-platform JAR
         run: |
           BIN_DIR="$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)"
