@@ -26,6 +26,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelrc: common --enable_bzlmod

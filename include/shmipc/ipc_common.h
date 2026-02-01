@@ -26,6 +26,7 @@ typedef enum {
   IPC_ERR_CORRUPTED = -12,
 } IpcStatus;
 
+// TODO: need check is error in java
 #define IPC_RESULT(NAME, T, E)                                                 \
   typedef struct NAME##Error {                                                 \
     const char *detail;                                                        \

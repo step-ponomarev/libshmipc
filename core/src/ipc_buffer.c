@@ -64,6 +64,7 @@ uint64_t ipc_buffer_suggest_size(size_t desired_capacity) {
   return aligned_capacity + overhead;
 }
 
+// TODO: sycnhronize create/attach logic: race condition
 IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
   IpcBufferCreateError error = {.requested_size = size,
                                 .min_size = BUFFER_HEADER_SIZE_ALIGNED};

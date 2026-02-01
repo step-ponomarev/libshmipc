@@ -17,6 +17,7 @@
 
 typedef struct IpcChannelHeader {
   _Atomic uint32_t notify;
+  uint8_t __align[64 - sizeof(uint32_t)];
 } IpcChannelHeader;
 
 struct IpcChannel {
@@ -26,7 +27,6 @@ struct IpcChannel {
 
 static IpcChannelReadResult _try_read(IpcChannel *, IpcEntry *);
 static bool _is_error_status(const IpcStatus);
-static bool _is_retry_status(const IpcStatus);
 
 inline uint64_t ipc_channel_get_memory_overhead(void) {
   return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_get_memory_overhead();
@@ -34,6 +34,15 @@ inline uint64_t ipc_channel_get_memory_overhead(void) {
 
 inline uint64_t ipc_channel_get_min_size(void) {
   return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_get_min_size();
+}
+
+inline uint32_t ipc_channel_get_notify_signal(IpcChannel *channel) {
+  return atomic_load(&channel->header->notify);
+}
+
+inline bool ipc_channel_is_retry_status(const IpcStatus status) {
+  return status == IPC_ERR_NOT_READY || status == IPC_EMPTY ||
+         status == IPC_ERR_LOCKED;
 }
 
 uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
@@ -47,18 +56,18 @@ uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
   return find_next_power_of_2(desired_capacity) + overhead;
 }
 
-IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
+IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size) {
   const size_t min_total = ipc_channel_get_memory_overhead();
-  IpcChannelOpenError error = {
+  IpcChannelCreateError error = {
       .requested_size = size, .min_size = min_total, .sys_errno = 0};
 
   if (mem == NULL) {
-    return IpcChannelOpenResult_error_body(
+    return IpcChannelCreateResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
   }
 
   if (size == 0) {
-    return IpcChannelOpenResult_error_body(
+    return IpcChannelCreateResult_error_body(
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer size is 0", error);
   }
 
@@ -68,8 +77,8 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
   if (IpcBufferCreateResult_is_error(buffer_result)) {
     error.requested_size = size;
     error.sys_errno = buffer_result.error.body.sys_errno;
-    return IpcChannelOpenResult_error_body(buffer_result.ipc_status,
-                                           buffer_result.error.detail, error);
+    return IpcChannelCreateResult_error_body(buffer_result.ipc_status,
+                                             buffer_result.error.detail, error);
   }
 
   IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
@@ -77,7 +86,7 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
     free(buffer_result.result);
     error.sys_errno = errno;
     error.requested_size = size;
-    return IpcChannelOpenResult_error_body(
+    return IpcChannelCreateResult_error_body(
         IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
   }
 
@@ -86,7 +95,7 @@ IpcChannelOpenResult ipc_channel_create(void *mem, const size_t size) {
 
   atomic_init(&channel->header->notify, 0);
 
-  return IpcChannelOpenResult_ok(IPC_OK, channel);
+  return IpcChannelCreateResult_ok(IPC_OK, channel);
 }
 
 IpcChannelConnectResult ipc_channel_connect(void *mem) {
@@ -283,9 +292,7 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
         dest->offset = read_entry.offset;
         return read_result;
       }
-    }
-
-    if (!_is_retry_status(peek_result.ipc_status)) {
+    } else if (!ipc_channel_is_retry_status(peek_result.ipc_status)) {
       free(read_entry.payload);
       error.offset = peek_entry.offset;
       return IpcChannelReadResult_error_body(peek_result.ipc_status,
@@ -477,10 +484,5 @@ static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
 }
 
 static inline bool _is_error_status(const IpcStatus status) {
-  return status != IPC_OK && !_is_retry_status(status);
-}
-
-static inline bool _is_retry_status(const IpcStatus status) {
-  return status == IPC_ERR_NOT_READY || status == IPC_EMPTY ||
-         status == IPC_ERR_CORRUPTED || status == IPC_ERR_LOCKED;
+  return status != IPC_OK && !ipc_channel_is_retry_status(status);
 }

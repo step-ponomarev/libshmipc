@@ -6,12 +6,25 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LibLoader {
+    private static final AtomicBoolean loaded = new AtomicBoolean(false);
+
     private LibLoader() {}
 
     public static void load() {
-        String resPath = "/native/" + os() + "-" + arch() + "/" + (os().equals("Darwin") ? "libshmipc_jni.dylib" : "libshmipc_jni.so");
+        if (!loaded.compareAndSet(false, true)) {
+            return;
+        }
+
+        String libPath = findLibraryInRunfiles();
+        if (libPath != null) {
+            System.load(libPath);
+            return;
+        }
+
+        String resPath = "/native/" + os() + "-" + arch() + "/" + (os().equals("Darwin") ? "libshmipc_shared.dylib" : "libshmipc_shared.so");
         try (InputStream in = LibLoader.class.getResourceAsStream(resPath)) {
             if (in != null) {
                 Path tmp = Files.createTempFile("shmipc-", "-" + Paths.get(resPath).getFileName());
@@ -20,15 +33,9 @@ public class LibLoader {
                 System.load(tmp.toString());
                 return;
             }
-        } catch (IOException e) {}
-        
-        // Fallback to runfiles (local run)
-        String libPath = findLibraryInRunfiles();
-        if (libPath != null) {
-            System.load(libPath);
-            return;
+        } catch (IOException e) {
         }
-        
+
         throw new UnsatisfiedLinkError("Native library not found in resources or runfiles. Resource path: " + resPath);
     }
 
@@ -48,9 +55,9 @@ public class LibLoader {
         if (runfilesDir == null) {
             return null;
         }
-        
-        String fileName = os().equals("Darwin") ? "libshmipc_jni.dylib" : "libshmipc_jni.so";
-        Path libPath = Paths.get(runfilesDir, "_main", "java", "native", fileName);
+
+        String fileName = os().equals("Darwin") ? "libshmipc_shared.dylib" : "libshmipc_shared.so";
+        Path libPath = Paths.get(runfilesDir, "_main", "core", fileName);
         
         if (Files.exists(libPath)) {
             return libPath.toAbsolutePath().toString();

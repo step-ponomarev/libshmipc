@@ -18,7 +18,7 @@ TEST_CASE("write too large entry") {
 
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
-  const IpcChannelOpenResult channel_result =
+  const IpcChannelCreateResult channel_result =
       ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
@@ -35,7 +35,7 @@ TEST_CASE("write read") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size);
+  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
   IpcChannel *producer = channel_result.result;
   CHECK(producer != nullptr);
 
@@ -62,7 +62,7 @@ TEST_CASE("peek") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size);
+  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
 
   IpcChannel *channel = channel_result.result;
 
@@ -95,7 +95,7 @@ TEST_CASE("peek empty") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size);
+  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
 
   IpcChannel *channel = channel_result.result;
 
@@ -110,7 +110,7 @@ TEST_CASE("write try read") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size);
+  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
   const int expected = 42;
@@ -132,7 +132,7 @@ TEST_CASE("try read empty") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size);
+  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
   IpcEntry entry;
@@ -145,7 +145,7 @@ TEST_CASE("read retry limit reached") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size);
+  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
   const int expected = -11;
@@ -182,7 +182,7 @@ TEST_CASE("skip corrupted entry") {
   const uint64_t size = ipc_channel_suggest_size(256);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size);
+  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
   const int first_val = 100;
@@ -227,7 +227,7 @@ TEST_CASE("skip corrupted entry") {
 TEST_CASE("skip force") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
-  IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size);
+  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
   const int val = 42;
@@ -245,7 +245,7 @@ TEST_CASE("read timeout") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size);
+  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
   const struct timespec timeout = {.tv_sec = 0, .tv_nsec = 1000000};
@@ -272,7 +272,7 @@ TEST_CASE("channel data - different sizes") {
   const uint64_t size = ipc_channel_suggest_size(2048);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelOpenResult channel_result = ipc_channel_create(mem.data(), size);
+  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
   IpcChannel *channel = channel_result.result;
 
   struct TestData {

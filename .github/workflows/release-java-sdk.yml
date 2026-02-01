@@ -45,6 +45,12 @@ jobs:
       - name: Sync MODULE.bazel version to tag
         run: .github/scripts/bump-version.sh "$VERSION"
 
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelrc: common --enable_bzlmod
@@ -52,18 +58,18 @@ jobs:
           repository-cache: true
           disk-cache: ${{ github.workflow }}
 
-      - name: Build JNI library
-        run: bazel build $BAZEL_BUILD_FLAGS //:shmipc_jni
+      - name: Build native library
+        run: bazel build $BAZEL_BUILD_FLAGS //core:shmipc_shared
 
       - name: Test Java
         run: bazel test $BAZEL_TEST_FLAGS //java:all_tests
 
-      - name: Package JNI library
-        run: .github/scripts/package-jni.sh "$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)" "${{ matrix.platform }}" "${{ matrix.ext }}"
+      - name: Package native library
+        run: .github/scripts/package-native.sh "$(bazel info $BAZEL_BUILD_FLAGS bazel-bin)" "${{ matrix.platform }}" "${{ matrix.ext }}"
 
-      - name: Upload JNI library artifact
+      - name: Upload native library artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jni-${{ matrix.platform }}
-          path: jni_libs/
+          name: native-${{ matrix.platform }}
+          path: native_libs/
           retention-days: 1

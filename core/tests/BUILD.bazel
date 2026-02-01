@@ -1,10 +1,11 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//core:tools/cc_tests.bzl", "cc_tests")
 
 package(default_visibility = ["//visibility:private"])
 
 TEST_COPTS = [
     "-std=c++20",
-    "-O0",
+    "-O3",
     "-g",
     "-UNDEBUG",
     "-Wall",
