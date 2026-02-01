@@ -16,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+//TODO: тест на утечки памяти
 public class IpcChannelTest {
     private static final Object STUB = new Object();
 
