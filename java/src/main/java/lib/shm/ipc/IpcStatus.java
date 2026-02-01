@@ -3,7 +3,6 @@ package lib.shm.ipc;
 import jextract.ipc_common_h;
 
 public enum IpcStatus {
-    //TODO: не все из них нужны тут?
     IPC_OK(ipc_common_h.IPC_OK()),
     IPC_EMPTY(ipc_common_h.IPC_EMPTY()),
     IPC_ALREADY_SKIPPED(ipc_common_h.IPC_ALREADY_SKIPPED()),
