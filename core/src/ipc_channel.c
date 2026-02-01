@@ -45,7 +45,7 @@ inline bool ipc_channel_is_retry_status(const IpcStatus status) {
          status == IPC_ERR_LOCKED;
 }
 
-inline void ipc_entry_free(const IpcEntry *entry) {
+inline void ipc_entry_free(IpcEntry *entry) {
   if (entry == NULL) {
     return;
   }
@@ -55,6 +55,7 @@ inline void ipc_entry_free(const IpcEntry *entry) {
   }
 
   free(entry->payload);
+  entry->payload = NULL;
 }
 
 uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
