@@ -45,6 +45,18 @@ inline bool ipc_channel_is_retry_status(const IpcStatus status) {
          status == IPC_ERR_LOCKED;
 }
 
+inline void ipc_entry_free(const IpcEntry *entry) {
+  if (entry == NULL) {
+    return;
+  }
+
+  if (entry->size == 0) {
+    return;
+  }
+
+  free(entry->payload);
+}
+
 uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
   const uint64_t min_size = ipc_channel_get_min_size();
   const uint64_t overhead = ipc_channel_get_memory_overhead();

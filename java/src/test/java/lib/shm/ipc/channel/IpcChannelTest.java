@@ -6,6 +6,8 @@ import lib.shm.ipc.exeption.IpcTimeoutException;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.charset.StandardCharsets;
@@ -16,7 +18,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-//TODO: тест на утечки памяти
 public class IpcChannelTest {
     private static final Object STUB = new Object();
 
@@ -25,16 +26,16 @@ public class IpcChannelTest {
         final long size = IpcChannel.getSuggestedSize(2000);
         try (final Arena arena = Arena.ofConfined()) {
             final MemorySegment memory = arena.allocate(size);
-            IpcChannel producer = IpcChannel.create(memory, size);
-            IpcChannel consumer = IpcChannel.connect(memory);
+            try (IpcChannel producer = IpcChannel.create(memory, size);
+                 IpcChannel consumer = IpcChannel.connect(memory)) {
+                String testMsg = "Hello";
+                byte[] bytes = testMsg.getBytes(StandardCharsets.UTF_8);
 
-            String testMsg = "Hello";
-            byte[] bytes = testMsg.getBytes(StandardCharsets.UTF_8);
+                producer.write(bytes);
 
-            producer.write(bytes);
-
-            byte[] readResult = consumer.read(Duration.ofMillis(200));
-            Assert.assertEquals(testMsg, new String(readResult, StandardCharsets.UTF_8));
+                byte[] readResult = consumer.read(Duration.ofMillis(200));
+                Assert.assertEquals(testMsg, new String(readResult, StandardCharsets.UTF_8));
+            }
         }
     }
 
@@ -48,44 +49,45 @@ public class IpcChannelTest {
              final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
         ) {
             final MemorySegment memory = arena.allocate(size);
-            IpcChannel producer = IpcChannel.create(memory, size);
-            IpcChannel consumer = IpcChannel.connect(memory);
-
-            final String messageTemplate = "Message %d";
-            final ConcurrentHashMap<String, Object> sendEntities = new ConcurrentHashMap<>();
-            exec.execute(() -> {
-                for (int i = 0; i < count; i++) {
-                    String formatted = messageTemplate.formatted(i);
-                    byte[] bytes = formatted.getBytes(StandardCharsets.UTF_8);
-                    try {
-                        producer.write(bytes);
-                        sendEntities.put(formatted, STUB);
-                    } catch (IpcException e) {
-                        i--;
+            try (IpcChannel producer = IpcChannel.create(memory, size);
+                 IpcChannel consumer = IpcChannel.connect(memory);
+            ) {
+                final String messageTemplate = "Message %d";
+                final ConcurrentHashMap<String, Object> sendEntities = new ConcurrentHashMap<>();
+                exec.execute(() -> {
+                    for (int i = 0; i < count; i++) {
+                        String formatted = messageTemplate.formatted(i);
+                        byte[] bytes = formatted.getBytes(StandardCharsets.UTF_8);
+                        try {
+                            producer.write(bytes);
+                            sendEntities.put(formatted, STUB);
+                        } catch (IpcException e) {
+                            i--;
+                        }
                     }
-                }
-            });
+                });
 
-            final ConcurrentHashMap<String, Object> receivedEntities = new ConcurrentHashMap<>();
-            exec.execute(() -> {
-                while (true) {
-                    final byte[] readResult;
-                    try {
-                        readResult = consumer.read(Duration.ofSeconds(1));
-                        String message = new String(readResult, StandardCharsets.UTF_8);
-                        receivedEntities.put(message, STUB);
-                    } catch (IpcException e) {}
+                final ConcurrentHashMap<String, Object> receivedEntities = new ConcurrentHashMap<>();
+                exec.execute(() -> {
+                    while (true) {
+                        final byte[] readResult;
+                        try {
+                            readResult = consumer.read(Duration.ofSeconds(1));
+                            String message = new String(readResult, StandardCharsets.UTF_8);
+                            receivedEntities.put(message, STUB);
+                        } catch (IpcException e) {}
 
-                    if (receivedEntities.size() == count) {
-                        return;
+                        if (receivedEntities.size() == count) {
+                            return;
+                        }
                     }
-                }
-            });
+                });
 
-            exec.shutdown();
-            exec.awaitTermination(10, TimeUnit.SECONDS);
-            Assert.assertEquals(sendEntities.keySet(), receivedEntities.keySet());
-            Assert.assertEquals(count, sendEntities.size());
+                exec.shutdown();
+                exec.awaitTermination(10, TimeUnit.SECONDS);
+                Assert.assertEquals(sendEntities.keySet(), receivedEntities.keySet());
+                Assert.assertEquals(count, sendEntities.size());
+            }
         }
     }
 
@@ -103,7 +105,7 @@ public class IpcChannelTest {
             final ConcurrentHashMap<String, Object> sendEntities = new ConcurrentHashMap<>();
             final String messageTemplate = "Message %d";
 
-            IpcChannel.create(memory, size); // initialize
+            IpcChannel.create(memory, size).close(); // initialize
             for (int i = 0; i < 2; i++) {
                 IpcChannel producer = IpcChannel.connect( memory);
                 exec.execute(() -> {
@@ -119,9 +121,10 @@ public class IpcChannelTest {
                                 producer.write(msg.getBytes(StandardCharsets.UTF_8));
                                 sendEntities.put(msg, STUB);
                                 break;
-                            } catch (Exception e) {}
+                            } catch (IpcException e) {}
                         }
                     }
+                    producer.close();
                 });
             }
 
@@ -137,6 +140,7 @@ public class IpcChannelTest {
                             receivedEntities.put(message, STUB);
                         } catch (IpcException e) {}
                     }
+                    consumer.close();
                 });
             }
 
@@ -163,6 +167,58 @@ public class IpcChannelTest {
             } catch (IpcTimeoutException e) {}
 
             Assert.assertTrue(System.currentTimeMillis() - beforeRead >= readTimeoutMs.toMillis());
+        }
+    }
+
+    @Test(timeout = 60000)
+    public void noNativeMemoryLeak() throws Exception {
+        final int messageSize = 256;
+        final byte[] data = new byte[messageSize];
+
+        final int iterations = 1_000_000;
+        final long rssBefore = getProcessRssKb();
+        try (Arena arena = Arena.ofShared()) {
+            MemorySegment memory = arena.allocate(IpcChannel.getSuggestedSize(4096));
+            try (IpcChannel producer = IpcChannel.create(memory, memory.byteSize());
+                 IpcChannel consumer = IpcChannel.connect(memory)) {
+                for (int i = 0; i < iterations; i++) {
+                    producer.write(data);
+                    consumer.tryRead();
+                }
+            }
+        }
+
+        System.gc();
+        Thread.sleep(200);
+
+        final long rssAfter = getProcessRssKb();
+        final long rssGrowthKb = rssAfter - rssBefore;
+        final long maxAllowedGrowthKb = 20 * 1024; // 20kb
+
+        Assert.assertTrue(
+            String.format("Native memory leak detected: RSS grew by %d KB (max allowed: %d KB)",
+                rssGrowthKb, maxAllowedGrowthKb),
+            rssGrowthKb < maxAllowedGrowthKb
+        );
+    }
+
+    private static long getProcessRssKb() throws Exception {
+        final long pid = ProcessHandle.current().pid();
+        final String os = System.getProperty("os.name").toLowerCase();
+
+        final Process process;
+        if (os.contains("mac") || os.contains("linux")) {
+            process = Runtime.getRuntime().exec(new String[]{"ps", "-o", "rss=", "-p", String.valueOf(pid)});
+        } else {
+            throw new IllegalStateException("Unsupported OS: " + os);
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line = reader.readLine();
+            if (line == null || line.isBlank()) {
+                throw new RuntimeException("Failed to get RSS");
+            }
+            return Long.parseLong(line.trim());
         }
     }
 }

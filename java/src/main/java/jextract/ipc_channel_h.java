@@ -6346,6 +6346,65 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
+    private static class ipc_entry_free {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
+            ipc_channel_h.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_entry_free");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * void ipc_entry_free(const IpcEntry *entry)
+     * }
+     */
+    public static FunctionDescriptor ipc_entry_free$descriptor() {
+        return ipc_entry_free.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * void ipc_entry_free(const IpcEntry *entry)
+     * }
+     */
+    public static MethodHandle ipc_entry_free$handle() {
+        return ipc_entry_free.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * void ipc_entry_free(const IpcEntry *entry)
+     * }
+     */
+    public static MemorySegment ipc_entry_free$address() {
+        return ipc_entry_free.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * void ipc_entry_free(const IpcEntry *entry)
+     * }
+     */
+    public static void ipc_entry_free(MemorySegment entry) {
+        var mh$ = ipc_entry_free.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("ipc_entry_free", entry);
+            }
+            mh$.invokeExact(entry);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     private static class ipc_channel_create {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             IpcChannelCreateResult.layout(),

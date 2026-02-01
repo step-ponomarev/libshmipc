@@ -171,7 +171,9 @@ public final class IpcChannel implements Closeable {
             final MemorySegment tryReadResult = ipc_channel_h.ipc_channel_try_read(arena, channel, readEntry);
             IpcStatus ipcStatus = IpcStatus.of(IpcChannelTryReadResult.ipc_status(tryReadResult));
             if (ipcStatus == IpcStatus.IPC_OK) {
-                return ipcEntryToBytes(readEntry);
+                byte[] bytes = ipcEntryToBytes(arena, readEntry);
+                ipc_channel_h.ipc_entry_free(readEntry);
+                return bytes;
             }
 
             if (ipc_channel_h.ipc_channel_is_retry_status(ipcStatus.getStatus())) {
@@ -186,10 +188,11 @@ public final class IpcChannel implements Closeable {
         }
     }
 
-    private static byte[] ipcEntryToBytes(MemorySegment ipcEntry) {
+    private static byte[] ipcEntryToBytes(Arena arena, MemorySegment ipcEntry) {
         final MemorySegment payload = IpcEntry.payload(ipcEntry);
+        final long size = IpcEntry.size(ipcEntry);
 
-        return payload.reinterpret(IpcEntry.size(ipcEntry)).toArray(ValueLayout.JAVA_BYTE);
+        return payload.asSlice(0, size).toArray(ValueLayout.JAVA_BYTE);
     }
 
     private static String parseErrorMessage(MemorySegment msg) {
