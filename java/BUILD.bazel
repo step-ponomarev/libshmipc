@@ -1,4 +1,4 @@
-load("@rules_java//java:defs.bzl", "java_binary", "java_library")
+load("@rules_java//java:defs.bzl", "java_library")
 load("//java:tools/java_tests.bzl", "java_tests")
 
 java_library(
