@@ -34,6 +34,7 @@ public class LibLoader {
                 return;
             }
         } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         throw new UnsatisfiedLinkError("Native library not found in resources or runfiles. Resource path: " + resPath);
@@ -51,18 +52,18 @@ public class LibLoader {
                 runfilesDir = classPath.substring(0, runfilesIdx + ".runfiles".length());
             }
         }
-        
+
         if (runfilesDir == null) {
             return null;
         }
 
         String fileName = os().equals("Darwin") ? "libshmipc_shared.dylib" : "libshmipc_shared.so";
         Path libPath = Paths.get(runfilesDir, "_main", "core", fileName);
-        
+
         if (Files.exists(libPath)) {
             return libPath.toAbsolutePath().toString();
         }
-        
+
         return null;
     }
 
