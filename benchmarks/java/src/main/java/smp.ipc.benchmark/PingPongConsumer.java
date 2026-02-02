@@ -8,7 +8,9 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 
 /**
  * Ping-pong consumer for accurate latency measurement.
@@ -16,85 +18,67 @@ import java.nio.file.Path;
  *
  * Uses 2 channels: requestChannel (producer→consumer) and responseChannel (consumer→producer)
  *
- * Usage: java PingPongConsumer <shm_path> <message_count> <warmup_count> <message_size>
+ * Usage: java PingPongConsumer <shm_path> <message_count> <warmup_count> <message_size_or_sizes>
  */
 public class PingPongConsumer {
+    private static final Duration READ_TIMEOUT = Duration.ofMillis(200);
 
-    public static void main(String[] args) throws Exception {
+    static void main(String[] args) throws Exception {
         if (args.length < 4) {
-            System.err.println("Usage: PingPongConsumer <shm_path> <message_count> <warmup_count> <message_size>");
+            System.err.println("Usage: PingPongConsumer <shm_path> <message_count> <warmup_count> <message_size_or_sizes>");
             System.exit(1);
         }
 
         Path shmPath = Path.of(args[0]);
         int messageCount = Integer.parseInt(args[1]);
         int warmupCount = Integer.parseInt(args[2]);
-        int messageSize = Integer.parseInt(args[3]);
-
-        if (messageSize < 8) {
-            messageSize = 8;
-        }
+        int[] messageSizes = BenchmarkUtils.parseSizes(args[3]);
+        int maxMessageSize = BenchmarkUtils.maxSize(messageSizes);
 
         Path requestShmPath = Path.of(shmPath + ".request");
         Path responseShmPath = Path.of(shmPath + ".response");
 
-        System.out.printf("PingPong Consumer starting: messages=%d, warmup=%d, size=%d bytes%n",
-                messageCount, warmupCount, messageSize);
+        System.out.printf("PingPong Consumer starting: messages=%d, warmup=%d, sizes=%s bytes%n",
+                messageCount, warmupCount, BenchmarkUtils.sizesToString(messageSizes));
 
-        // Wait for producer to create shm
         Path readyFile = Path.of(shmPath + ".ready");
         System.out.println("Waiting for producer...");
-        while (!java.nio.file.Files.exists(readyFile)) {
+        while (!Files.exists(readyFile)) {
             Thread.sleep(10);
         }
 
         try (SharedMemoryFile requestShm = SharedMemoryFile.open(requestShmPath);
-             SharedMemoryFile responseShm = SharedMemoryFile.open(responseShmPath)) {
-
-            IpcChannel requestChannel = IpcChannel.connect(requestShm.segment());
-            IpcChannel responseChannel = IpcChannel.connect(responseShm.segment());
-
-            // Signal ready
+             SharedMemoryFile responseShm = SharedMemoryFile.open(responseShmPath);
+             IpcChannel requestChannel = IpcChannel.connect(requestShm.segment());
+             IpcChannel responseChannel = IpcChannel.connect(responseShm.segment());
+        ) {
             Path consumerReady = Path.of(shmPath + ".consumer_ready");
-            java.nio.file.Files.writeString(consumerReady, "ready");
+            Files.writeString(consumerReady, "ready");
 
             System.out.println("Connected. Running ping-pong...");
 
             Arena payloadArena = Arena.ofShared();
-            MemorySegment responsePayload = payloadArena.allocate(messageSize);
+            MemorySegment responsePayload = payloadArena.allocate(maxMessageSize);
 
             int totalMessages = warmupCount + messageCount;
 
-            // Echo loop: read request, send response with sequence
             for (int i = 0; i < totalMessages; i++) {
-                // Wait for request
-                byte[] request = null;
-                while (request == null) {
-                    request = requestChannel.tryRead();
-                    if (request == null) {
-                        Thread.onSpinWait();
-                    }
-                }
-
-                // Extract sequence from request and put in response
+                byte[] request = requestChannel.read(READ_TIMEOUT);
                 int seq = ByteBuffer.wrap(request).order(ByteOrder.nativeOrder()).getInt(8);
                 responsePayload.set(ValueLayout.JAVA_INT, 0, seq);
 
-                // Send response immediately
-                writeWithBackpressure(responseChannel, responsePayload, messageSize);
+                writeWithBackpressure(responseChannel, responsePayload, request.length);
             }
 
             System.out.println("Consumer done.");
 
-            // Wait for producer done signal
             Path producerDone = Path.of(shmPath + ".producer_done");
-            while (!java.nio.file.Files.exists(producerDone)) {
+            while (!Files.exists(producerDone)) {
                 Thread.sleep(10);
             }
 
-            // Signal done
             Path consumerDone = Path.of(shmPath + ".consumer_done");
-            java.nio.file.Files.writeString(consumerDone, "done");
+            Files.writeString(consumerDone, "done");
         }
     }
 
@@ -108,4 +92,5 @@ public class PingPongConsumer {
             }
         }
     }
+
 }

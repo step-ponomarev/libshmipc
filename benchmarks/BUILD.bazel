@@ -1,5 +1,5 @@
 alias(
     name = "java_benchmarks",
-    actual = "//benchmarks/java:shmipc_benchmark_java",
+    actual = "//benchmarks/java:benchmarks_bins",
     visibility = ["//visibility:public"],
 )

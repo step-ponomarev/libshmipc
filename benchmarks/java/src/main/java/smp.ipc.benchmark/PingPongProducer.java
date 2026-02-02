@@ -6,7 +6,12 @@ import lib.shm.ipc.exeption.IpcWriteException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Random;
 
 /**
  * Ping-pong producer for accurate latency measurement.
@@ -14,33 +19,30 @@ import java.nio.file.Path;
  *
  * Uses 2 channels: requestChannel (producer→consumer) and responseChannel (consumer→producer)
  *
- * Usage: java PingPongProducer <shm_path> <message_count> <warmup_count> <message_size>
+ * Usage: java PingPongProducer <shm_path> <message_count> <warmup_count> <message_size_or_sizes>
  */
 public class PingPongProducer {
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
 
     public static void main(String[] args) throws Exception {
         if (args.length < 4) {
-            System.err.println("Usage: PingPongProducer <shm_path> <message_count> <warmup_count> <message_size>");
+            System.err.println("Usage: PingPongProducer <shm_path> <message_count> <warmup_count> <message_size_or_sizes>");
             System.exit(1);
         }
 
         Path shmPath = Path.of(args[0]);
         int messageCount = Integer.parseInt(args[1]);
         int warmupCount = Integer.parseInt(args[2]);
-        int messageSize = Integer.parseInt(args[3]);
+        int[] messageSizes = BenchmarkUtils.parseSizes(args[3]);
+        int maxMessageSize = BenchmarkUtils.maxSize(messageSizes);
 
-        if (messageSize < 8) {
-            messageSize = 8;
-        }
-
-        // Two separate shm files for two channels
         Path requestShmPath = Path.of(shmPath + ".request");
         Path responseShmPath = Path.of(shmPath + ".response");
 
-        long channelSize = IpcChannel.getSuggestedSize(1024 * 1024 * 1024); // Small buffer for backpressure
+        long channelSize = IpcChannel.getSuggestedSize(maxMessageSize * 16L);
 
-        System.out.printf("PingPong Producer starting: messages=%d, warmup=%d, size=%d bytes%n",
-                messageCount, warmupCount, messageSize);
+        System.out.printf("PingPong Producer starting: messages=%d, warmup=%d, sizes=%s bytes%n",
+                messageCount, warmupCount, BenchmarkUtils.sizesToString(messageSizes));
 
         try (SharedMemoryFile requestShm = SharedMemoryFile.create(requestShmPath, channelSize);
              SharedMemoryFile responseShm = SharedMemoryFile.create(responseShmPath, channelSize)) {
@@ -48,24 +50,24 @@ public class PingPongProducer {
             IpcChannel requestChannel = IpcChannel.create(requestShm.segment(), requestShm.size());
             IpcChannel responseChannel = IpcChannel.create(responseShm.segment(), responseShm.size());
 
-            // Signal ready
             Path readyFile = Path.of(shmPath + ".ready");
-            java.nio.file.Files.writeString(readyFile, "ready");
+            Files.writeString(readyFile, "ready");
 
             System.out.println("Waiting for consumer...");
             Path consumerReady = Path.of(shmPath + ".consumer_ready");
-            while (!java.nio.file.Files.exists(consumerReady)) {
+            while (!Files.exists(consumerReady)) {
                 Thread.sleep(10);
             }
 
             System.out.println("Consumer connected. Starting ping-pong...");
 
             Arena payloadArena = Arena.ofShared();
-            MemorySegment payload = payloadArena.allocate(messageSize);
+            MemorySegment payload = payloadArena.allocate(maxMessageSize);
+            Random random = new Random();
 
-            // Warmup phase
             System.out.println("Warmup phase: " + warmupCount + " round-trips");
             for (int i = 0; i < warmupCount; i++) {
+                int messageSize = messageSizes[random.nextInt(messageSizes.length)];
                 payload.set(ValueLayout.JAVA_LONG, 0, System.nanoTime());
                 writeWithBackpressure(requestChannel, payload, messageSize);
                 waitForResponse(responseChannel);
@@ -76,19 +78,20 @@ public class PingPongProducer {
             long minLatency = Long.MAX_VALUE;
             long maxLatency = Long.MIN_VALUE;
             long sumLatency = 0;
+            long[] latencies = new long[messageCount];
+            long totalBytes = 0;
             long benchStart = System.nanoTime();
 
-            // Measurement phase - ping pong
             for (int i = 0; i < messageCount; i++) {
+                int messageSize = messageSizes[random.nextInt(messageSizes.length)];
                 long sendTime = System.nanoTime();
                 payload.set(ValueLayout.JAVA_LONG, 0, sendTime);
-                payload.set(ValueLayout.JAVA_INT, 8, i);  // sequence number
+                payload.set(ValueLayout.JAVA_INT, 8, i);
                 writeWithBackpressure(requestChannel, payload, messageSize);
 
                 int responseSeq = waitForResponse(responseChannel);
                 long receiveTime = System.nanoTime();
 
-                // Verify sequence
                 if (responseSeq != i) {
                     throw new RuntimeException("Sequence mismatch: expected " + i + ", got " + responseSeq);
                 }
@@ -97,18 +100,21 @@ public class PingPongProducer {
                 minLatency = Math.min(minLatency, latency);
                 maxLatency = Math.max(maxLatency, latency);
                 sumLatency += latency;
+                latencies[i] = latency;
+                totalBytes += (long) messageSize * 2;
             }
 
             long benchEnd = System.nanoTime();
             double durationMs = (benchEnd - benchStart) / 1_000_000.0;
             double throughput = messageCount / (durationMs / 1000.0);
             double avgLatency = (double) sumLatency / messageCount;
+            double p50 = BenchmarkUtils.percentile(latencies, 50);
+            double p90 = BenchmarkUtils.percentile(latencies, 90);
+            double p99 = BenchmarkUtils.percentile(latencies, 99);
 
-            // Signal done
             Path donePath = Path.of(shmPath + ".producer_done");
-            java.nio.file.Files.writeString(donePath, "done");
+            Files.writeString(donePath, "done");
 
-            long totalBytes = (long) messageCount * messageSize * 2;  // request + response
             double bytesPerSec = totalBytes / (durationMs / 1000.0);
             double mbPerSec = bytesPerSec / (1024 * 1024);
 
@@ -117,21 +123,22 @@ public class PingPongProducer {
             System.out.printf("  Min:    %,d ns (%.2f µs)%n", minLatency, minLatency / 1000.0);
             System.out.printf("  Avg:    %,.0f ns (%.2f µs)%n", avgLatency, avgLatency / 1000.0);
             System.out.printf("  Max:    %,d ns (%.2f µs)%n", maxLatency, maxLatency / 1000.0);
+            System.out.printf("  P50:    %,.0f ns (%.2f µs)%n", p50, p50 / 1000.0);
+            System.out.printf("  P90:    %,.0f ns (%.2f µs)%n", p90, p90 / 1000.0);
+            System.out.printf("  P99:    %,.0f ns (%.2f µs)%n", p99, p99 / 1000.0);
             System.out.println();
-            System.out.printf("  Round-trips:  %,d%n", messageCount);
             System.out.printf("  Duration:     %.2f ms%n", durationMs);
             System.out.printf("  Throughput:   %,.0f rt/sec%n", throughput);
             System.out.printf("  Bandwidth:    %,.2f MB/sec%n", mbPerSec);
 
-            // Cleanup
             Path consumerDone = Path.of(shmPath + ".consumer_done");
-            while (!java.nio.file.Files.exists(consumerDone)) {
+            while (!Files.exists(consumerDone)) {
                 Thread.sleep(10);
             }
-            java.nio.file.Files.deleteIfExists(readyFile);
-            java.nio.file.Files.deleteIfExists(consumerReady);
-            java.nio.file.Files.deleteIfExists(donePath);
-            java.nio.file.Files.deleteIfExists(consumerDone);
+            Files.deleteIfExists(readyFile);
+            Files.deleteIfExists(consumerReady);
+            Files.deleteIfExists(donePath);
+            Files.deleteIfExists(consumerDone);
         }
     }
 
@@ -147,13 +154,8 @@ public class PingPongProducer {
     }
 
     private static int waitForResponse(IpcChannel channel) throws Exception {
-        while (true) {
-            byte[] response = channel.tryRead();
-            if (response != null) {
-                // Extract sequence number from response
-                return java.nio.ByteBuffer.wrap(response).order(java.nio.ByteOrder.nativeOrder()).getInt(0);
-            }
-            Thread.onSpinWait();
-        }
+        byte[] response = channel.read(READ_TIMEOUT);
+        return ByteBuffer.wrap(response).order(ByteOrder.nativeOrder()).getInt(0);
     }
+
 }

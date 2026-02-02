@@ -6,5 +6,58 @@ java_library(
         ["src/main/java/**/*.java"]
     ),
     deps = ["//java:shmipc_java"],
+    runtime_deps = ["//core:shmipc_shared"],
+    visibility = ["//visibility:public"],
+)
+
+
+java_binary(
+    name = "pingpong_producer",
+    main_class = "lib.shm.ipc.benchmark.PingPongProducer",
+    jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
+    data = ["//core:libshmipc_shared.dylib"],
+    runtime_deps = [
+        ":shmipc_benchmark_java",
+    ],
+)
+
+java_binary(
+    name = "pingpong_consumer",
+    main_class = "lib.shm.ipc.benchmark.PingPongConsumer",
+    jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
+    data = ["//core:libshmipc_shared.dylib"],
+    runtime_deps = [
+        ":shmipc_benchmark_java",
+    ],
+)
+
+java_binary(
+    name = "socket_pingpong_server",
+    main_class = "lib.shm.ipc.benchmark.SocketPingPongServer",
+    jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
+    data = ["//core:libshmipc_shared.dylib"],
+    runtime_deps = [
+        ":shmipc_benchmark_java",
+    ],
+)
+
+java_binary(
+    name = "socket_pingpong_client",
+    main_class = "lib.shm.ipc.benchmark.SocketPingPongClient",
+    jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
+    data = ["//core:libshmipc_shared.dylib"],
+    runtime_deps = [
+        ":shmipc_benchmark_java",
+    ],
+)
+
+filegroup(
+    name = "benchmarks_bins",
+    srcs = [
+        ":pingpong_producer",
+        ":pingpong_consumer",
+        ":socket_pingpong_server",
+        ":socket_pingpong_client",
+    ],
     visibility = ["//visibility:public"],
 )

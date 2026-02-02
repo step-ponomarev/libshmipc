@@ -24,10 +24,10 @@ bazel build //benchmarks:java_benchmarks
 echo ""
 
 # Get paths to built binaries
-PINGPONG_PRODUCER="bazel-bin/java/pingpong_producer"
-PINGPONG_CONSUMER="bazel-bin/java/pingpong_consumer"
-SOCKET_PINGPONG_SERVER="bazel-bin/java/socket_pingpong_server"
-SOCKET_PINGPONG_CLIENT="bazel-bin/java/socket_pingpong_client"
+PINGPONG_PRODUCER="bazel-bin/benchmarks/java/pingpong_producer"
+PINGPONG_CONSUMER="bazel-bin/benchmarks/java/pingpong_consumer"
+SOCKET_PINGPONG_SERVER="bazel-bin/benchmarks/java/socket_pingpong_server"
+SOCKET_PINGPONG_CLIENT="bazel-bin/benchmarks/java/socket_pingpong_client"
 
 cleanup() {
     echo "Cleaning up..."
@@ -38,6 +38,16 @@ cleanup() {
 }
 trap cleanup EXIT
 
+ensure_runfiles_manifest() {
+    local bin="$1"
+    local runfiles_dir="${bin}.runfiles"
+    local manifest="${bin}.runfiles_manifest"
+    if [ -f "$manifest" ]; then
+        mkdir -p "$runfiles_dir"
+        ln -sf "$manifest" "$runfiles_dir/MANIFEST"
+    fi
+}
+
 run_shm_pingpong() {
     echo "=============================================="
     echo "  Shared Memory IPC Ping-Pong"
@@ -47,14 +57,14 @@ run_shm_pingpong() {
     # Cleanup previous run
     rm -f "$SHM_PATH"*
 
-    # Start producer in background
+    ensure_runfiles_manifest "$PINGPONG_PRODUCER"
     $PINGPONG_PRODUCER "$SHM_PATH" "$MESSAGE_COUNT" "$WARMUP_COUNT" "$MESSAGE_SIZE" &
     PRODUCER_PID=$!
 
     # Small delay to let producer create shared memory
     sleep 0.5
 
-    # Run consumer
+    ensure_runfiles_manifest "$PINGPONG_CONSUMER"
     $PINGPONG_CONSUMER "$SHM_PATH" "$MESSAGE_COUNT" "$WARMUP_COUNT" "$MESSAGE_SIZE"
 
     # Wait for producer to finish (it prints results)
@@ -68,14 +78,14 @@ run_tcp_pingpong() {
     echo "=============================================="
     echo ""
 
-    # Start server in background
+    ensure_runfiles_manifest "$SOCKET_PINGPONG_SERVER"
     $SOCKET_PINGPONG_SERVER tcp "$TCP_PORT" "$MESSAGE_COUNT" "$WARMUP_COUNT" "$MESSAGE_SIZE" &
     SERVER_PID=$!
 
     # Wait for server to start
     sleep 0.5
 
-    # Run client (it prints results)
+    ensure_runfiles_manifest "$SOCKET_PINGPONG_CLIENT"
     $SOCKET_PINGPONG_CLIENT tcp "localhost:$TCP_PORT" "$MESSAGE_COUNT" "$WARMUP_COUNT" "$MESSAGE_SIZE"
 
     # Wait for server to finish
@@ -92,14 +102,14 @@ run_unix_pingpong() {
     # Cleanup previous socket
     rm -f "$UNIX_SOCKET_PATH"
 
-    # Start server in background
+    ensure_runfiles_manifest "$SOCKET_PINGPONG_SERVER"
     $SOCKET_PINGPONG_SERVER unix "$UNIX_SOCKET_PATH" "$MESSAGE_COUNT" "$WARMUP_COUNT" "$MESSAGE_SIZE" &
     SERVER_PID=$!
 
     # Wait for server to start
     sleep 0.5
 
-    # Run client (it prints results)
+    ensure_runfiles_manifest "$SOCKET_PINGPONG_CLIENT"
     $SOCKET_PINGPONG_CLIENT unix "$UNIX_SOCKET_PATH" "$MESSAGE_COUNT" "$WARMUP_COUNT" "$MESSAGE_SIZE"
 
     # Wait for server to finish
@@ -127,7 +137,7 @@ case "${1:-all}" in
         echo "  All benchmarks completed!"
         echo "=============================================="
         ;;
-    *)
+    help)
         echo "Usage: $0 [shm|tcp|unix|all]"
         echo ""
         echo "  shm  - SHM ping-pong benchmark"
