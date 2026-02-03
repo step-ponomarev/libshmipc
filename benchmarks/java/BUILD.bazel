@@ -5,59 +5,62 @@ java_library(
     srcs = glob(
         ["src/main/java/**/*.java"]
     ),
-    deps = ["//java:shmipc_java"],
+    deps = [
+        "//java:shmipc_java",
+        "@maven_shmipc//:org_hdrhistogram_HdrHistogram",
+    ],
     runtime_deps = ["//core:shmipc_shared"],
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:public"]
 )
 
 
 java_binary(
-    name = "pingpong_producer",
-    main_class = "lib.shm.ipc.benchmark.PingPongProducer",
+    name = "shm_pingpong_producer",
+    main_class = "lib.shm.ipc.benchmark.actors.ShmPingPongProducer",
     jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
     data = ["//core:libshmipc_shared.dylib"],
     runtime_deps = [
-        ":shmipc_benchmark_java",
-    ],
+        ":shmipc_benchmark_java"
+    ]
 )
 
 java_binary(
-    name = "pingpong_consumer",
-    main_class = "lib.shm.ipc.benchmark.PingPongConsumer",
+    name = "shm_pingpong_consumer",
+    main_class = "lib.shm.ipc.benchmark.actors.ShmPingPongConsumer",
     jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
     data = ["//core:libshmipc_shared.dylib"],
     runtime_deps = [
-        ":shmipc_benchmark_java",
-    ],
+        ":shmipc_benchmark_java"
+    ]
 )
 
 java_binary(
-    name = "socket_pingpong_server",
-    main_class = "lib.shm.ipc.benchmark.SocketPingPongServer",
+    name = "orchestrator",
+    main_class = "lib.shm.ipc.benchmark.Orchestrator",
     jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
     data = ["//core:libshmipc_shared.dylib"],
     runtime_deps = [
-        ":shmipc_benchmark_java",
-    ],
+        ":shmipc_benchmark_java"
+    ]
 )
 
 java_binary(
-    name = "socket_pingpong_client",
-    main_class = "lib.shm.ipc.benchmark.SocketPingPongClient",
+    name = "runner",
+    main_class = "lib.shm.ipc.benchmark.Runner",
     jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
     data = ["//core:libshmipc_shared.dylib"],
     runtime_deps = [
-        ":shmipc_benchmark_java",
-    ],
+        ":shmipc_benchmark_java"
+    ]
 )
 
 filegroup(
     name = "benchmarks_bins",
     srcs = [
-        ":pingpong_producer",
-        ":pingpong_consumer",
-        ":socket_pingpong_server",
-        ":socket_pingpong_client",
+        ":shm_pingpong_producer",
+        ":shm_pingpong_consumer",
+        ":orchestrator",
+        ":runner"
     ],
     visibility = ["//visibility:public"],
 )
