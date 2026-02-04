@@ -9,6 +9,7 @@ java_library(
         "//java:shmipc_java",
         "@maven_shmipc//:org_hdrhistogram_HdrHistogram",
     ],
+    javabuilder_jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
     runtime_deps = ["//core:shmipc_shared"],
     visibility = ["//visibility:public"]
 )

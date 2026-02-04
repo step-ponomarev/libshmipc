@@ -1,4 +1,4 @@
-package lib.shm.ipc.benchmark;
+package lib.shm.ipc.benchmark.args;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -7,13 +7,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ArgsUtils {
+    public static final String ARG_MODE = "mode";
     public static final String ARG_ROLE = "role";
     public static final String ARG_MESSAGE_COUNT = "messageCount";
     public static final String ARG_WARMUP_COUNT = "warmupCount";
     public static final String ARG_MESSAGE_SIZE = "messageSize";
     public static final String ARG_BUFFER_SIZE = "bufferSize";
 
-    private static final Pattern ARG_PATTERN = Pattern.compile("^--([a-zA-Z0-9_.-]+)=(.*)$");
+    private static final Pattern ARG_PATTERN = Pattern.compile("^--([a-zA-Z0-9_.-]+)=([a-zA-Z0-9_.-]+)$");
 
     private ArgsUtils() {}
 

@@ -1,31 +1,44 @@
 package lib.shm.ipc.benchmark;
 
 import lib.shm.ipc.benchmark.actors.ActorConfig;
-import lib.shm.ipc.benchmark.actors.ShmPingPongProducer;
-import lib.shm.ipc.benchmark.actors.ShmPingPongConsumer;
+import lib.shm.ipc.benchmark.actors.shm.ShmPingPongProducer;
+import lib.shm.ipc.benchmark.actors.shm.ShmPingPongConsumer;
+import lib.shm.ipc.benchmark.args.ArgsUtils;
+import lib.shm.ipc.benchmark.args.ArgRole;
+
 import java.util.Map;
 
+import static lib.shm.ipc.benchmark.args.ArgsUtils.ARG_BUFFER_SIZE;
+
 public final class Runner {
+    private static final String[] REQUIRED_ARGS = {
+            ArgsUtils.ARG_ROLE,
+            ArgsUtils.ARG_MESSAGE_COUNT,
+            ArgsUtils.ARG_WARMUP_COUNT,
+            ArgsUtils.ARG_MESSAGE_SIZE
+    };
 
     static void main(String[] args) throws Exception {
         final Map<String, String> params = ArgsUtils.getArgs(args);
-        final String role = params.get(ArgsUtils.ARG_ROLE);
-        if (role == null) {
-            throw new IllegalArgumentException("Missing required argument " + ArgsUtils.ARG_ROLE);
+        for (String arg : REQUIRED_ARGS) {
+            if (!params.containsKey(arg)) {
+                throw new IllegalArgumentException(String.format("Missing required argument '%s'", arg));
+            }
         }
 
         final ActorConfig actorConfig = new ActorConfig(
-                Integer.parseInt(params.getOrDefault(ArgsUtils.ARG_MESSAGE_COUNT, "1000000")),
-                Integer.parseInt(params.getOrDefault(ArgsUtils.ARG_WARMUP_COUNT, "10000")),
-                Integer.parseInt(params.getOrDefault(ArgsUtils.ARG_MESSAGE_SIZE, "64000")),
-                Integer.parseInt(params.getOrDefault(ArgsUtils.ARG_BUFFER_SIZE, 64000 * 16 + ""))
+                Integer.parseInt(params.get(ArgsUtils.ARG_MESSAGE_COUNT)),
+                Integer.parseInt(params.get(ArgsUtils.ARG_WARMUP_COUNT)),
+                Integer.parseInt(params.get(ArgsUtils.ARG_MESSAGE_SIZE)),
+                Integer.parseInt(params.get(ARG_BUFFER_SIZE))
         );
 
-        switch (Role.of(role)) {
-            case SHM_PRODUCER:
+        final ArgRole role = ArgRole.of(params.get(ArgsUtils.ARG_ROLE));
+        switch (role) {
+            case ArgRole.SHM_PING_PONG_PRODUCER:
                 new ShmPingPongProducer().run(actorConfig);
                 break;
-            case SHM_CONSUMER:
+            case ArgRole.SHM_PING_PONG_CONSUMER:
                 new ShmPingPongConsumer().run(actorConfig);
                 break;
             default:

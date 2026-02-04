@@ -1,6 +1,8 @@
-package lib.shm.ipc.benchmark.actors;
+package lib.shm.ipc.benchmark.actors.shm;
 
 import lib.shm.ipc.benchmark.SharedMemoryFile;
+import lib.shm.ipc.benchmark.actors.ActorConfig;
+import lib.shm.ipc.benchmark.actors.BenchmarkActor;
 import lib.shm.ipc.benchmark.signal.Signal;
 import lib.shm.ipc.channel.IpcChannel;
 

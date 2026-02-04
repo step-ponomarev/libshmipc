@@ -1,6 +1,9 @@
-package lib.shm.ipc.benchmark.actors;
+package lib.shm.ipc.benchmark.actors.shm;
 
 import lib.shm.ipc.benchmark.SharedMemoryFile;
+import lib.shm.ipc.benchmark.actors.ActorConfig;
+import lib.shm.ipc.benchmark.actors.BenchmarkActor;
+import lib.shm.ipc.benchmark.actors.LatencyResult;
 import lib.shm.ipc.benchmark.signal.Signal;
 import lib.shm.ipc.channel.IpcChannel;
 import lib.shm.ipc.exeption.IpcWriteException;
@@ -14,35 +17,30 @@ public final class ShmPingPongProducer extends BenchmarkActor {
         outSignalChannel.write(Signal.DONE.bytes());
 
         final long suggestedSize = IpcChannel.getSuggestedSize(config.bufferSize());
-        SharedMemoryFile inShm = null;
-        SharedMemoryFile outShm = null;
+        SharedMemoryFile inShm;
+        SharedMemoryFile outShm;
 
         IpcChannel inChannel = null;
         IpcChannel outChannel = null;
 
+        Histogram hist = null;
         final byte[] bytes = new byte[config.messageSize()];
         while (true) {
             final Signal signal = Signal.valueOf(inSignalChannel.read(SIGNAL_READ_TIMEOUT));
-            if (signal == Signal.INIT || signal == Signal.STOP) {
-                if (inShm != null) {
-                    inShm.close();
-                }
-
-                if (outShm != null) {
-                    outShm.close();
-                }
-
-                if (inChannel != null) {
-                    inChannel.close();
-                }
-
-                if (outChannel != null) {
-                    outChannel.close();
-                }
-            }
-
             if (signal == Signal.STOP) {
-                outSignalChannel.write(Signal.DONE.bytes());
+                if (hist != null) {
+                    LatencyResult latencyResult = new LatencyResult(
+                            nsToUs(hist.getValueAtPercentile(50.0)),
+                            nsToUs(hist.getValueAtPercentile(95.0)),
+                            nsToUs(hist.getValueAtPercentile(99.0)),
+                            nsToUs(hist.getValueAtPercentile(99.99)),
+                            nsToUs(hist.getMinValue()),
+                            nsToUs(hist.getMaxValue())
+                    );
+
+                    outSignalChannel.write(latencyResult.serialize());
+                }
+
                 break;
             }
 
@@ -53,42 +51,20 @@ public final class ShmPingPongProducer extends BenchmarkActor {
 
                     inChannel = IpcChannel.create(inShm.segment(), inShm.size());
                     outChannel = IpcChannel.create(outShm.segment(), outShm.size());
+                    hist = new Histogram(1, 60_000_000_000L, 3);
                     break;
-
                 case WARMUP:
                     for (int i = 0; i < config.warmupCount(); i++) {
                         pingPong(bytes, inChannel, outChannel);
                     }
                     break;
                 case MEASURE:
-                    final Histogram hist = new Histogram(1, Long.MAX_VALUE, 3);
                     for (int i = 0; i < config.messageCount(); i++) {
                         final long t0 = System.nanoTime();
                         pingPong(bytes, inChannel, outChannel);
                         long tn = System.nanoTime() - t0;
                         hist.recordValue(tn);
                     }
-
-                    long p50 = hist.getValueAtPercentile(50.0);
-                    System.out.println("Latency p50 %s".formatted(nsToUs(p50)));
-
-                    long p95 = hist.getValueAtPercentile(95.0);
-                    System.out.println("Latency p95 %s".formatted(nsToUs(p95)));
-
-                    long p99 = hist.getValueAtPercentile(99.0);
-                    System.out.println("Latency p99 %s".formatted(nsToUs(p99)));
-
-                    long p9999 = hist.getValueAtPercentile(99.99);
-                    System.out.println("Latency p99.99 %s".formatted(nsToUs(p9999)));
-
-                    long max = hist.getMaxValue();
-                    System.out.println("Latency max %s".formatted(nsToUs(max)));
-
-                    long min = hist.getMinValue();
-                    System.out.println("Latency min %s".formatted(nsToUs(min)));
-
-                    System.out.println("Count " + hist.getTotalCount());
-
                     break;
                 default:
                     throw new AssertionError("Unknown signal: " + signal);
@@ -97,8 +73,9 @@ public final class ShmPingPongProducer extends BenchmarkActor {
         }
     }
 
-    static String nsToUs(long ns) {
-        return String.format("%.3f µs", ns / 1_000.0);
+
+    private static double nsToUs(long ns) {
+        return (float) ns / 1_000.0;
     }
 
     private static void pingPong(byte[] bytes, IpcChannel inChannel, IpcChannel outChannel) throws Exception {
