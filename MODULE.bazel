@@ -31,6 +31,7 @@ maven.install(
     artifacts = [
         "org.hdrhistogram:HdrHistogram:2.2.2",
         "junit:junit:4.13.2",
+        "org.apache.commons:commons-lang3:3.14.0",
     ],
     repositories = ["https://repo1.maven.org/maven2"],
 )

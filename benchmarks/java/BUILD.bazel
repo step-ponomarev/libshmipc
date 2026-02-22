@@ -8,6 +8,7 @@ java_library(
     deps = [
         "//java:shmipc_java",
         "@maven_shmipc//:org_hdrhistogram_HdrHistogram",
+        "@maven_shmipc//:org_apache_commons_commons_lang3",
     ],
     javabuilder_jvm_flags = ["--enable-native-access=ALL-UNNAMED"],
     runtime_deps = ["//core:shmipc_shared"],

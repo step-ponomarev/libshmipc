@@ -13,7 +13,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.time.Duration;
 
-public class IpcChannel implements Closeable {
+public final class IpcChannel implements Closeable {
     static {
         LibLoader.load();
     }

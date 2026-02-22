@@ -1,9 +1,10 @@
 package lib.shm.ipc.benchmark;
 
 import lib.shm.ipc.benchmark.actors.LatencyResult;
-import lib.shm.ipc.benchmark.args.ArgMode;
+import lib.shm.ipc.benchmark.actors.Mode;
 import lib.shm.ipc.benchmark.args.ArgsUtils;
 import lib.shm.ipc.benchmark.signal.Signal;
+import lib.shm.ipc.benchmark.utils.PathUtils;
 import lib.shm.ipc.channel.IpcChannel;
 import lib.shm.ipc.exeption.IpcLockedException;
 import lib.shm.ipc.exeption.IpcReadException;
@@ -11,7 +12,6 @@ import lib.shm.ipc.exeption.IpcSystemError;
 import lib.shm.ipc.exeption.IpcTimeoutException;
 import lib.shm.ipc.exeption.IpcWriteException;
 
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,24 +22,23 @@ import java.util.stream.Collectors;
 public final class Orchestrator {
     private static final Duration TIMEOUT = Duration.ofSeconds(500);
     private static final String RUNNER_NAME = Runner.class.getName();
-    public static final String CONTROL_BUFFER_PREFIX = "/tmp/ipc_signal_benchmark";
     private static final long SIGNAL_BUFFER_SIZE = 256;
 
     static void main(String[] args) throws Exception {
         final Map<String, String> params = ArgsUtils.getArgs(args);
-        final ArgMode mode = params.containsKey(ArgsUtils.ARG_MODE)
-                ? ArgMode.valueOf(params.get(ArgsUtils.ARG_MODE))
-                : ArgMode.SHM_LATENCY;
+        final Mode mode = params.containsKey(ArgsUtils.ARG_MODE)
+                ? Mode.valueOf(params.get(ArgsUtils.ARG_MODE))
+                : Mode.SHM_PING_PONG;
 
         final long suggestedSize = IpcChannel.getSuggestedSize(SIGNAL_BUFFER_SIZE);
         try (
-                final SharedMemoryFile producerRequestShm = SharedMemoryFile.create(Path.of(CONTROL_BUFFER_PREFIX + ".producer.in"), suggestedSize);
-                final SharedMemoryFile producerResponseShm = SharedMemoryFile.create(Path.of(CONTROL_BUFFER_PREFIX + ".producer.out"), suggestedSize);
+                final SharedMemoryFile producerRequestShm = SharedMemoryFile.create(PathUtils.inPath(mode.producerRole), suggestedSize);
+                final SharedMemoryFile producerResponseShm = SharedMemoryFile.create(PathUtils.outPath(mode.producerRole), suggestedSize);
                 final IpcChannel producerInChannel = IpcChannel.create(producerRequestShm.segment(), suggestedSize);
                 final IpcChannel producerOutChannel = IpcChannel.create(producerResponseShm.segment(), suggestedSize);
 
-                final SharedMemoryFile consumerRequestShm = SharedMemoryFile.create(Path.of(CONTROL_BUFFER_PREFIX + ".consumer.in"), suggestedSize);
-                final SharedMemoryFile consumerResponseShm = SharedMemoryFile.create(Path.of(CONTROL_BUFFER_PREFIX + ".consumer.out"), suggestedSize);
+                final SharedMemoryFile consumerRequestShm = SharedMemoryFile.create(PathUtils.inPath(mode.consumerRole), suggestedSize);
+                final SharedMemoryFile consumerResponseShm = SharedMemoryFile.create(PathUtils.outPath(mode.consumerRole), suggestedSize);
                 final IpcChannel consumerInChannel = IpcChannel.create(consumerRequestShm.segment(), suggestedSize);
                 final IpcChannel consumerOutChannel = IpcChannel.create(consumerResponseShm.segment(), suggestedSize);
         ) {
@@ -54,11 +53,11 @@ public final class Orchestrator {
                     .map(e -> "--%s=%s".formatted(e.getKey(), e.getValue()))
                     .collect(Collectors.toCollection(ArrayList::new));
             baseArgs.add(0, javaBin);
-            baseArgs.add(1, "-cp");
-            baseArgs.add(2, classpath);
-            baseArgs.add(3, RUNNER_NAME);
+            baseArgs.add(1, "--enable-native-access=ALL-UNNAMED");
+            baseArgs.add(2, "-cp");
+            baseArgs.add(3, classpath);
+            baseArgs.add(4, RUNNER_NAME);
 
-            //TODO: починитьь эту хуйню
             final List<String> producerArgs = new ArrayList<>(baseArgs);
             producerArgs.add("--%s=%s".formatted(ArgsUtils.ARG_ROLE, mode.producerRole));
             final Process producer = new ProcessBuilder(producerArgs
@@ -79,7 +78,7 @@ public final class Orchestrator {
             }));
 
             switch (mode) {
-                case SHM_LATENCY ->
+                case SHM_PING_PONG ->
                         runShmLatencyBenchmark(producerInChannel, producerOutChannel, consumerInChannel, consumerOutChannel);
                 default -> throw new IllegalArgumentException(params.get(ArgsUtils.ARG_MODE) + " is not supported");
             }
@@ -113,9 +112,6 @@ public final class Orchestrator {
             IpcChannel consumerInChannel,
             IpcChannel consumerOutChannel
     ) throws IpcLockedException, IpcWriteException, IpcSystemError, IpcTimeoutException, IpcReadException {
-        waitReady(producerOutChannel);
-        waitReady(consumerOutChannel);
-
         System.out.println("--- Initialization ---");
         sendSignal(producerInChannel, Signal.INIT);
         waitReady(producerOutChannel);
@@ -142,10 +138,13 @@ public final class Orchestrator {
         System.out.println("Measure complete.");
         System.out.println("------");
 
-        sendSignal(producerInChannel, Signal.STOP);
+        sendSignal(producerInChannel, Signal.RESULT);
         printResult(LatencyResult.deserialize(
                 producerOutChannel.read(TIMEOUT)
         ));
+
+        sendSignal(producerInChannel, Signal.STOP);
+        waitReady(producerOutChannel);
 
         sendSignal(consumerInChannel, Signal.STOP);
         waitReady(consumerOutChannel);
@@ -170,10 +169,9 @@ public final class Orchestrator {
         System.out.println("------"); // todo end block
     }
 
-    //TODO: stupid pice of sheeeet
     private static void waitReady(IpcChannel channel) throws IpcTimeoutException, IpcReadException {
         Signal signal = Signal.valueOf(channel.read(TIMEOUT));
-        if (signal == Signal.DONE || signal == Signal.READY) {
+        if (signal == Signal.DONE) {
             return;
         }
 

@@ -36,10 +36,10 @@ public final class Runner {
         final ArgRole role = ArgRole.of(params.get(ArgsUtils.ARG_ROLE));
         switch (role) {
             case ArgRole.SHM_PING_PONG_PRODUCER:
-                new ShmPingPongProducer().run(actorConfig);
+                new ShmPingPongProducer(ArgRole.SHM_PING_PONG_PRODUCER.role).run(actorConfig);
                 break;
             case ArgRole.SHM_PING_PONG_CONSUMER:
-                new ShmPingPongConsumer().run(actorConfig);
+                new ShmPingPongConsumer(ArgRole.SHM_PING_PONG_CONSUMER.role).run(actorConfig);
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported role: " + role);
