@@ -3,11 +3,10 @@ package lib.shm.ipc.benchmark.actors.shm;
 import lib.shm.ipc.benchmark.SharedMemoryFile;
 import lib.shm.ipc.benchmark.actors.ActorConfig;
 import lib.shm.ipc.benchmark.actors.LatencyResult;
+import lib.shm.ipc.benchmark.utils.PathUtils;
 import lib.shm.ipc.channel.IpcChannel;
 import lib.shm.ipc.exeption.IpcWriteException;
 import org.HdrHistogram.Histogram;
-
-import java.nio.file.Path;
 
 public final class ShmPingPongProducer extends ShmBenchmarkActor {
     private Histogram hist;
@@ -22,8 +21,8 @@ public final class ShmPingPongProducer extends ShmBenchmarkActor {
         message = new byte[config.messageSize()];
 
         final long suggestedSize = IpcChannel.getSuggestedSize(config.bufferSize());
-        inShm = SharedMemoryFile.create(Path.of(DATA_BUFFER_PREFIX + ".in"), suggestedSize);
-        outShm = SharedMemoryFile.create(Path.of(DATA_BUFFER_PREFIX + ".out"), suggestedSize);
+        inShm = SharedMemoryFile.create(PathUtils.inPath(DATA_BUFFER_PREFIX), suggestedSize);
+        outShm = SharedMemoryFile.create(PathUtils.outPath(DATA_BUFFER_PREFIX), suggestedSize);
 
         inChannel = IpcChannel.create(inShm.segment(), inShm.size());
         outChannel = IpcChannel.create(outShm.segment(), outShm.size());

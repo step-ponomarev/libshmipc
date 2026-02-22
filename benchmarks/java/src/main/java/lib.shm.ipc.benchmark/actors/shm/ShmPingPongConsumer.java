@@ -2,9 +2,8 @@ package lib.shm.ipc.benchmark.actors.shm;
 
 import lib.shm.ipc.benchmark.SharedMemoryFile;
 import lib.shm.ipc.benchmark.actors.ActorConfig;
+import lib.shm.ipc.benchmark.utils.PathUtils;
 import lib.shm.ipc.channel.IpcChannel;
-
-import java.nio.file.Path;
 
 public final class ShmPingPongConsumer extends ShmBenchmarkActor {
     public ShmPingPongConsumer(String pathSuffix) {
@@ -13,8 +12,8 @@ public final class ShmPingPongConsumer extends ShmBenchmarkActor {
 
     @Override
     protected void onInit(ActorConfig config) throws Exception {
-        inShm = SharedMemoryFile.open(Path.of(DATA_BUFFER_PREFIX + ".in"));
-        outShm = SharedMemoryFile.open(Path.of(DATA_BUFFER_PREFIX + ".out"));
+        inShm = SharedMemoryFile.open(PathUtils.inPath(DATA_BUFFER_PREFIX));
+        outShm = SharedMemoryFile.open(PathUtils.outPath(DATA_BUFFER_PREFIX));
 
         inChannel = IpcChannel.connect(inShm.segment());
         outChannel = IpcChannel.connect(outShm.segment());
