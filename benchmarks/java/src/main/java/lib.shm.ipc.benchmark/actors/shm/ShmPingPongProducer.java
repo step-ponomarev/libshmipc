@@ -49,7 +49,14 @@ public final class ShmPingPongProducer extends ShmBenchmarkActor {
 
     @Override
     protected byte[] onResult(ActorConfig config) {
-        return new LatencyResult(nsToUs(hist.getValueAtPercentile(50.0)), nsToUs(hist.getValueAtPercentile(95.0)), nsToUs(hist.getValueAtPercentile(99.0)), nsToUs(hist.getValueAtPercentile(99.99)), nsToUs(hist.getMinValue()), nsToUs(hist.getMaxValue())).serialize();
+        return new LatencyResult(
+                nsToUs(hist.getValueAtPercentile(50.0)),
+                nsToUs(hist.getValueAtPercentile(95.0)),
+                nsToUs(hist.getValueAtPercentile(99.0)),
+                nsToUs(hist.getValueAtPercentile(99.99)),
+                nsToUs(hist.getMinValue()),
+                nsToUs(hist.getMaxValue())
+        ).serialize();
     }
 
     private static double nsToUs(long ns) {
