@@ -16,19 +16,7 @@ SHMIPC_API uint64_t ipc_buffer_suggest_size(size_t desired_capacity);
 
 SHMIPC_API ipc_status_t ipc_buffer_create(void *mem, size_t size, ipc_buffer_t **out, ipc_error_t* err);
 SHMIPC_API ipc_status_t ipc_buffer_attach(void *mem, ipc_buffer_t **out, ipc_error_t* err);
-
-typedef struct IpcBufferWriteError {
-  uint64_t offset;
-  size_t requested_size;
-  size_t required_size;
-  size_t free_space;
-  size_t available_contiguous;
-  size_t buffer_size;
-} IpcBufferWriteError;
-IPC_RESULT_UNIT(IpcBufferWriteResult, IpcBufferWriteError)
-SHMIPC_API IpcBufferWriteResult ipc_buffer_write(ipc_buffer_t *buffer,
-                                                 const void *data,
-                                                 const size_t size);
+SHMIPC_API ipc_status_t ipc_buffer_write(ipc_buffer_t *buffer, const void *data, size_t size, ipc_error_t* err);
 
 typedef struct IpcBufferReadError {
   uint64_t offset;

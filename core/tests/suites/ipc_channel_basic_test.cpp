@@ -5,22 +5,178 @@
 #include "shmipc/ipc_channel.h"
 #include "shmipc/ipc_common.h"
 #include "test_utils.h"
-#include <cstdlib>
 #include <cstring>
-#include <ctime>
 #include <vector>
 
 namespace {
-constexpr struct timespec DEFAULT_TIMEOUT = {0, 100000000}; // 100ms
+    constexpr timespec DEFAULT_TIMEOUT = {0, 100000000}; // 100ms
+}
+
+TEST_CASE("channel create - null out") {
+  const uint64_t size = ipc_channel_suggest_size(128);
+  std::vector<uint8_t> mem(size);
+
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, nullptr, &err);
+  test_utils::CHECK_NULL_ARG_ERROR(status, err);
+}
+
+TEST_CASE("channel create - null memory pointer") {
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+
+  const uint64_t size = ipc_channel_suggest_size(128);
+  const ipc_status_t status =
+      ipc_channel_create(nullptr, size, &channel, &err);
+  test_utils::CHECK_NULL_ARG_ERROR(status, err);
+  CHECK(channel == nullptr);
+}
+
+TEST_CASE("channel create - too small size") {
+  uint8_t mem[16];
+
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const uint64_t small_size = 0;
+
+  const ipc_status_t status =
+      ipc_channel_create(mem, small_size, &channel, &err);
+  const uint64_t min_size = ipc_channel_get_min_size();
+  test_utils::CHECK_TOO_SMALL_SIZE_WITH_SIZE_ERROR(
+      status, err, small_size, min_size, min_size);
+  CHECK(channel == nullptr);
+}
+
+TEST_CASE("channel create - out is zeroed on error") {
+  const uint64_t size = ipc_channel_suggest_size(128);
+
+  ipc_channel_t *out = reinterpret_cast<ipc_channel_t *>(0xBAD); // any non-null to verify *out is cleared on error
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(nullptr, size, &out, &err);
+  test_utils::CHECK_NULL_ARG_ERROR(status, err);
+  CHECK(out == nullptr);
+}
+
+TEST_CASE("channel create - error reset after failed then success") {
+  const uint64_t size = ipc_channel_suggest_size(128);
+  std::vector<uint8_t> mem(size);
+
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+
+  ipc_status_t status =
+      ipc_channel_create(nullptr, size, &channel, &err);
+  test_utils::CHECK_NULL_ARG_ERROR(status, err);
+  CHECK(channel == nullptr);
+
+  status = ipc_channel_create(mem.data(), size, &channel, &err);
+  test_utils::CHECK_ERROR_NONE(status, err);
+  CHECK(channel != nullptr);
+
+  ipc_channel_destroy(channel);
+}
+
+TEST_CASE("channel create - success case") {
+  const uint64_t size = ipc_channel_suggest_size(128);
+  std::vector<uint8_t> mem(size);
+
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
+
+  ipc_channel_destroy(channel);
+}
+
+TEST_CASE("channel connect - null out") {
+  const uint64_t size = ipc_channel_suggest_size(128);
+  std::vector<uint8_t> mem(size);
+
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_connect(mem.data(), nullptr, &err);
+  test_utils::CHECK_NULL_ARG_ERROR(status, err);
+}
+
+TEST_CASE("channel connect - null memory") {
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+
+  const ipc_status_t status =
+      ipc_channel_connect(nullptr, &channel, &err);
+  test_utils::CHECK_NULL_ARG_ERROR(status, err);
+  CHECK(channel == nullptr);
+}
+
+TEST_CASE("channel connect - out is null on error") {
+  ipc_channel_t *out = reinterpret_cast<ipc_channel_t *>(0xBAD);
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_connect(nullptr, &out, &err);
+  test_utils::CHECK_NULL_ARG_ERROR(status, err);
+  CHECK(out == nullptr);
+}
+
+TEST_CASE("channel connect - error reset after failed then success") {
+  const uint64_t size = ipc_channel_suggest_size(128);
+  std::vector<uint8_t> mem(size);
+
+  ipc_channel_t *created = nullptr;
+  CHECK(ipc_channel_create(mem.data(), size, &created, nullptr) == IPC_STATUS_OK);
+
+  ipc_channel_t *connected = nullptr;
+  ipc_error_t err;
+  ipc_status_t status = ipc_channel_connect(nullptr, &connected, &err);
+  test_utils::CHECK_NULL_ARG_ERROR(status, err);
+  CHECK(connected == nullptr);
+
+  status = ipc_channel_connect(mem.data(), &connected, &err);
+  test_utils::CHECK_ERROR_NONE(status, err);
+  CHECK(connected != nullptr);
+
+  ipc_channel_destroy(created);
+  ipc_channel_destroy(connected);
+}
+
+TEST_CASE("channel connect - success case") {
+  const uint64_t size = ipc_channel_suggest_size(128);
+  std::vector<uint8_t> mem(size);
+
+  ipc_channel_t *created = nullptr;
+  const ipc_status_t create_status =
+      ipc_channel_create(mem.data(), size, &created, nullptr);
+  CHECK(create_status == IPC_STATUS_OK);
+
+  const int test_value = 42;
+  CHECK(ipc_channel_write(created, &test_value, sizeof(test_value)).ipc_status == IPC_OK);
+
+  ipc_channel_t *connected = nullptr;
+  const ipc_status_t connect_status =
+      ipc_channel_connect(mem.data(), &connected, nullptr);
+  CHECK(connect_status == IPC_STATUS_OK);
+
+  const int res = test_utils::read_data_safe<int>(connected, &DEFAULT_TIMEOUT);
+  CHECK(res == test_value);
+
+  ipc_channel_destroy(created);
+  ipc_channel_destroy(connected);
 }
 
 TEST_CASE("write too large entry") {
 
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   const size_t entry_size = sizeof(uint8_t) * 1024;
   void *payload = malloc(entry_size);
@@ -35,16 +191,21 @@ TEST_CASE("write read") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
-  IpcChannel *producer = channel_result.result;
+  ipc_channel_t *producer = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &producer, &err);
+  CHECK(status == IPC_STATUS_OK);
   CHECK(producer != nullptr);
 
   const int val = 43;
   CHECK(ipc_channel_write(producer, &val, sizeof(val)).ipc_status == IPC_OK);
 
-  IpcChannelConnectResult connect_result = ipc_channel_connect(mem.data());
-  CHECK(IpcChannelConnectResult_is_ok(connect_result));
-  IpcChannel *consumer = connect_result.result;
+  ipc_channel_t *consumer = nullptr;
+  ipc_error_t connect_err;
+  const ipc_status_t connect_status =
+      ipc_channel_connect(mem.data(), &consumer, &connect_err);
+  CHECK(connect_status == IPC_STATUS_OK);
   CHECK(consumer != nullptr);
 
   const int res = test_utils::read_data_safe<int>(consumer, &DEFAULT_TIMEOUT);
@@ -62,9 +223,12 @@ TEST_CASE("peek") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
-
-  IpcChannel *channel = channel_result.result;
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   const int expected = 42;
   CHECK(ipc_channel_write(channel, &expected, sizeof(expected)).ipc_status ==
@@ -95,9 +259,12 @@ TEST_CASE("peek empty") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
-
-  IpcChannel *channel = channel_result.result;
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   IpcEntry entry;
   IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
@@ -110,8 +277,12 @@ TEST_CASE("write try read") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   const int expected = 42;
   CHECK(ipc_channel_write(channel, &expected, sizeof(expected)).ipc_status ==
@@ -132,8 +303,12 @@ TEST_CASE("try read empty") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   IpcEntry entry;
   CHECK(ipc_channel_try_read(channel, &entry).ipc_status == IPC_EMPTY);
@@ -145,8 +320,12 @@ TEST_CASE("read retry limit reached") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   const int expected = -11;
   CHECK(ipc_channel_write(channel, &expected, sizeof(expected)).ipc_status ==
@@ -182,8 +361,12 @@ TEST_CASE("skip corrupted entry") {
   const uint64_t size = ipc_channel_suggest_size(256);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   const int first_val = 100;
   const int second_val = -11;
@@ -227,8 +410,13 @@ TEST_CASE("skip corrupted entry") {
 TEST_CASE("skip force") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
-  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   const int val = 42;
   CHECK(ipc_channel_write(channel, &val, sizeof(val)).ipc_status == IPC_OK);
@@ -245,8 +433,12 @@ TEST_CASE("read timeout") {
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   const struct timespec timeout = {.tv_sec = 0, .tv_nsec = 1000000};
   const uint64_t timeout_ns = ipc_timespec_to_nanos(&timeout);
@@ -272,8 +464,12 @@ TEST_CASE("channel data - different sizes") {
   const uint64_t size = ipc_channel_suggest_size(2048);
   std::vector<uint8_t> mem(size);
 
-  IpcChannelCreateResult channel_result = ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   struct TestData {
     size_t size;

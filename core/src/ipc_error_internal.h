@@ -3,7 +3,7 @@
 #include <shmipc/ipc_error.h>
 #include <shmipc/ipc_status.h>
 
-static void ipc_error_init(ipc_error_t* err) {
+static void ipc_error_init(ipc_error_t *err) {
     if (err == NULL) {
         return;
     }
@@ -29,6 +29,24 @@ static ipc_status_t ipc_error_arg(
     return IPC_STATUS_ERROR;
 }
 
+static ipc_status_t ipc_error_arg_size(
+    ipc_error_t *err,
+    ipc_error_code_t code,
+    ipc_error_size_t error_size,
+    const char *message
+) {
+    if (err == NULL) {
+        return IPC_STATUS_ERROR;
+    }
+
+    err->kind = IPC_ERR_KIND_ARG;
+    err->code = code;
+    err->message = message;
+    err->as.arg.size = error_size;
+
+    return IPC_STATUS_ERROR;
+}
+
 static ipc_status_t ipc_error_sys(
     ipc_error_t *err,
     ipc_error_code_t code,
@@ -43,6 +61,24 @@ static ipc_status_t ipc_error_sys(
     err->code = code;
     err->message = message;
     err->as.sys.sys_errno = sys_errno;
+
+    return IPC_STATUS_ERROR;
+}
+
+static ipc_status_t ipc_error_internal_cas(
+    ipc_error_t *err,
+    ipc_error_code_t code,
+    const char *message,
+    ipc_error_cas_t cas_error
+) {
+    if (err == NULL) {
+        return IPC_STATUS_ERROR;
+    }
+
+    err->kind = IPC_ERR_KIND_INTERNAL;
+    err->code = code;
+    err->message = message;
+    err->as.internal.cas = cas_error;
 
     return IPC_STATUS_ERROR;
 }

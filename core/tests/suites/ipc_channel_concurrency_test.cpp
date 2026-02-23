@@ -16,9 +16,13 @@ TEST_CASE("single writer single reader") {
 
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   UnsafeCollector<size_t> collector;
   ConcurrencyManager<size_t> manager;
@@ -43,9 +47,13 @@ TEST_CASE("single writer single reader") {
 TEST_CASE("single writer single reader with timeout") {
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   UnsafeCollector<size_t> collector;
   ConcurrencyManager<size_t> manager;
@@ -72,9 +80,13 @@ TEST_CASE("single writer single reader with timeout") {
 TEST_CASE("multiple writer single reader") {
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   UnsafeCollector<size_t> collector;
   ConcurrencyManager<size_t> manager;
@@ -105,11 +117,14 @@ TEST_CASE("multiple writer single reader") {
 TEST_CASE("multiple writer multiple reader stress") {
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-
   const size_t total = 500000;
-  IpcChannel *channel = channel_result.result;
+
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   UnsafeCollector<size_t> collector1, collector2, collector3;
   ConcurrencyManager<size_t> manager;
@@ -206,9 +221,13 @@ TEST_CASE("extreme stress test - small buffer") {
     const uint64_t size =
         ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
     std::vector<uint8_t> mem(size);
-    const IpcChannelCreateResult channel_result =
-        ipc_channel_create(mem.data(), size);
-    IpcChannel *channel = channel_result.result;
+
+    ipc_channel_t *channel = nullptr;
+    ipc_error_t err;
+    const ipc_status_t status =
+        ipc_channel_create(mem.data(), size, &channel, &err);
+    CHECK(status == IPC_STATUS_OK);
+    CHECK(channel != nullptr);
 
     UnsafeCollector<size_t> collector1, collector2, collector3;
     ConcurrencyManager<size_t> manager;
@@ -256,9 +275,13 @@ TEST_CASE("extreme stress test - small buffer") {
 TEST_CASE("blocks reader until writer writes") {
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+
+  ipc_channel_t *channel = nullptr;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_create(mem.data(), size, &channel, &err);
+  CHECK(status == IPC_STATUS_OK);
+  CHECK(channel != nullptr);
 
   std::atomic<bool> reader_ready{false};
 

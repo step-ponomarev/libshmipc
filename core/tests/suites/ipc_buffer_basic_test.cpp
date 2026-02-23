@@ -10,8 +10,11 @@ TEST_CASE("buffer create - too small size") {
 
     ipc_buffer_t *res = nullptr;
     ipc_error_t err;
-    const ipc_status_t status = ipc_buffer_create(mem, 0, &res, &err);
-    test_utils::CHECK_TOO_SMALL_SIZE_ARG_ERROR(status, err);
+    const size_t small_size = 0;
+    const uint64_t min_size = ipc_buffer_get_min_size();
+    const ipc_status_t status = ipc_buffer_create(mem, small_size, &res, &err);
+    test_utils::CHECK_TOO_SMALL_SIZE_WITH_SIZE_ERROR(
+        status, err, small_size, min_size, min_size);
     CHECK(res == nullptr);
 }
 
@@ -110,7 +113,7 @@ TEST_CASE("buffer attach - null memory") {
     CHECK(res == nullptr);
 }
 
-TEST_CASE("buffer attach - out is zeroed on error") {
+TEST_CASE("buffer attach - out is null on error") {
     ipc_buffer_t *out = reinterpret_cast<ipc_buffer_t *>(0xBAD);  // any non-null to verify *out is cleared on error
     ipc_error_t err;
     const ipc_status_t status = ipc_buffer_attach(nullptr, &out, &err);

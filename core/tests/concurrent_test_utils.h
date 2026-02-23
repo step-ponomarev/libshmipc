@@ -21,7 +21,7 @@ inline void produce_buffer(ipc_buffer_t *buffer, size_t from, size_t to) {
   }
 }
 
-inline void produce_channel(IpcChannel *channel, size_t from, size_t to) {
+inline void produce_channel(ipc_channel_t *channel, size_t from, size_t to) {
   for (size_t i = from; i < to;) {
     IpcChannelWriteResult status =
         ipc_channel_write(channel, &i, sizeof(size_t));
@@ -52,7 +52,7 @@ inline void consume_buffer(ipc_buffer_t *buffer,
   }
 }
 
-inline void consume_channel(IpcChannel *channel,
+inline void consume_channel(ipc_channel_t *channel,
                             UnsafeCollector<size_t> &collector,
                             ConcurrencyManager<size_t> &manager) {
   IpcEntry entry;
@@ -71,7 +71,7 @@ inline void consume_channel(IpcChannel *channel,
   }
 }
 
-inline void consume_channel_with_timeout(IpcChannel *channel,
+inline void consume_channel_with_timeout(ipc_channel_t *channel,
                                          UnsafeCollector<size_t> &collector,
                                          ConcurrencyManager<size_t> &manager,
                                          const timespec *timeout) {

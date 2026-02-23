@@ -11,6 +11,7 @@
 #define IPC_DATA_ALIGN 0x8
 
 #define BUFFER_HEADER_SIZE_ALIGNED sizeof(ipc_buffer_header_t)
+#define MIN_BUFFER_SIZE (BUFFER_HEADER_SIZE_ALIGNED + IPC_DATA_ALIGN)
 #define UNLOCK(offset) (((offset) & (~(0x1))))
 #define LOCK(offset) ((offset) | 0x1)
 
@@ -50,15 +51,14 @@ inline uint64_t ipc_buffer_get_memory_overhead(void) {
 }
 
 inline uint64_t ipc_buffer_get_min_size(void) {
-  return BUFFER_HEADER_SIZE_ALIGNED + IPC_DATA_ALIGN;
+  return MIN_BUFFER_SIZE;
 }
 
 uint64_t ipc_buffer_suggest_size(size_t desired_capacity) {
-  const uint64_t min_size = ipc_buffer_get_min_size();
   const uint64_t overhead = ipc_buffer_get_memory_overhead();
 
-  if (desired_capacity + overhead < min_size) {
-    return min_size;
+  if (desired_capacity + overhead < MIN_BUFFER_SIZE) {
+    return MIN_BUFFER_SIZE;
   }
 
   const uint64_t aligned_capacity = find_next_power_of_2(desired_capacity);
@@ -81,13 +81,25 @@ ipc_status_t ipc_buffer_create(void *mem, size_t size, ipc_buffer_t **out, ipc_e
     return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "mem is null");
   }
 
-  if (size < BUFFER_HEADER_SIZE_ALIGNED) {
-    return ipc_error_arg(err, IPC_ERR_CODE_TOO_SMALL_SIZE, "buffer size too small");
+  if (size < MIN_BUFFER_SIZE) {
+    return ipc_error_arg_size(
+      err,
+      IPC_ERR_CODE_TOO_SMALL_SIZE,
+      (ipc_error_size_t){.provided_size = size, .min_size = MIN_BUFFER_SIZE, .suggested_size = MIN_BUFFER_SIZE},
+      "buffer size too small, use ipc_buffer_suggest_size"
+    );
   }
 
   const uint64_t data_capacity = size - BUFFER_HEADER_SIZE_ALIGNED;
   if (!is_power_of_2(data_capacity)) {
-    return ipc_error_arg(err, IPC_ERR_CODE_INVALID_CAPACITY, "size must be power of 2");
+    return ipc_error_arg_size(
+      err,
+      IPC_ERR_CODE_INVALID_CAPACITY,
+      (ipc_error_size_t){
+        .provided_size = size, .min_size = MIN_BUFFER_SIZE, .suggested_size = ipc_buffer_suggest_size(data_capacity)
+      },
+      "size must be power of 2, use ipc_buffer_suggest_size"
+    );
   }
 
   res = (ipc_buffer_t *)malloc(sizeof(ipc_buffer_t));
@@ -134,44 +146,34 @@ SHMIPC_API ipc_status_t ipc_buffer_attach(void *mem, ipc_buffer_t **out, ipc_err
   return IPC_STATUS_OK;
 }
 
-IpcBufferWriteResult ipc_buffer_write(ipc_buffer_t *buffer, const void *data,
-                                      const size_t size) {
-  IpcBufferWriteError error = {.offset = 0,
-                               .requested_size = size,
-                               .available_contiguous = 0,
-                               .buffer_size = 0};
+ipc_status_t ipc_buffer_write(ipc_buffer_t *buffer, const void *data, size_t size, ipc_error_t* err) {
+  ipc_error_init(err);
+
   if (buffer == NULL) {
-    return IpcBufferWriteResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer is NULL", error);
+    return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "buffer is null");
   }
 
   if (data == NULL) {
-    return IpcBufferWriteResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: data is NULL", error);
+    return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "data is null");
   }
 
   if (size == 0) {
-    return IpcBufferWriteResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: data size is 0", error);
+    return ipc_error_arg(err, IPC_ERR_CODE_ZERO_SIZE, "data size is 0");
   }
 
-  const uint64_t buf_size =
-      atomic_load(&((struct ipc_buffer_t *)buffer)->header->data_size);
-  uint64_t full_entry_size =
-      ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
+  retry:;
+  const uint64_t buf_size = atomic_load(&buffer->header->data_size);
+  const uint64_t full_entry_size = ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
   if (full_entry_size > buf_size) {
-    error.buffer_size = buf_size;
-    return IpcBufferWriteResult_error_body(
-        IPC_ERR_ENTRY_TOO_LARGE, "invalid argument: entry size exceeds buffer",
-        error);
+    return ipc_error_arg(err, IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER, "entry size exceeds buffer");
   }
 
   uint64_t tail, rel_tail, space_to_wrap;
   bool placeholder = false;
   do {
-    tail = atomic_load(&((struct ipc_buffer_t *)buffer)->header->tail);
+    tail = atomic_load(&buffer->header->tail);
     if (_is_locked(tail)) {
-      return IpcBufferWriteResult_error_body(IPC_ERR_LOCKED, "locked", error);
+      return IPC_STATUS_BUSY;
     }
 
     rel_tail = RELATIVE(tail, buf_size);
@@ -182,25 +184,19 @@ IpcBufferWriteResult ipc_buffer_write(ipc_buffer_t *buffer, const void *data,
     const uint64_t free_space = buf_size - used;
 
     if (free_space < full_entry_size) {
-      error.offset = tail;
-      error.required_size = (size_t)(full_entry_size);
-      error.free_space = (size_t)(free_space);
-      return IpcBufferWriteResult_error_body(
-          IPC_ERR_NO_SPACE_CONTIGUOUS, "not enough contiguous space in buffer",
-          error);
+      return IPC_STATUS_NO_SPACE;
     }
 
     // no space for current entry + header of next placeholder
     placeholder = space_to_wrap < full_entry_size + sizeof(EntryHeader);
-  } while (!_lock(&((struct ipc_buffer_t *)buffer)->header->tail, tail));
+  } while (!_lock(&buffer->header->tail, tail));
 
-  EntryHeader *header =
-      (EntryHeader *)(((struct ipc_buffer_t *)buffer)->data + rel_tail);
+  EntryHeader *header = (EntryHeader *)(buffer->data + rel_tail);
   if (placeholder) {
     header->payload_size = 0;
     header->entry_size = space_to_wrap;
   } else {
-    void *dest = (void *)(((uint8_t *)header) + sizeof(EntryHeader));
+    void *dest = (uint8_t *)header + sizeof(EntryHeader);
     memcpy(dest, data, size);
     header->entry_size = full_entry_size;
     header->payload_size = size;
@@ -208,19 +204,23 @@ IpcBufferWriteResult ipc_buffer_write(ipc_buffer_t *buffer, const void *data,
   header->seq = tail;
 
   uint64_t expected_offset = LOCK(tail);
-  if (!atomic_compare_exchange_strong(
-          &((struct ipc_buffer_t *)buffer)->header->tail, &expected_offset,
-          tail + header->entry_size)) {
-    error.offset = tail;
-    return IpcBufferWriteResult_error_body(
-        IPC_ERR_ILLEGAL_STATE, "illegal state: unexpected tail offset", error);
+  if (!atomic_compare_exchange_strong(&buffer->header->tail, &expected_offset, tail + header->entry_size)) {
+    return ipc_error_internal_cas(
+      err,
+      IPC_ERR_CODE_OFFSET_CAS_FAILED,
+      "unexpected tail value during commit",
+      (ipc_error_cas_t){
+        .target = IPC_CAS_TARGET_TAIL, .expected_offset = LOCK(tail), .actual_offset = expected_offset,
+        .desired_offset = tail + header->entry_size
+      }
+    );
   }
 
   if (placeholder) {
-    return ipc_buffer_write(buffer, data, size);
+    goto retry;
   }
 
-  return IpcBufferWriteResult_ok(IPC_OK);
+  return IPC_STATUS_OK;
 }
 
 IpcBufferReadResult ipc_buffer_read(ipc_buffer_t *buffer, IpcEntry *dest) {

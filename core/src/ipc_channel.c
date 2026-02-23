@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "ipc_error_internal.h"
+
 #define WAIT_EXPAND_FACTOR 2
 #define NANOS_PER_SEC 1000000000ULL
 
@@ -20,12 +22,12 @@ typedef struct IpcChannelHeader {
   uint8_t __align[64 - sizeof(uint32_t)];
 } IpcChannelHeader;
 
-struct IpcChannel {
+struct ipc_channel_t {
   IpcChannelHeader *header;
   ipc_buffer_t *buffer;
 };
 
-static IpcChannelReadResult _try_read(IpcChannel *, IpcEntry *);
+static IpcChannelReadResult _try_read(ipc_channel_t *, IpcEntry *);
 static bool _is_error_status(const IpcStatus);
 
 inline uint64_t ipc_channel_get_memory_overhead(void) {
@@ -36,7 +38,7 @@ inline uint64_t ipc_channel_get_min_size(void) {
   return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_get_min_size();
 }
 
-inline uint32_t ipc_channel_get_notify_signal(IpcChannel *channel) {
+inline uint32_t ipc_channel_get_notify_signal(ipc_channel_t *channel) {
   return atomic_load(&channel->header->notify);
 }
 
@@ -56,86 +58,92 @@ uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
   return find_next_power_of_2(desired_capacity) + overhead;
 }
 
-IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size) {
-  const size_t min_total = ipc_channel_get_memory_overhead();
-  IpcChannelCreateError error = {
-      .requested_size = size, .min_size = min_total, .sys_errno = 0};
+ipc_status_t ipc_channel_create(void *mem, size_t size, ipc_channel_t **out, ipc_error_t *err) {
+  ipc_error_init(err);
+  ipc_channel_t *res = NULL;
+
+  if (out == NULL) {
+    return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "out is null");
+  }
+
+  *out = NULL;
 
   if (mem == NULL) {
-    return IpcChannelCreateResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
+    return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "mem is null");
   }
 
-  if (size == 0) {
-    return IpcChannelCreateResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer size is 0", error);
+  const uint64_t min_size = ipc_channel_get_min_size();
+  if (size < min_size) {
+    return ipc_error_arg_size(
+      err,
+      IPC_ERR_CODE_TOO_SMALL_SIZE,
+      (ipc_error_size_t){.min_size = min_size, .provided_size = size, .suggested_size = min_size},
+      "channel size too small, use ipc_channel_suggest_size"
+    );
   }
 
-  uint8_t *buffer_memory = (uint8_t *)mem + CHANNEL_HEADER_SIZE_ALIGNED;
-  ipc_buffer_t* buffer;
-  ipc_error_t buffer_error;
-
+  uint8_t *buffer_memory = (uint8_t *) mem + CHANNEL_HEADER_SIZE_ALIGNED;
+  ipc_buffer_t *buffer;
   const ipc_status_t status = ipc_buffer_create(
-      buffer_memory, (size_t)size - CHANNEL_HEADER_SIZE_ALIGNED, &buffer, &buffer_error);
+    buffer_memory, size - CHANNEL_HEADER_SIZE_ALIGNED, &buffer, err);
 
-  //TODO: [REFACTORING] прокинуть ошибку как надо
   if (status != IPC_STATUS_OK) {
-    error.requested_size = size;
-    return IpcChannelCreateResult_error_body(IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
+    return status;
   }
 
-  IpcChannel *channel = malloc(sizeof(IpcChannel));
-  if (channel == NULL) {
+  res = malloc(sizeof(ipc_channel_t));
+  if (res == NULL) {
     free(buffer);
-    error.sys_errno = errno;
-    error.requested_size = size;
-    return IpcChannelCreateResult_error_body(
-        IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
+    return ipc_error_sys(err, IPC_ERR_CODE_ALLOCATION, "channel allocation failed", errno);
   }
 
-  channel->header = (IpcChannelHeader *)mem;
-  channel->buffer = buffer;
+  res->header = (IpcChannelHeader *) mem;
+  res->buffer = buffer;
 
-  atomic_init(&channel->header->notify, 0);
+  atomic_init(&res->header->notify, 0);
 
-  return IpcChannelCreateResult_ok(IPC_OK, channel);
+  *out = res;
+
+  return IPC_STATUS_OK;
 }
 
-IpcChannelConnectResult ipc_channel_connect(void *mem) {
-  const size_t min_total = ipc_channel_get_memory_overhead();
-  IpcChannelConnectError error = {.min_size = min_total};
+ipc_status_t ipc_channel_connect(void *mem, ipc_channel_t** out, ipc_error_t* err) {
+  ipc_error_init(err);
+  ipc_channel_t *res = NULL;
 
-  if (mem == NULL) {
-    return IpcChannelConnectResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
+  if (out == NULL) {
+    return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "out is null");
   }
 
-  IpcChannel *channel = malloc(sizeof(IpcChannel));
-  if (channel == NULL) {
-    error.sys_errno = errno;
-    return IpcChannelConnectResult_error_body(
-        IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
+  *out = NULL;
+
+  if (mem == NULL) {
+    return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "mem is null");
+  }
+
+  res = malloc(sizeof(ipc_channel_t));
+  if (res == NULL) {
+    return ipc_error_sys(err, IPC_ERR_CODE_ALLOCATION, "channel allocation failed", errno);
   }
 
   uint8_t *buffer_memory = (uint8_t *)mem + CHANNEL_HEADER_SIZE_ALIGNED;
   ipc_buffer_t *buffer = NULL;
-  ipc_error_t buffer_error;
-  const ipc_status_t attach_status = ipc_buffer_attach(buffer_memory, &buffer, &buffer_error);
 
-  // TODO: [REFACTORING] прокинуть ошибку как надо
+  const ipc_status_t attach_status = ipc_buffer_attach(buffer_memory, &buffer, err);
   if (attach_status != IPC_STATUS_OK) {
-    free(channel);
-    return IpcChannelConnectResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, buffer_error.message != NULL ? buffer_error.message : "ipc_buffer_attach failed", error);
+    free(res);
+    return attach_status;
   }
 
-  channel->header = (IpcChannelHeader *)mem;
-  channel->buffer = buffer;
+  res->header = (IpcChannelHeader *)mem;
+  res->buffer = buffer;
 
-  return IpcChannelConnectResult_ok(IPC_OK, channel);
+  *out = res;
+
+  return IPC_STATUS_OK;
 }
 
-IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel) {
+IpcChannelDestroyResult ipc_channel_destroy(ipc_channel_t *channel) {
   IpcChannelDestroyError error = {._unit = false};
 
   if (channel == NULL) {
@@ -153,50 +161,21 @@ IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel) {
   return IpcChannelDestroyResult_ok(IPC_OK);
 }
 
-IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data,
-                                        const size_t size) {
-  IpcChannelWriteError error = {.offset = 0,
-                                .requested_size = (size_t)size,
-                                .available_contiguous = 0,
-                                .buffer_size = 0};
+ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t size, ipc_error_t *err) {
+  ipc_error_init(err);
 
   if (channel == NULL) {
-    return IpcChannelWriteResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: channel is NULL", error);
+    return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "channel is null");
   }
 
   if (channel->buffer == NULL) {
-    return IpcChannelWriteResult_error_body(
-        IPC_ERR_ILLEGAL_STATE, "illegal state: channel->buffer is NULL", error);
+    return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "channel->buffer is null");
   }
 
-  const IpcBufferWriteResult write_result =
-      ipc_buffer_write(channel->buffer, data, size);
-  if (IpcBufferWriteResult_is_error(write_result)) {
-    if (write_result.ipc_status == IPC_ERR_NO_SPACE_CONTIGUOUS) {
-      atomic_fetch_add(&channel->header->notify, 1);
-      ipc_futex_wake_all(&channel->header->notify);
-    }
-
-    if (IpcBufferWriteResult_is_error_has_body(write_result.error)) {
-      const IpcBufferWriteError b = write_result.error.body;
-      error.offset = b.offset;
-      error.requested_size = b.requested_size;
-      error.available_contiguous = b.available_contiguous;
-      error.buffer_size = b.buffer_size;
-    }
-
-    return IpcChannelWriteResult_error_body(write_result.ipc_status,
-                                            write_result.error.detail, error);
-  }
-
-  atomic_fetch_add(&channel->header->notify, 1);
-  ipc_futex_wake_all(&channel->header->notify);
-
-  return IpcChannelWriteResult_ok(write_result.ipc_status);
+  return ipc_buffer_write(channel->buffer, data, size, err);
 }
 
-IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel,
+IpcChannelTryReadResult ipc_channel_try_read(ipc_channel_t *channel,
                                              IpcEntry *dest) {
   IpcChannelTryReadError error = {.offset = 0};
 
@@ -234,7 +213,7 @@ IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel,
   return IpcChannelTryReadResult_ok(read_result.ipc_status);
 }
 
-IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
+IpcChannelReadResult ipc_channel_read(ipc_channel_t *channel, IpcEntry *dest,
                                       const struct timespec *timeout) {
   IpcChannelReadError error = {.offset = 0, .timeout_used = {0, 0}};
 
@@ -341,7 +320,7 @@ IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest,
   }
 }
 
-IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel,
+IpcChannelPeekResult ipc_channel_peek(const ipc_channel_t *channel,
                                       IpcEntry *dest) {
   IpcChannelPeekError error = {.offset = 0};
   if (channel == NULL) {
@@ -370,7 +349,7 @@ IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel,
   return IpcChannelPeekResult_ok(peek_result.ipc_status);
 }
 
-IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel,
+IpcChannelSkipResult ipc_channel_skip(ipc_channel_t *channel,
                                       const uint64_t offset) {
   IpcChannelSkipError error = {.offset = offset};
   if (channel == NULL) {
@@ -394,7 +373,7 @@ IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel,
   return IpcChannelSkipResult_ok(skip_result.ipc_status, skip_result.result);
 }
 
-IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel) {
+IpcChannelSkipForceResult ipc_channel_skip_force(ipc_channel_t *channel) {
   IpcChannelSkipForceError error = {._unit = false};
   if (channel == NULL) {
     return IpcChannelSkipForceResult_error_body(
@@ -417,7 +396,7 @@ IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel) {
                                       skip_result.result);
 }
 
-static IpcChannelReadResult _try_read(IpcChannel *channel, IpcEntry *dest) {
+static IpcChannelReadResult _try_read(ipc_channel_t *channel, IpcEntry *dest) {
   IpcChannelReadError error = {.offset = 0, .timeout_used = {0, 0}};
 
   if (channel == NULL) {

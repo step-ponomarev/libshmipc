@@ -58,10 +58,15 @@ namespace test_utils {
     class ChannelWrapper {
     public:
         explicit ChannelWrapper(size_t size) : mem_(ipc_channel_suggest_size(size)) {
-            const IpcChannelCreateResult result =
-                    ipc_channel_create(mem_.data(), ipc_channel_suggest_size(size));
-            CHECK(IpcChannelCreateResult_is_ok(result));
-            channel_ = result.result;
+            channel_ = nullptr;
+            ipc_error_t err;
+            const ipc_status_t status =
+                    ipc_channel_create(mem_.data(),
+                                       ipc_channel_suggest_size(size),
+                                       &channel_,
+                                       &err);
+            CHECK(status == IPC_STATUS_OK);
+            CHECK(channel_ != nullptr);
         }
 
         ~ChannelWrapper() {
@@ -70,12 +75,12 @@ namespace test_utils {
             }
         }
 
-        IpcChannel *get() const { return channel_; }
-        IpcChannel *operator->() const { return channel_; }
+        ipc_channel_t *get() const { return channel_; }
+        ipc_channel_t *operator->() const { return channel_; }
         const uint8_t *get_mem() const { return mem_.data(); }
 
-        IpcChannel *release() {
-            IpcChannel *result = channel_;
+        ipc_channel_t *release() {
+            ipc_channel_t *result = channel_;
             channel_ = nullptr;
             return result;
         }
@@ -102,7 +107,7 @@ namespace test_utils {
         }
 
     private:
-        IpcChannel *channel_;
+        ipc_channel_t *channel_;
         std::vector<uint8_t> mem_;
     };
 
@@ -161,18 +166,25 @@ namespace test_utils {
         CHECK(err.message != nullptr);
     }
 
-    inline void CHECK_TOO_SMALL_SIZE_ARG_ERROR(ipc_status_t expected_status, ipc_error_t err) {
-        CHECK(expected_status == IPC_STATUS_ERROR);
-        CHECK(err.kind == IPC_ERR_KIND_ARG);
-        CHECK(err.code == IPC_ERR_CODE_TOO_SMALL_SIZE);
-        CHECK(err.message != nullptr);
-    }
-
     inline void CHECK_INVALID_CAPACITY_ARG_ERROR(ipc_status_t expected_status, ipc_error_t err) {
         CHECK(expected_status == IPC_STATUS_ERROR);
         CHECK(err.kind == IPC_ERR_KIND_ARG);
         CHECK(err.code == IPC_ERR_CODE_INVALID_CAPACITY);
         CHECK(err.message != nullptr);
+    }
+
+    inline void CHECK_TOO_SMALL_SIZE_WITH_SIZE_ERROR(ipc_status_t expected_status,
+                                                     ipc_error_t err,
+                                                     uint64_t expected_provided_size,
+                                                     uint64_t expected_min_size,
+                                                     uint64_t expected_suggested_size) {
+        CHECK(expected_status == IPC_STATUS_ERROR);
+        CHECK(err.kind == IPC_ERR_KIND_ARG);
+        CHECK(err.code == IPC_ERR_CODE_TOO_SMALL_SIZE);
+        CHECK(err.message != nullptr);
+        CHECK(err.as.arg.size.provided_size == expected_provided_size);
+        CHECK(err.as.arg.size.min_size == expected_min_size);
+        CHECK(err.as.arg.size.suggested_size == expected_suggested_size);
     }
 
     inline void CHECK_ERROR_NONE(ipc_status_t status, ipc_error_t err) {
@@ -202,16 +214,6 @@ namespace test_utils {
         CHECK(result.ipc_status == expected_status);
     }
 
-    inline void CHECK_OK(const IpcBufferWriteResult &result) {
-        CHECK(IpcBufferWriteResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcBufferWriteResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcBufferWriteResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
     inline void CHECK_OK(const IpcBufferReadResult &result) {
         CHECK(result.ipc_status == IPC_OK);
     }
@@ -229,26 +231,6 @@ namespace test_utils {
     inline void CHECK_ERROR(const IpcBufferPeekResult &result,
                             IpcStatus expected_status) {
         CHECK(IpcBufferPeekResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
-    inline void CHECK_OK(const IpcChannelCreateResult &result) {
-        CHECK(IpcChannelCreateResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcChannelCreateResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcChannelCreateResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
-    inline void CHECK_OK(const IpcChannelConnectResult &result) {
-        CHECK(IpcChannelConnectResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcChannelConnectResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcChannelConnectResult_is_error(result));
         CHECK(result.ipc_status == expected_status);
     }
 
@@ -342,14 +324,14 @@ namespace test_utils {
     }
 
     template<typename T>
-    void write_data(IpcChannel *channel, const T &data) {
+    void write_data(ipc_channel_t *channel, const T &data) {
         const IpcChannelWriteResult result =
                 ipc_channel_write(channel, &data, sizeof(data));
         CHECK(IpcChannelWriteResult_is_ok(result));
     }
 
     template<typename T>
-    T read_data(IpcChannel *channel, const struct timespec *timeout) {
+    T read_data(ipc_channel_t *channel, const struct timespec *timeout) {
         IpcEntry entry;
         const IpcChannelReadResult result =
                 ipc_channel_read(channel, &entry, timeout);
@@ -373,7 +355,7 @@ namespace test_utils {
     }
 
     template<typename T>
-    T peek_data(IpcChannel *channel) {
+    T peek_data(ipc_channel_t *channel) {
         IpcEntry entry;
         const IpcChannelPeekResult result = ipc_channel_peek(channel, &entry);
         CHECK(IpcChannelPeekResult_is_ok(result));
@@ -397,7 +379,7 @@ namespace test_utils {
     }
 
     template<typename T>
-    bool write_data_safe(IpcChannel *channel, const T &data) {
+    bool write_data_safe(ipc_channel_t *channel, const T &data) {
         const IpcChannelWriteResult result =
                 ipc_channel_write(channel, &data, sizeof(data));
         return result.ipc_status == IPC_OK;
@@ -418,7 +400,7 @@ namespace test_utils {
     }
 
     template<typename T>
-    T read_data_safe(IpcChannel *channel, const struct timespec *timeout) {
+    T read_data_safe(ipc_channel_t *channel, const struct timespec *timeout) {
         IpcEntry entry;
         const IpcChannelReadResult result =
                 ipc_channel_read(channel, &entry, timeout);
@@ -444,7 +426,7 @@ namespace test_utils {
         CHECK(write_result.ipc_status == IPC_OK);
     }
 
-    inline void verify_channel_creation(IpcChannel *channel) {
+    inline void verify_channel_creation(ipc_channel_t *channel) {
         if (channel == nullptr) {
             throw std::runtime_error("Channel is null");
         }
