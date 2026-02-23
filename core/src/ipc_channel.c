@@ -110,24 +110,27 @@ IpcChannelConnectResult ipc_channel_connect(void *mem) {
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
   }
 
-  IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
+  IpcChannel *channel = malloc(sizeof(IpcChannel));
   if (channel == NULL) {
     error.sys_errno = errno;
     return IpcChannelConnectResult_error_body(
         IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
   }
 
-  uint8_t *buffer_memory = ((uint8_t *)mem) + CHANNEL_HEADER_SIZE_ALIGNED;
-  const IpcBufferAttachResult buffer_result =
-      ipc_buffer_attach((void *)buffer_memory);
-  if (IpcBufferAttachResult_is_error(buffer_result)) {
+  uint8_t *buffer_memory = (uint8_t *)mem + CHANNEL_HEADER_SIZE_ALIGNED;
+  ipc_buffer_t *buffer = NULL;
+  ipc_error_t buffer_error;
+  const ipc_status_t attach_status = ipc_buffer_attach(buffer_memory, &buffer, &buffer_error);
+
+  // TODO: [REFACTORING] прокинуть ошибку как надо
+  if (attach_status != IPC_STATUS_OK) {
     free(channel);
     return IpcChannelConnectResult_error_body(
-        buffer_result.ipc_status, buffer_result.error.detail, error);
+        IPC_ERR_INVALID_ARGUMENT, buffer_error.message != NULL ? buffer_error.message : "ipc_buffer_attach failed", error);
   }
 
   channel->header = (IpcChannelHeader *)mem;
-  channel->buffer = buffer_result.result;
+  channel->buffer = buffer;
 
   return IpcChannelConnectResult_ok(IPC_OK, channel);
 }

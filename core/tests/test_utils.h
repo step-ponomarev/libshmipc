@@ -154,16 +154,6 @@ namespace test_utils {
         size_t size_;
     };
 
-    inline void CHECK_OK(const IpcBufferAttachResult &result) {
-        CHECK(IpcBufferAttachResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcBufferAttachResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcBufferAttachResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
     inline void CHECK_NULL_ARG_ERROR(ipc_status_t expected_status, ipc_error_t err) {
         CHECK(expected_status == IPC_STATUS_ERROR);
         CHECK(err.kind == IPC_ERR_KIND_ARG);
@@ -176,6 +166,20 @@ namespace test_utils {
         CHECK(err.kind == IPC_ERR_KIND_ARG);
         CHECK(err.code == IPC_ERR_CODE_TOO_SMALL_SIZE);
         CHECK(err.message != nullptr);
+    }
+
+    inline void CHECK_INVALID_CAPACITY_ARG_ERROR(ipc_status_t expected_status, ipc_error_t err) {
+        CHECK(expected_status == IPC_STATUS_ERROR);
+        CHECK(err.kind == IPC_ERR_KIND_ARG);
+        CHECK(err.code == IPC_ERR_CODE_INVALID_CAPACITY);
+        CHECK(err.message != nullptr);
+    }
+
+    inline void CHECK_ERROR_NONE(ipc_status_t status, ipc_error_t err) {
+        CHECK(status == IPC_STATUS_OK);
+        CHECK(err.kind == IPC_ERR_KIND_NONE);
+        CHECK(err.code == IPC_ERR_CODE_NONE);
+        CHECK(err.message == nullptr);
     }
 
     inline void CHECK_OK(const IpcBufferSkipResult &result) {

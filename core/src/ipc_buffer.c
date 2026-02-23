@@ -66,6 +66,7 @@ uint64_t ipc_buffer_suggest_size(size_t desired_capacity) {
 }
 
 // TODO: sycnhronize create/attach logic: race condition
+//TODO: check size mem is aligned
 ipc_status_t ipc_buffer_create(void *mem, size_t size, ipc_buffer_t **out, ipc_error_t* err) {
   ipc_error_init(err);
   ipc_buffer_t *res = NULL;
@@ -106,26 +107,31 @@ ipc_status_t ipc_buffer_create(void *mem, size_t size, ipc_buffer_t **out, ipc_e
   return IPC_STATUS_OK;
 }
 
-IpcBufferAttachResult ipc_buffer_attach(void *mem) {
-  IpcBufferAttachError error = {.min_size = BUFFER_HEADER_SIZE_ALIGNED};
+SHMIPC_API ipc_status_t ipc_buffer_attach(void *mem, ipc_buffer_t **out, ipc_error_t* err) {
+  ipc_error_init(err);
+  ipc_buffer_t *res = NULL;
+
+  if (out == NULL) {
+    return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "out is null");
+  }
+
+  *out = NULL;
+
   if (mem == NULL) {
-    return IpcBufferAttachResult_error_body(
-        IPC_ERR_INVALID_ARGUMENT, "invalid argument: mem is NULL", error);
+    return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "mem is null");
   }
 
-  struct ipc_buffer_t *buffer =
-      (struct ipc_buffer_t *)malloc(sizeof(struct ipc_buffer_t));
-
-  if (buffer == NULL) {
-    error.sys_errno = errno;
-    return IpcBufferAttachResult_error_body(
-        IPC_ERR_SYSTEM, "system error: allocation failed", error);
+  res = (ipc_buffer_t *)malloc(sizeof(ipc_buffer_t));
+  if (res == NULL) {
+    return ipc_error_sys(err, IPC_ERR_CODE_ALLOCATION, "buffer allocation failed", errno);
   }
 
-  buffer->header = (ipc_buffer_header_t *)mem;
-  buffer->data = ((uint8_t *)mem) + BUFFER_HEADER_SIZE_ALIGNED;
+  res->header = (ipc_buffer_header_t *)mem;
+  res->data = (uint8_t *)mem + BUFFER_HEADER_SIZE_ALIGNED;
 
-  return IpcBufferAttachResult_ok(IPC_OK, buffer);
+  *out = res;
+
+  return IPC_STATUS_OK;
 }
 
 IpcBufferWriteResult ipc_buffer_write(ipc_buffer_t *buffer, const void *data,

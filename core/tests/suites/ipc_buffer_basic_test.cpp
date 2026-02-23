@@ -12,14 +12,16 @@ TEST_CASE("buffer create - too small size") {
     ipc_error_t err;
     const ipc_status_t status = ipc_buffer_create(mem, 0, &res, &err);
     test_utils::CHECK_TOO_SMALL_SIZE_ARG_ERROR(status, err);
+    CHECK(res == nullptr);
 }
 
-TEST_CASE("buffer create - NULL memory pointer") {
+TEST_CASE("buffer create - null memory pointer") {
     ipc_buffer_t *res = nullptr;
     ipc_error_t err;
 
     const ipc_status_t status = ipc_buffer_create(nullptr, ipc_buffer_suggest_size(128), &res, &err);
     test_utils::CHECK_NULL_ARG_ERROR(status, err);
+    CHECK(res == nullptr);
 }
 
 TEST_CASE("buffer suggest_size - valid size calculation") {
@@ -41,21 +43,42 @@ TEST_CASE("buffer create - null out") {
     test_utils::CHECK_NULL_ARG_ERROR(status, err);
 }
 
-TEST_CASE("buffer create - error init") {
-    uint8_t mem[128];
+TEST_CASE("buffer create - invalid capacity not power of 2") {
+    uint8_t mem[256];
 
+    // size such that (size - header) is not power of 2
+    const size_t bad_size = ipc_buffer_get_min_size() + 1;
     ipc_buffer_t *res = nullptr;
     ipc_error_t err;
 
-    ipc_status_t status = ipc_buffer_create(mem, 128, nullptr, &err);
+    const ipc_status_t status = ipc_buffer_create(mem, bad_size, &res, &err);
+    test_utils::CHECK_INVALID_CAPACITY_ARG_ERROR(status, err);
+    CHECK(res == nullptr);
+}
+
+TEST_CASE("buffer create - out is zeroed on error") {
+    ipc_buffer_t *out = reinterpret_cast<ipc_buffer_t *>(0xBAD);
+    ipc_error_t err;
+    const ipc_status_t status = ipc_buffer_create(nullptr, ipc_buffer_suggest_size(128), &out, &err);
     test_utils::CHECK_NULL_ARG_ERROR(status, err);
+    CHECK(out == nullptr);
+}
 
-    status = ipc_buffer_create(mem, ipc_buffer_suggest_size(0), &res, &err);
-    CHECK(status == IPC_STATUS_OK);
+TEST_CASE("buffer create - error reset after failed then success") {
+    uint8_t mem[512];
+    const size_t size = ipc_buffer_suggest_size(128);
+    ipc_buffer_t *res = nullptr;
+    ipc_error_t err;
 
-    CHECK(err.kind == IPC_ERR_KIND_NONE);
-    CHECK(err.code == IPC_ERR_CODE_NONE);
-    CHECK(err.message == nullptr);
+    ipc_status_t status = ipc_buffer_create(nullptr, size, &res, &err);
+    test_utils::CHECK_NULL_ARG_ERROR(status, err);
+    CHECK(res == nullptr);
+
+    status = ipc_buffer_create(mem, size, &res, &err);
+    test_utils::CHECK_ERROR_NONE(status, err);
+    CHECK(res != nullptr);
+
+    free(res);
 }
 
 TEST_CASE("buffer create - success case") {
@@ -72,27 +95,65 @@ TEST_CASE("buffer create - success case") {
     free(buffer);
 }
 
-TEST_CASE("attach buffer with NULL memory") {
-    const IpcBufferAttachResult attach_result = ipc_buffer_attach(nullptr);
-    test_utils::CHECK_ERROR(attach_result, IPC_ERR_INVALID_ARGUMENT);
+TEST_CASE("buffer attach - null out") {
+    uint8_t mem[512];
+    ipc_error_t err;
+    const ipc_status_t status = ipc_buffer_attach(mem, nullptr, &err);
+    test_utils::CHECK_NULL_ARG_ERROR(status, err);
 }
 
-TEST_CASE("attach buffer success case") {
+TEST_CASE("buffer attach - null memory") {
+    ipc_buffer_t *res = nullptr;
+    ipc_error_t err;
+    const ipc_status_t status = ipc_buffer_attach(nullptr, &res, &err);
+    test_utils::CHECK_NULL_ARG_ERROR(status, err);
+    CHECK(res == nullptr);
+}
+
+TEST_CASE("buffer attach - out is zeroed on error") {
+    ipc_buffer_t *out = reinterpret_cast<ipc_buffer_t *>(0xBAD);  // any non-null to verify *out is cleared on error
+    ipc_error_t err;
+    const ipc_status_t status = ipc_buffer_attach(nullptr, &out, &err);
+    test_utils::CHECK_NULL_ARG_ERROR(status, err);
+    CHECK(out == nullptr);
+}
+
+TEST_CASE("buffer attach - error reset after failed then success") {
+    const size_t size = ipc_buffer_suggest_size(128);
+    uint8_t mem[512];
+    ipc_buffer_t *created = nullptr;
+    CHECK(ipc_buffer_create(mem, size, &created, nullptr) == IPC_STATUS_OK);
+
+    ipc_buffer_t *attached = nullptr;
+    ipc_error_t err;
+    ipc_status_t status = ipc_buffer_attach(nullptr, &attached, &err);
+    test_utils::CHECK_NULL_ARG_ERROR(status, err);
+    CHECK(attached == nullptr);
+
+    status = ipc_buffer_attach(mem, &attached, &err);
+    test_utils::CHECK_ERROR_NONE(status, err);
+    CHECK(attached != nullptr);
+
+    free(created);
+    free(attached);
+}
+
+TEST_CASE("buffer attach - success case") {
     const size_t size = ipc_buffer_suggest_size(128);
     uint8_t mem[512]; // Large enough for suggested size
 
-    ipc_buffer_t *created_buffer;
-    const ipc_status_t status = ipc_buffer_create(mem, size, &created_buffer, nullptr);
-    CHECK(status == IPC_STATUS_OK);
+    ipc_buffer_t *created_buffer = nullptr;
+    const ipc_status_t create_status = ipc_buffer_create(mem, size, &created_buffer, nullptr);
+    CHECK(create_status == IPC_STATUS_OK);
 
     const int test_value = 42;
     const IpcBufferWriteResult write_result =
             ipc_buffer_write(created_buffer, &test_value, sizeof(test_value));
     CHECK(write_result.ipc_status == IPC_OK);
 
-    const IpcBufferAttachResult attach_result = ipc_buffer_attach(mem);
-    test_utils::CHECK_OK(attach_result);
-    ipc_buffer_t *attached_buffer = attach_result.result;
+    ipc_buffer_t *attached_buffer = nullptr;
+    const ipc_status_t attach_status = ipc_buffer_attach(mem, &attached_buffer, nullptr);
+    CHECK(attach_status == IPC_STATUS_OK);
 
     test_utils::EntryWrapper entry(sizeof(test_value));
     IpcEntry entry_ref = entry.get();
@@ -106,11 +167,6 @@ TEST_CASE("attach buffer success case") {
 
     free(created_buffer);
     free(attached_buffer);
-}
-
-TEST_CASE("attach buffer error structure verification") {
-    const IpcBufferAttachResult null_result = ipc_buffer_attach(nullptr);
-    CHECK(IpcBufferAttachResult_is_error(null_result));
 }
 
 TEST_CASE("write with NULL buffer") {
