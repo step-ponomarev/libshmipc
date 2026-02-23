@@ -64,7 +64,7 @@ uint64_t ipc_buffer_suggest_size(size_t desired_capacity) {
   return aligned_capacity + overhead;
 }
 
-// TODO: sycnhronize create/attach logic: race condition
+// TODO: synchronize create/attach logic: race condition
 IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
   IpcBufferCreateError error = {.requested_size = size,
                                 .min_size = BUFFER_HEADER_SIZE_ALIGNED};
@@ -83,7 +83,7 @@ IpcBufferCreateResult ipc_buffer_create(void *mem, const size_t size) {
   const uint64_t data_capacity = size - BUFFER_HEADER_SIZE_ALIGNED;
   if (!is_power_of_2(data_capacity)) {
     return IpcBufferCreateResult_error_body(IPC_ERR_INVALID_ARGUMENT,
-                                            "size must be pover of 2", error);
+                                            "size must be power of 2", error);
   }
 
   struct IpcBuffer *buffer =

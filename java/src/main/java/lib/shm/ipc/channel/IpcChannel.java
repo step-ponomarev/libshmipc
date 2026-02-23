@@ -147,7 +147,7 @@ public final class IpcChannel implements Closeable {
 
                 while (true) {
                     if (System.currentTimeMillis() - start >= timeoutMs) {
-                        throw new IpcTimeoutException("Read timed outed timeout %d".formatted(start));
+                        throw new IpcTimeoutException("Read timed out timeout %d".formatted(start));
                     }
 
                     long currNotify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);

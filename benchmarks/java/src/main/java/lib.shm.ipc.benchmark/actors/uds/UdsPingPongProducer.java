@@ -28,7 +28,7 @@ public final class UdsPingPongProducer extends UdsBenchmarkActor {
 
     @Override
     protected byte[] onResult(ActorConfig config) throws Exception {
-        return HistogramUtils.toLatancyResult(hist).serialize();
+        return HistogramUtils.toLatencyResult(hist).serialize();
     }
 
     @Override

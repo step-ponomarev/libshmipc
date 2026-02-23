@@ -6,7 +6,7 @@ import org.HdrHistogram.Histogram;
 public class HistogramUtils {
     private HistogramUtils() {}
 
-    public static LatencyResult toLatancyResult(Histogram hist) {
+    public static LatencyResult toLatencyResult(Histogram hist) {
         return new LatencyResult(
                 HistogramUtils.nsToUs(hist.getValueAtPercentile(50.0)),
                 HistogramUtils.nsToUs(hist.getValueAtPercentile(95.0)),

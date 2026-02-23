@@ -49,7 +49,7 @@ public final class ShmPingPongProducer extends ShmBenchmarkActor {
 
     @Override
     protected byte[] onResult(ActorConfig config) {
-        return HistogramUtils.toLatancyResult(hist).serialize();
+        return HistogramUtils.toLatencyResult(hist).serialize();
     }
 
     private static void pingPong(byte[] bytes, IpcChannel inChannel, IpcChannel outChannel) throws Exception {
