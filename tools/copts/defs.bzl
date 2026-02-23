@@ -4,7 +4,7 @@ SHMIPC_BASE_DEFINES = [
 ]
 
 SHMIPC_BASE_COPTS = [
-    "-std=c11",
+    "-std=c17",
     "-Wall",
     "-Wextra",
     "-Wpedantic",

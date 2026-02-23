@@ -11,7 +11,7 @@
 
 namespace concurrent_test_utils {
 
-inline void produce_buffer(IpcBuffer *buffer, size_t from, size_t to) {
+inline void produce_buffer(ipc_buffer_t *buffer, size_t from, size_t to) {
   for (size_t i = from; i < to;) {
     IpcBufferWriteResult status = ipc_buffer_write(buffer, &i, sizeof(size_t));
     if (status.ipc_status != IPC_OK) {
@@ -32,7 +32,7 @@ inline void produce_channel(IpcChannel *channel, size_t from, size_t to) {
   }
 }
 
-inline void consume_buffer(IpcBuffer *buffer,
+inline void consume_buffer(ipc_buffer_t *buffer,
                            UnsafeCollector<size_t> &collector,
                            ConcurrencyManager<size_t> &manager) {
   test_utils::EntryWrapper entry(sizeof(size_t));

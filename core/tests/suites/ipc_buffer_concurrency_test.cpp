@@ -626,7 +626,7 @@ TEST_CASE("multiple writer multiple reader - different data sizes") {
 
   const size_t total = 100;
 
-  auto produce_data = [](IpcBuffer *buffer, size_t from, size_t to) {
+  auto produce_data = [](ipc_buffer_t *buffer, size_t from, size_t to) {
     for (size_t i = from; i < to; ++i) {
       TestData data{i, static_cast<uint8_t>(0x40 + (i % 16))};
       IpcBufferWriteResult result =
@@ -637,7 +637,7 @@ TEST_CASE("multiple writer multiple reader - different data sizes") {
     }
   };
 
-  auto consume_data = [](IpcBuffer *buffer, UnsafeCollector<size_t> &collector,
+  auto consume_data = [](ipc_buffer_t *buffer, UnsafeCollector<size_t> &collector,
                          ConcurrencyManager<size_t> &manager) {
     test_utils::EntryWrapper entry(sizeof(TestData));
     while (true) {

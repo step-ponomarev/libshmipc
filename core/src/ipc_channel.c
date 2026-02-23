@@ -22,7 +22,7 @@ typedef struct IpcChannelHeader {
 
 struct IpcChannel {
   IpcChannelHeader *header;
-  IpcBuffer *buffer;
+  ipc_buffer_t *buffer;
 };
 
 static IpcChannelReadResult _try_read(IpcChannel *, IpcEntry *);
@@ -71,19 +71,22 @@ IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size) {
         IPC_ERR_INVALID_ARGUMENT, "invalid argument: buffer size is 0", error);
   }
 
-  uint8_t *buffer_memory = ((uint8_t *)mem) + CHANNEL_HEADER_SIZE_ALIGNED;
-  const IpcBufferCreateResult buffer_result = ipc_buffer_create(
-      (void *)buffer_memory, (size_t)size - CHANNEL_HEADER_SIZE_ALIGNED);
-  if (IpcBufferCreateResult_is_error(buffer_result)) {
+  uint8_t *buffer_memory = (uint8_t *)mem + CHANNEL_HEADER_SIZE_ALIGNED;
+  ipc_buffer_t* buffer;
+  ipc_error_t buffer_error;
+
+  const ipc_status_t status = ipc_buffer_create(
+      buffer_memory, (size_t)size - CHANNEL_HEADER_SIZE_ALIGNED, &buffer, &buffer_error);
+
+  //TODO: [REFACTORING] прокинуть ошибку как надо
+  if (status != IPC_STATUS_OK) {
     error.requested_size = size;
-    error.sys_errno = buffer_result.error.body.sys_errno;
-    return IpcChannelCreateResult_error_body(buffer_result.ipc_status,
-                                             buffer_result.error.detail, error);
+    return IpcChannelCreateResult_error_body(IPC_ERR_SYSTEM, "system error: channel allocation failed", error);
   }
 
-  IpcChannel *channel = (IpcChannel *)malloc(sizeof(IpcChannel));
+  IpcChannel *channel = malloc(sizeof(IpcChannel));
   if (channel == NULL) {
-    free(buffer_result.result);
+    free(buffer);
     error.sys_errno = errno;
     error.requested_size = size;
     return IpcChannelCreateResult_error_body(
@@ -91,7 +94,7 @@ IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size) {
   }
 
   channel->header = (IpcChannelHeader *)mem;
-  channel->buffer = buffer_result.result;
+  channel->buffer = buffer;
 
   atomic_init(&channel->header->notify, 0);
 
