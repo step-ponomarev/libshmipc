@@ -85,7 +85,7 @@ ipc_status_t ipc_buffer_create(void *mem, size_t size, ipc_buffer_t **out, ipc_e
     return ipc_error_arg_size(
       err,
       IPC_ERR_CODE_TOO_SMALL_SIZE,
-      (ipc_error_size_t){.provided_size = size, .min_size = MIN_BUFFER_SIZE, .suggested_size = MIN_BUFFER_SIZE},
+      (ipc_error_size_t){.requested_size = size, .limit = MIN_BUFFER_SIZE, .suggested_size = MIN_BUFFER_SIZE},
       "buffer size too small, use ipc_buffer_suggest_size"
     );
   }
@@ -96,7 +96,7 @@ ipc_status_t ipc_buffer_create(void *mem, size_t size, ipc_buffer_t **out, ipc_e
       err,
       IPC_ERR_CODE_INVALID_CAPACITY,
       (ipc_error_size_t){
-        .provided_size = size, .min_size = MIN_BUFFER_SIZE, .suggested_size = ipc_buffer_suggest_size(data_capacity)
+        .requested_size = size, .limit = MIN_BUFFER_SIZE, .suggested_size = ipc_buffer_suggest_size(data_capacity)
       },
       "size must be power of 2, use ipc_buffer_suggest_size"
     );
@@ -165,7 +165,12 @@ ipc_status_t ipc_buffer_write(ipc_buffer_t *buffer, const void *data, size_t siz
   const uint64_t buf_size = atomic_load(&buffer->header->data_size);
   const uint64_t full_entry_size = ALIGN_UP(sizeof(EntryHeader) + size, IPC_DATA_ALIGN);
   if (full_entry_size > buf_size) {
-    return ipc_error_arg(err, IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER, "entry size exceeds buffer");
+    return ipc_error_arg_size(
+      err,
+      IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER,
+      (ipc_error_size_t){.limit =  buf_size, .requested_size = full_entry_size, .suggested_size = buf_size},
+      "entry size exceeds buffer"
+      );
   }
 
   uint64_t tail, rel_tail, space_to_wrap;

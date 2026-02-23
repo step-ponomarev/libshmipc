@@ -13,8 +13,8 @@ TEST_CASE("buffer create - too small size") {
     const size_t small_size = 0;
     const uint64_t min_size = ipc_buffer_get_min_size();
     const ipc_status_t status = ipc_buffer_create(mem, small_size, &res, &err);
-    test_utils::CHECK_TOO_SMALL_SIZE_WITH_SIZE_ERROR(
-        status, err, small_size, min_size, min_size);
+    test_utils::CHECK_SIZE_ERROR(
+        status, err, IPC_ERR_CODE_TOO_SMALL_SIZE, small_size, min_size, min_size);
     CHECK(res == nullptr);
 }
 
@@ -170,7 +170,7 @@ TEST_CASE("buffer attach - success case") {
     free(attached_buffer);
 }
 
-TEST_CASE("write with NULL buffer") {
+TEST_CASE("buffer write - null buffer") {
     const int test_data = 42;
     ipc_error_t err;
     const ipc_status_t status =
@@ -178,7 +178,7 @@ TEST_CASE("write with NULL buffer") {
     test_utils::CHECK_NULL_ARG_ERROR(status, err);
 }
 
-TEST_CASE("write with NULL data") {
+TEST_CASE("buffer write - null data") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     ipc_error_t err;
     const ipc_status_t status =
@@ -186,7 +186,7 @@ TEST_CASE("write with NULL data") {
     test_utils::CHECK_NULL_ARG_ERROR(status, err);
 }
 
-TEST_CASE("write with zero size") {
+TEST_CASE("buffer write - zero size") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const int test_data = 42;
     ipc_error_t err;
@@ -196,33 +196,26 @@ TEST_CASE("write with zero size") {
     CHECK(err.code == IPC_ERR_CODE_ZERO_SIZE);
 }
 
-TEST_CASE("write success case") {
+TEST_CASE("buffer write - success case") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const int test_data = 42;
     CHECK(test_utils::write_data_safe(buffer.get(), test_data));
 }
 
-TEST_CASE("write error structure verification") {
+TEST_CASE("write - size exceeds buffer") {
     test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
-    const int test_data = 42;
+    std::vector<uint8_t> large_data(test_utils::SMALL_BUFFER_SIZE * 10, 0xAB);
     ipc_error_t err;
-
-    ipc_status_t status =
-            ipc_buffer_write(nullptr, &test_data, sizeof(test_data), &err);
+    const ipc_status_t status =
+            ipc_buffer_write(buffer.get(), large_data.data(), large_data.size(), &err);
     CHECK(status == IPC_STATUS_ERROR);
-    CHECK(err.code == IPC_ERR_CODE_NULL_ARG);
+    CHECK(err.kind == IPC_ERR_KIND_ARG);
+    CHECK(err.code == IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER);
     CHECK(err.message != nullptr);
-
-    status = ipc_buffer_write(buffer.get(), nullptr, sizeof(test_data), &err);
-    CHECK(status == IPC_STATUS_ERROR);
-    CHECK(err.code == IPC_ERR_CODE_NULL_ARG);
-    CHECK(err.message != nullptr);
-
-    status = ipc_buffer_write(buffer.get(), &test_data, 0, &err);
-    CHECK(status == IPC_STATUS_ERROR);
-    CHECK(err.code == IPC_ERR_CODE_ZERO_SIZE);
-    CHECK(err.message != nullptr);
+    CHECK(err.as.arg.size.requested_size > err.as.arg.size.limit);
+    CHECK(err.as.arg.size.limit > 0);
+    CHECK(err.as.arg.size.suggested_size == err.as.arg.size.limit);
 }
 
 TEST_CASE("read with NULL buffer") {

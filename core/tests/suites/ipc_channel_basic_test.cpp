@@ -43,8 +43,8 @@ TEST_CASE("channel create - too small size") {
   const ipc_status_t status =
       ipc_channel_create(mem, small_size, &channel, &err);
   const uint64_t min_size = ipc_channel_get_min_size();
-  test_utils::CHECK_TOO_SMALL_SIZE_WITH_SIZE_ERROR(
-      status, err, small_size, min_size, min_size);
+  test_utils::CHECK_SIZE_ERROR(
+      status, err, IPC_ERR_CODE_TOO_SMALL_SIZE, small_size, min_size, min_size);
   CHECK(channel == nullptr);
 }
 
@@ -166,7 +166,33 @@ TEST_CASE("channel connect - success case") {
   ipc_channel_destroy(connected);
 }
 
-TEST_CASE("write too large entry") {
+TEST_CASE("channel write - null channel") {
+  const int test_data = 42;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_write(nullptr, &test_data, sizeof(test_data), &err);
+  test_utils::CHECK_NULL_ARG_ERROR(status, err);
+}
+
+TEST_CASE("channel write - null data") {
+  test_utils::ChannelWrapper channel(test_utils::SMALL_BUFFER_SIZE);
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_write(channel.get(), nullptr, sizeof(int), &err);
+  test_utils::CHECK_NULL_ARG_ERROR(status, err);
+}
+
+TEST_CASE("channel write - zero size") {
+  test_utils::ChannelWrapper channel(test_utils::SMALL_BUFFER_SIZE);
+  const int test_data = 42;
+  ipc_error_t err;
+  const ipc_status_t status =
+      ipc_channel_write(channel.get(), &test_data, 0, &err);
+  CHECK(status == IPC_STATUS_ERROR);
+  CHECK(err.code == IPC_ERR_CODE_ZERO_SIZE);
+}
+
+TEST_CASE("channel write - size exceeds buffer") {
 
   const uint64_t size = ipc_channel_suggest_size(128);
   std::vector<uint8_t> mem(size);
@@ -184,7 +210,12 @@ TEST_CASE("write too large entry") {
   const ipc_status_t write_status =
       ipc_channel_write(channel, payload, entry_size, &write_err);
   CHECK(write_status == IPC_STATUS_ERROR);
+  CHECK(write_err.kind == IPC_ERR_KIND_ARG);
   CHECK(write_err.code == IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER);
+  CHECK(write_err.message != nullptr);
+  CHECK(write_err.as.arg.size.requested_size > write_err.as.arg.size.limit);
+  CHECK(write_err.as.arg.size.limit > 0);
+  CHECK(write_err.as.arg.size.suggested_size == write_err.as.arg.size.limit);
 
   free(payload);
   ipc_channel_destroy(channel);

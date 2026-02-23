@@ -77,7 +77,7 @@ ipc_status_t ipc_channel_create(void *mem, size_t size, ipc_channel_t **out, ipc
     return ipc_error_arg_size(
       err,
       IPC_ERR_CODE_TOO_SMALL_SIZE,
-      (ipc_error_size_t){.min_size = min_size, .provided_size = size, .suggested_size = min_size},
+      (ipc_error_size_t){.limit = min_size, .requested_size = size, .suggested_size = min_size},
       "channel size too small, use ipc_channel_suggest_size"
     );
   }

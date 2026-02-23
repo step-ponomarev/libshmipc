@@ -40,8 +40,8 @@ typedef struct {
 } ipc_error_cas_t;
 
 typedef struct {
-    size_t min_size;
-    size_t provided_size;
+    size_t limit;
+    size_t requested_size;
     size_t suggested_size;
 } ipc_error_size_t;
 

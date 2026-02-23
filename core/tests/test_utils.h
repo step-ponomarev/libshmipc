@@ -173,17 +173,18 @@ namespace test_utils {
         CHECK(err.message != nullptr);
     }
 
-    inline void CHECK_TOO_SMALL_SIZE_WITH_SIZE_ERROR(ipc_status_t expected_status,
-                                                     ipc_error_t err,
-                                                     uint64_t expected_provided_size,
-                                                     uint64_t expected_min_size,
-                                                     uint64_t expected_suggested_size) {
+    inline void CHECK_SIZE_ERROR(ipc_status_t expected_status,
+                                 ipc_error_t err,
+                                 ipc_error_code_t expected_code,
+                                 uint64_t expected_requested_size,
+                                 uint64_t expected_size_limit,
+                                 uint64_t expected_suggested_size) {
         CHECK(expected_status == IPC_STATUS_ERROR);
         CHECK(err.kind == IPC_ERR_KIND_ARG);
-        CHECK(err.code == IPC_ERR_CODE_TOO_SMALL_SIZE);
+        CHECK(err.code == expected_code);
         CHECK(err.message != nullptr);
-        CHECK(err.as.arg.size.provided_size == expected_provided_size);
-        CHECK(err.as.arg.size.min_size == expected_min_size);
+        CHECK(err.as.arg.size.requested_size == expected_requested_size);
+        CHECK(err.as.arg.size.limit == expected_size_limit);
         CHECK(err.as.arg.size.suggested_size == expected_suggested_size);
     }
 
