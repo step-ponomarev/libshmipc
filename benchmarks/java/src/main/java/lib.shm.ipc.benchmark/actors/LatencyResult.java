@@ -31,7 +31,6 @@ public record LatencyResult(
         }
 
         ByteBuffer buf = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
-
         double p50 = buf.getDouble();
         double p95 = buf.getDouble();
         double p99 = buf.getDouble();

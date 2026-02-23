@@ -38,6 +38,7 @@ public abstract class BenchmarkActor {
 
                 switch (signal) {
                     case INIT -> onInit(config);
+                    case HANDSHAKE -> onHandshake(config);
                     case WARMUP -> onWarmup(config);
                     case MEASURE -> onMeasure(config);
                     case STOP -> {
@@ -51,6 +52,10 @@ public abstract class BenchmarkActor {
     }
 
     protected void onInit(ActorConfig config) throws Exception {
+        throw new UnsupportedOperationException("Unsupported operation");
+    }
+
+    protected void onHandshake(ActorConfig config) throws Exception {
         throw new UnsupportedOperationException("Unsupported operation");
     }
 

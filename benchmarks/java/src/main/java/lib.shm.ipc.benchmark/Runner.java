@@ -3,6 +3,8 @@ package lib.shm.ipc.benchmark;
 import lib.shm.ipc.benchmark.actors.ActorConfig;
 import lib.shm.ipc.benchmark.actors.shm.ShmPingPongProducer;
 import lib.shm.ipc.benchmark.actors.shm.ShmPingPongConsumer;
+import lib.shm.ipc.benchmark.actors.uds.UdsPingPongConsumer;
+import lib.shm.ipc.benchmark.actors.uds.UdsPingPongProducer;
 import lib.shm.ipc.benchmark.args.ArgsUtils;
 import lib.shm.ipc.benchmark.args.ArgRole;
 
@@ -35,14 +37,16 @@ public final class Runner {
 
         final ArgRole role = ArgRole.of(params.get(ArgsUtils.ARG_ROLE));
         switch (role) {
-            case ArgRole.SHM_PING_PONG_PRODUCER:
-                new ShmPingPongProducer(ArgRole.SHM_PING_PONG_PRODUCER.role).run(actorConfig);
-                break;
-            case ArgRole.SHM_PING_PONG_CONSUMER:
-                new ShmPingPongConsumer(ArgRole.SHM_PING_PONG_CONSUMER.role).run(actorConfig);
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported role: " + role);
+            case ArgRole.SHM_PING_PONG_PRODUCER ->
+                    new ShmPingPongProducer(ArgRole.SHM_PING_PONG_PRODUCER.role).run(actorConfig);
+            case ArgRole.SHM_PING_PONG_CONSUMER ->
+                    new ShmPingPongConsumer(ArgRole.SHM_PING_PONG_CONSUMER.role).run(actorConfig);
+            case ArgRole.UDS_PING_PONG_PRODUCER ->
+                    new UdsPingPongProducer(ArgRole.UDS_PING_PONG_PRODUCER.role).run(actorConfig);
+            case ArgRole.UDS_PING_PONG_CONSUMER ->
+                    new UdsPingPongConsumer(ArgRole.UDS_PING_PONG_CONSUMER.role).run(actorConfig);
+
+            default -> throw new UnsupportedOperationException("Unsupported role: " + role);
         }
     }
 }

@@ -2,11 +2,12 @@ package lib.shm.ipc.benchmark.signal;
 
 public enum Signal {
     INIT((byte) 1),
-    WARMUP((byte) 2),
-    MEASURE((byte) 3),
-    RESULT((byte) 4),
-    STOP((byte) 5),
-    DONE((byte) 6);
+    HANDSHAKE((byte) 2),
+    WARMUP((byte) 3),
+    MEASURE((byte) 4),
+    RESULT((byte) 5),
+    STOP((byte) 6),
+    DONE((byte) 7);
     private final byte value;
 
     Signal(byte value) {

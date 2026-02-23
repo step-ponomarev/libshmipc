@@ -2,8 +2,8 @@ package lib.shm.ipc.benchmark.actors.shm;
 
 import lib.shm.ipc.benchmark.SharedMemoryFile;
 import lib.shm.ipc.benchmark.actors.ActorConfig;
-import lib.shm.ipc.benchmark.actors.LatencyResult;
 import lib.shm.ipc.benchmark.utils.PathUtils;
+import lib.shm.ipc.benchmark.utils.HistogramUtils;
 import lib.shm.ipc.channel.IpcChannel;
 import lib.shm.ipc.exeption.IpcWriteException;
 import org.HdrHistogram.Histogram;
@@ -21,8 +21,8 @@ public final class ShmPingPongProducer extends ShmBenchmarkActor {
         message = new byte[config.messageSize()];
 
         final long suggestedSize = IpcChannel.getSuggestedSize(config.bufferSize());
-        inShm = SharedMemoryFile.create(PathUtils.inPath(DATA_BUFFER_PREFIX), suggestedSize);
-        outShm = SharedMemoryFile.create(PathUtils.outPath(DATA_BUFFER_PREFIX), suggestedSize);
+        inShm = SharedMemoryFile.create(PathUtils.inPath(DATA_BUFFER_PATH), suggestedSize);
+        outShm = SharedMemoryFile.create(PathUtils.outPath(DATA_BUFFER_PATH), suggestedSize);
 
         inChannel = IpcChannel.create(inShm.segment(), inShm.size());
         outChannel = IpcChannel.create(outShm.segment(), outShm.size());
@@ -49,18 +49,7 @@ public final class ShmPingPongProducer extends ShmBenchmarkActor {
 
     @Override
     protected byte[] onResult(ActorConfig config) {
-        return new LatencyResult(
-                nsToUs(hist.getValueAtPercentile(50.0)),
-                nsToUs(hist.getValueAtPercentile(95.0)),
-                nsToUs(hist.getValueAtPercentile(99.0)),
-                nsToUs(hist.getValueAtPercentile(99.99)),
-                nsToUs(hist.getMinValue()),
-                nsToUs(hist.getMaxValue())
-        ).serialize();
-    }
-
-    private static double nsToUs(long ns) {
-        return (float) ns / 1_000.0;
+        return HistogramUtils.toLatancyResult(hist).serialize();
     }
 
     private static void pingPong(byte[] bytes, IpcChannel inChannel, IpcChannel outChannel) throws Exception {

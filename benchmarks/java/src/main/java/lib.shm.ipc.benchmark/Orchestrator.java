@@ -42,7 +42,6 @@ public final class Orchestrator {
                 final IpcChannel consumerInChannel = IpcChannel.create(consumerRequestShm.segment(), suggestedSize);
                 final IpcChannel consumerOutChannel = IpcChannel.create(consumerResponseShm.segment(), suggestedSize);
         ) {
-
             final Map<String, String> preparedArgs = prepareArgs(params);
             printArgs(preparedArgs);
 
@@ -80,6 +79,8 @@ public final class Orchestrator {
             switch (mode) {
                 case SHM_PING_PONG ->
                         runShmLatencyBenchmark(producerInChannel, producerOutChannel, consumerInChannel, consumerOutChannel);
+                case UDS_PING_PONG ->
+                        runUdsLatencyBenchmark(producerInChannel, producerOutChannel, consumerInChannel, consumerOutChannel);
                 default -> throw new IllegalArgumentException(params.get(ArgsUtils.ARG_MODE) + " is not supported");
             }
         }
@@ -112,31 +113,60 @@ public final class Orchestrator {
             IpcChannel consumerInChannel,
             IpcChannel consumerOutChannel
     ) throws IpcLockedException, IpcWriteException, IpcSystemError, IpcTimeoutException, IpcReadException {
-        System.out.println("--- Initialization ---");
         sendSignal(producerInChannel, Signal.INIT);
         waitReady(producerOutChannel);
-        System.out.println("Producer initialization complete.");
 
         sendSignal(consumerInChannel, Signal.INIT);
         waitReady(consumerOutChannel);
-        System.out.println("Consumer initialization complete.");
-        System.out.println("------");
 
-        System.out.println("--- Warmup --- "); // todo title
         sendSignal(producerInChannel, Signal.WARMUP);
         sendSignal(consumerInChannel, Signal.WARMUP);
         waitReady(producerOutChannel);
         waitReady(consumerOutChannel);
-        System.out.println("Warmup complete.");
-        System.out.println("------"); // todo end block
 
-        System.out.println("--- Measure ---");
         sendSignal(producerInChannel, Signal.MEASURE);
         sendSignal(consumerInChannel, Signal.MEASURE);
         waitReady(producerOutChannel);
         waitReady(consumerOutChannel);
-        System.out.println("Measure complete.");
-        System.out.println("------");
+
+        sendSignal(producerInChannel, Signal.RESULT);
+        printResult(LatencyResult.deserialize(
+                producerOutChannel.read(TIMEOUT)
+        ));
+
+        sendSignal(producerInChannel, Signal.STOP);
+        waitReady(producerOutChannel);
+
+        sendSignal(consumerInChannel, Signal.STOP);
+        waitReady(consumerOutChannel);
+    }
+
+    private static void runUdsLatencyBenchmark(
+            IpcChannel producerInChannel,
+            IpcChannel producerOutChannel,
+            IpcChannel consumerInChannel,
+            IpcChannel consumerOutChannel
+    ) throws IpcLockedException, IpcWriteException, IpcSystemError, IpcTimeoutException, IpcReadException {
+        sendSignal(consumerInChannel, Signal.INIT);
+        waitReady(consumerOutChannel);
+
+        sendSignal(producerInChannel, Signal.INIT);
+        waitReady(producerOutChannel);
+
+        sendSignal(consumerInChannel, Signal.HANDSHAKE);
+        sendSignal(producerInChannel, Signal.HANDSHAKE);
+        waitReady(consumerOutChannel);
+        waitReady(producerOutChannel);
+
+        sendSignal(producerInChannel, Signal.WARMUP);
+        sendSignal(consumerInChannel, Signal.WARMUP);
+        waitReady(producerOutChannel);
+        waitReady(consumerOutChannel);
+
+        sendSignal(producerInChannel, Signal.MEASURE);
+        sendSignal(consumerInChannel, Signal.MEASURE);
+        waitReady(producerOutChannel);
+        waitReady(consumerOutChannel);
 
         sendSignal(producerInChannel, Signal.RESULT);
         printResult(LatencyResult.deserialize(
