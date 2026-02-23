@@ -13,8 +13,9 @@ namespace concurrent_test_utils {
 
 inline void produce_buffer(ipc_buffer_t *buffer, size_t from, size_t to) {
   for (size_t i = from; i < to;) {
-    IpcBufferWriteResult status = ipc_buffer_write(buffer, &i, sizeof(size_t));
-    if (status.ipc_status != IPC_OK) {
+    const ipc_status_t status =
+        ipc_buffer_write(buffer, &i, sizeof(size_t), nullptr);
+    if (status != IPC_STATUS_OK) {
       continue;
     }
     i++;
@@ -23,9 +24,9 @@ inline void produce_buffer(ipc_buffer_t *buffer, size_t from, size_t to) {
 
 inline void produce_channel(ipc_channel_t *channel, size_t from, size_t to) {
   for (size_t i = from; i < to;) {
-    IpcChannelWriteResult status =
-        ipc_channel_write(channel, &i, sizeof(size_t));
-    if (status.ipc_status != IPC_OK) {
+    const ipc_status_t status =
+        ipc_channel_write(channel, &i, sizeof(size_t), nullptr);
+    if (status != IPC_STATUS_OK) {
       continue;
     }
     i++;

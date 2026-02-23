@@ -254,16 +254,6 @@ namespace test_utils {
         CHECK(result.ipc_status == expected_status);
     }
 
-    inline void CHECK_OK(const IpcChannelWriteResult &result) {
-        CHECK(IpcChannelWriteResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcChannelWriteResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcChannelWriteResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
     inline void CHECK_OK(const IpcChannelReadResult &result) {
         CHECK(result.ipc_status == IPC_OK);
     }
@@ -306,9 +296,9 @@ namespace test_utils {
 
     template<typename T>
     void write_data(ipc_buffer_t *buffer, const T &data) {
-        const IpcBufferWriteResult result =
-                ipc_buffer_write(buffer, &data, sizeof(data));
-        CHECK(result.ipc_status == IPC_OK);
+        const ipc_status_t status =
+                ipc_buffer_write(buffer, &data, sizeof(data), nullptr);
+        CHECK(status == IPC_STATUS_OK);
     }
 
     template<typename T>
@@ -325,9 +315,9 @@ namespace test_utils {
 
     template<typename T>
     void write_data(ipc_channel_t *channel, const T &data) {
-        const IpcChannelWriteResult result =
-                ipc_channel_write(channel, &data, sizeof(data));
-        CHECK(IpcChannelWriteResult_is_ok(result));
+        const ipc_status_t status =
+                ipc_channel_write(channel, &data, sizeof(data), nullptr);
+        CHECK(status == IPC_STATUS_OK);
     }
 
     template<typename T>
@@ -373,16 +363,16 @@ namespace test_utils {
 
     template<typename T>
     bool write_data_safe(ipc_buffer_t *buffer, const T &data) {
-        const IpcBufferWriteResult result =
-                ipc_buffer_write(buffer, &data, sizeof(data));
-        return result.ipc_status == IPC_OK;
+        const ipc_status_t status =
+                ipc_buffer_write(buffer, &data, sizeof(data), nullptr);
+        return status == IPC_STATUS_OK;
     }
 
     template<typename T>
     bool write_data_safe(ipc_channel_t *channel, const T &data) {
-        const IpcChannelWriteResult result =
-                ipc_channel_write(channel, &data, sizeof(data));
-        return result.ipc_status == IPC_OK;
+        const ipc_status_t status =
+                ipc_channel_write(channel, &data, sizeof(data), nullptr);
+        return status == IPC_STATUS_OK;
     }
 
     template<typename T>
@@ -421,9 +411,9 @@ namespace test_utils {
         }
 
         const int test_value = 42;
-        const IpcBufferWriteResult write_result =
-                ipc_buffer_write(buffer, &test_value, sizeof(test_value));
-        CHECK(write_result.ipc_status == IPC_OK);
+        const ipc_status_t write_status =
+                ipc_buffer_write(buffer, &test_value, sizeof(test_value), nullptr);
+        CHECK(write_status == IPC_STATUS_OK);
     }
 
     inline void verify_channel_creation(ipc_channel_t *channel) {
@@ -432,9 +422,9 @@ namespace test_utils {
         }
 
         const int test_value = 42;
-        const IpcChannelWriteResult write_result =
-                ipc_channel_write(channel, &test_value, sizeof(test_value));
-        if (write_result.ipc_status != IPC_OK) {
+        const ipc_status_t write_status =
+                ipc_channel_write(channel, &test_value, sizeof(test_value), nullptr);
+        if (write_status != IPC_STATUS_OK) {
             throw std::runtime_error("Failed to write to channel");
         }
     }

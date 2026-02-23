@@ -172,7 +172,13 @@ ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t 
     return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "channel->buffer is null");
   }
 
-  return ipc_buffer_write(channel->buffer, data, size, err);
+  const ipc_status_t status = ipc_buffer_write(channel->buffer, data, size, err);
+  if (status == IPC_STATUS_NO_SPACE || status == IPC_STATUS_OK) {
+    atomic_fetch_add(&channel->header->notify, 1);
+    ipc_futex_wake_all(&channel->header->notify);
+  }
+
+  return status;
 }
 
 IpcChannelTryReadResult ipc_channel_try_read(ipc_channel_t *channel,

@@ -185,10 +185,8 @@ TEST_CASE("multiple threads write") {
 
   auto write_entry = [&](size_t thread_id, size_t entry_id) -> bool {
     size_t data = thread_id * entries_per_thread + entry_id;
-    IpcBufferWriteResult write_result =
-        ipc_buffer_write(buffer.get(), &data, sizeof(size_t));
-
-    return IpcBufferWriteResult_is_ok(write_result);
+    return ipc_buffer_write(buffer.get(), &data, sizeof(size_t), nullptr) ==
+           IPC_STATUS_OK;
   };
 
   for (size_t t = 0; t < num_threads; ++t) {
@@ -228,10 +226,8 @@ TEST_CASE("race between write and read") {
   std::thread writer([&] {
     for (size_t i = 0; i < iterations; ++i) {
       size_t data = i;
-      IpcBufferWriteResult write_result =
-          ipc_buffer_write(buffer.get(), &data, sizeof(size_t));
-
-      if (IpcBufferWriteResult_is_ok(write_result)) {
+      if (ipc_buffer_write(buffer.get(), &data, sizeof(size_t), nullptr) ==
+          IPC_STATUS_OK) {
         successful_operations.fetch_add(1);
       }
     }
@@ -259,7 +255,7 @@ TEST_CASE("multiple threads peek") {
   test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
 
   for (size_t i = 0; i < 5; ++i) {
-    ipc_buffer_write(buffer.get(), &i, sizeof(size_t));
+    ipc_buffer_write(buffer.get(), &i, sizeof(size_t), nullptr);
   }
 
   const size_t num_threads = 3;
@@ -335,7 +331,7 @@ TEST_CASE("multiple threads skip_force") {
   test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
 
   for (size_t i = 0; i < 10; ++i) {
-    ipc_buffer_write(buffer.get(), &i, sizeof(size_t));
+    ipc_buffer_write(buffer.get(), &i, sizeof(size_t), nullptr);
   }
 
   const size_t num_threads = 3;
@@ -417,10 +413,8 @@ TEST_CASE("buffer overflow under concurrent load") {
     threads.emplace_back([&, t] {
       for (size_t i = 0; i < writes_per_thread; ++i) {
         size_t data = t * writes_per_thread + i;
-        IpcBufferWriteResult write_result =
-            ipc_buffer_write(buffer.get(), &data, sizeof(size_t));
-
-        if (IpcBufferWriteResult_is_ok(write_result)) {
+        if (ipc_buffer_write(buffer.get(), &data, sizeof(size_t), nullptr) ==
+            IPC_STATUS_OK) {
           successful_writes.fetch_add(1);
         } else {
           failed_writes.fetch_add(1);
@@ -453,10 +447,8 @@ TEST_CASE("extreme stress - buffer overflow chaos") {
 
   auto try_write = [&](size_t thread_id, size_t op_id) -> bool {
     size_t data = thread_id * operations_per_thread + op_id;
-    IpcBufferWriteResult write_result =
-        ipc_buffer_write(buffer.get(), &data, sizeof(size_t));
-
-    if (IpcBufferWriteResult_is_ok(write_result)) {
+    if (ipc_buffer_write(buffer.get(), &data, sizeof(size_t), nullptr) ==
+        IPC_STATUS_OK) {
       success_count.fetch_add(1);
       return true;
     } else {
@@ -505,10 +497,8 @@ TEST_CASE("extreme stress - rapid fill and drain cycles") {
       writers.emplace_back([&, w] {
         for (size_t i = 0; i < items_per_writer; ++i) {
           size_t data = cycle * 1000 + w * items_per_writer + i;
-          IpcBufferWriteResult write_result =
-              ipc_buffer_write(buffer.get(), &data, sizeof(size_t));
-
-          if (IpcBufferWriteResult_is_ok(write_result)) {
+          if (ipc_buffer_write(buffer.get(), &data, sizeof(size_t), nullptr) ==
+              IPC_STATUS_OK) {
             total_written.fetch_add(1);
           }
         }
@@ -568,10 +558,8 @@ TEST_CASE("extreme stress - system stability under chaos") {
           switch (op) {
           case 0: {
             int data = t * operations_per_thread + i;
-            IpcBufferWriteResult write_result =
-                ipc_buffer_write(buffer.get(), &data, sizeof(int));
-
-            if (IpcBufferWriteResult_is_ok(write_result)) {
+            if (ipc_buffer_write(buffer.get(), &data, sizeof(int), nullptr) ==
+                IPC_STATUS_OK) {
               successful_operations.fetch_add(1);
             }
             break;
@@ -629,9 +617,8 @@ TEST_CASE("multiple writer multiple reader - different data sizes") {
   auto produce_data = [](ipc_buffer_t *buffer, size_t from, size_t to) {
     for (size_t i = from; i < to; ++i) {
       TestData data{i, static_cast<uint8_t>(0x40 + (i % 16))};
-      IpcBufferWriteResult result =
-          ipc_buffer_write(buffer, &data, sizeof(data));
-      if (!IpcBufferWriteResult_is_ok(result)) {
+      if (ipc_buffer_write(buffer, &data, sizeof(data), nullptr) !=
+          IPC_STATUS_OK) {
         continue;
       }
     }

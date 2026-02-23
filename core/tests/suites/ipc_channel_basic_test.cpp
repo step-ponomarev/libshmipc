@@ -152,7 +152,7 @@ TEST_CASE("channel connect - success case") {
   CHECK(create_status == IPC_STATUS_OK);
 
   const int test_value = 42;
-  CHECK(ipc_channel_write(created, &test_value, sizeof(test_value)).ipc_status == IPC_OK);
+  CHECK(ipc_channel_write(created, &test_value, sizeof(test_value), nullptr) == IPC_STATUS_OK);
 
   ipc_channel_t *connected = nullptr;
   const ipc_status_t connect_status =
@@ -180,8 +180,11 @@ TEST_CASE("write too large entry") {
 
   const size_t entry_size = sizeof(uint8_t) * 1024;
   void *payload = malloc(entry_size);
-  CHECK(ipc_channel_write(channel, payload, entry_size).ipc_status ==
-        IPC_ERR_ENTRY_TOO_LARGE);
+  ipc_error_t write_err;
+  const ipc_status_t write_status =
+      ipc_channel_write(channel, payload, entry_size, &write_err);
+  CHECK(write_status == IPC_STATUS_ERROR);
+  CHECK(write_err.code == IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER);
 
   free(payload);
   ipc_channel_destroy(channel);
@@ -199,7 +202,7 @@ TEST_CASE("write read") {
   CHECK(producer != nullptr);
 
   const int val = 43;
-  CHECK(ipc_channel_write(producer, &val, sizeof(val)).ipc_status == IPC_OK);
+  CHECK(ipc_channel_write(producer, &val, sizeof(val), nullptr) == IPC_STATUS_OK);
 
   ipc_channel_t *consumer = nullptr;
   ipc_error_t connect_err;
@@ -231,8 +234,7 @@ TEST_CASE("peek") {
   CHECK(channel != nullptr);
 
   const int expected = 42;
-  CHECK(ipc_channel_write(channel, &expected, sizeof(expected)).ipc_status ==
-        IPC_OK);
+  CHECK(ipc_channel_write(channel, &expected, sizeof(expected), nullptr) == IPC_STATUS_OK);
 
   IpcEntry entry;
   IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
@@ -285,8 +287,7 @@ TEST_CASE("write try read") {
   CHECK(channel != nullptr);
 
   const int expected = 42;
-  CHECK(ipc_channel_write(channel, &expected, sizeof(expected)).ipc_status ==
-        IPC_OK);
+  CHECK(ipc_channel_write(channel, &expected, sizeof(expected), nullptr) == IPC_STATUS_OK);
 
   IpcEntry entry;
   CHECK(ipc_channel_try_read(channel, &entry).ipc_status == IPC_OK);
@@ -328,8 +329,7 @@ TEST_CASE("read retry limit reached") {
   CHECK(channel != nullptr);
 
   const int expected = -11;
-  CHECK(ipc_channel_write(channel, &expected, sizeof(expected)).ipc_status ==
-        IPC_OK);
+  CHECK(ipc_channel_write(channel, &expected, sizeof(expected), nullptr) == IPC_STATUS_OK);
 
   IpcEntry peek_entry;
   IpcChannelPeekResult pk = ipc_channel_peek(channel, &peek_entry);
@@ -371,11 +371,8 @@ TEST_CASE("skip corrupted entry") {
   const int first_val = 100;
   const int second_val = -11;
 
-  CHECK(ipc_channel_write(channel, &first_val, sizeof(first_val)).ipc_status ==
-        IPC_OK);
-  CHECK(
-      ipc_channel_write(channel, &second_val, sizeof(second_val)).ipc_status ==
-      IPC_OK);
+  CHECK(ipc_channel_write(channel, &first_val, sizeof(first_val), nullptr) == IPC_STATUS_OK);
+  CHECK(ipc_channel_write(channel, &second_val, sizeof(second_val), nullptr) == IPC_STATUS_OK);
 
   IpcEntry peek_entry;
   IpcChannelPeekResult pk = ipc_channel_peek(channel, &peek_entry);
@@ -419,7 +416,7 @@ TEST_CASE("skip force") {
   CHECK(channel != nullptr);
 
   const int val = 42;
-  CHECK(ipc_channel_write(channel, &val, sizeof(val)).ipc_status == IPC_OK);
+  CHECK(ipc_channel_write(channel, &val, sizeof(val), nullptr) == IPC_STATUS_OK);
 
   IpcEntry entry;
   CHECK(ipc_channel_peek(channel, &entry).ipc_status == IPC_OK);
@@ -485,10 +482,10 @@ TEST_CASE("channel data - different sizes") {
     std::vector<uint8_t> data(test_case.size, test_case.pattern);
     written_data.push_back(data);
 
-    IpcChannelWriteResult write_result =
-        ipc_channel_write(channel, data.data(), data.size());
+    const ipc_status_t write_status =
+        ipc_channel_write(channel, data.data(), data.size(), nullptr);
 
-    if (!IpcChannelWriteResult_is_ok(write_result)) {
+    if (write_status != IPC_STATUS_OK) {
       written_data.pop_back();
       break;
     }
