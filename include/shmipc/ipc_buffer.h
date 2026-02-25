@@ -18,13 +18,7 @@ SHMIPC_API ipc_status_t ipc_buffer_create(void *mem, size_t size, ipc_buffer_t *
 SHMIPC_API ipc_status_t ipc_buffer_attach(void *mem, ipc_buffer_t **out, ipc_error_t* err);
 SHMIPC_API ipc_status_t ipc_buffer_write(ipc_buffer_t *buffer, const void *data, size_t size, ipc_error_t* err);
 SHMIPC_API ipc_status_t ipc_buffer_read(ipc_buffer_t *buffer, ipc_entry_t *dest,  ipc_error_t* err);
-
-typedef struct IpcBufferPeekError {
-  uint64_t offset;
-} IpcBufferPeekError;
-IPC_RESULT_UNIT(IpcBufferPeekResult, IpcBufferPeekError)
-SHMIPC_API IpcBufferPeekResult ipc_buffer_peek(ipc_buffer_t *buffer,
-                                               ipc_entry_t *dest);
+SHMIPC_API ipc_status_t ipc_buffer_peek(const ipc_buffer_t *buffer, ipc_entry_t *dest, ipc_error_t* err);
 
 typedef struct IpcBufferSkipError {
   uint64_t offset;
