@@ -267,7 +267,7 @@ TEST_CASE("peek") {
   const int expected = 42;
   CHECK(ipc_channel_write(channel, &expected, sizeof(expected), nullptr) == IPC_STATUS_OK);
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
   CHECK(pk.ipc_status == IPC_OK);
   CHECK(entry.size == sizeof(expected));
@@ -276,7 +276,7 @@ TEST_CASE("peek") {
   memcpy(&peeked, entry.payload, sizeof(expected));
   CHECK(peeked == expected);
 
-  IpcEntry entry2;
+  ipc_entry_t entry2;
   IpcChannelReadResult rd =
       ipc_channel_read(channel, &entry2, &DEFAULT_TIMEOUT);
   CHECK(rd.ipc_status == IPC_OK);
@@ -299,7 +299,7 @@ TEST_CASE("peek empty") {
   CHECK(status == IPC_STATUS_OK);
   CHECK(channel != nullptr);
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   IpcChannelPeekResult pk = ipc_channel_peek(channel, &entry);
   CHECK(pk.ipc_status == IPC_EMPTY);
 
@@ -320,7 +320,7 @@ TEST_CASE("write try read") {
   const int expected = 42;
   CHECK(ipc_channel_write(channel, &expected, sizeof(expected), nullptr) == IPC_STATUS_OK);
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   CHECK(ipc_channel_try_read(channel, &entry).ipc_status == IPC_OK);
 
   int res;
@@ -342,7 +342,7 @@ TEST_CASE("try read empty") {
   CHECK(status == IPC_STATUS_OK);
   CHECK(channel != nullptr);
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   CHECK(ipc_channel_try_read(channel, &entry).ipc_status == IPC_EMPTY);
 
   ipc_channel_destroy(channel);
@@ -362,7 +362,7 @@ TEST_CASE("read retry limit reached") {
   const int expected = -11;
   CHECK(ipc_channel_write(channel, &expected, sizeof(expected), nullptr) == IPC_STATUS_OK);
 
-  IpcEntry peek_entry;
+  ipc_entry_t peek_entry;
   IpcChannelPeekResult pk = ipc_channel_peek(channel, &peek_entry);
   CHECK(IpcChannelPeekResult_is_ok(pk));
 
@@ -371,7 +371,7 @@ TEST_CASE("read retry limit reached") {
   uint64_t original_seq = *seq_ptr;
   *seq_ptr = 0xDEADBEEF;
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   CHECK(ipc_channel_read(channel, &entry, &DEFAULT_TIMEOUT).ipc_status ==
         IPC_ERR_TIMEOUT);
 
@@ -405,7 +405,7 @@ TEST_CASE("skip corrupted entry") {
   CHECK(ipc_channel_write(channel, &first_val, sizeof(first_val), nullptr) == IPC_STATUS_OK);
   CHECK(ipc_channel_write(channel, &second_val, sizeof(second_val), nullptr) == IPC_STATUS_OK);
 
-  IpcEntry peek_entry;
+  ipc_entry_t peek_entry;
   IpcChannelPeekResult pk = ipc_channel_peek(channel, &peek_entry);
   CHECK(IpcChannelPeekResult_is_ok(pk));
 
@@ -414,7 +414,7 @@ TEST_CASE("skip corrupted entry") {
     *((uint64_t *)corrupt_ptr) = 0xDEADBEEF;
   }
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   IpcChannelReadResult read_res =
       ipc_channel_read(channel, &entry, &DEFAULT_TIMEOUT);
   CHECK(read_res.ipc_status == IPC_ERR_TIMEOUT);
@@ -449,7 +449,7 @@ TEST_CASE("skip force") {
   const int val = 42;
   CHECK(ipc_channel_write(channel, &val, sizeof(val), nullptr) == IPC_STATUS_OK);
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   CHECK(ipc_channel_peek(channel, &entry).ipc_status == IPC_OK);
   CHECK(ipc_channel_skip_force(channel).ipc_status == IPC_OK);
   CHECK(ipc_channel_peek(channel, &entry).ipc_status == IPC_EMPTY);
@@ -475,7 +475,7 @@ TEST_CASE("read timeout") {
   CHECK(clock_gettime(CLOCK_MONOTONIC, &time) == 0);
   const uint64_t before_ns = ipc_timespec_to_nanos(&time);
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   CHECK(ipc_channel_read(channel, &entry, &timeout).ipc_status ==
         IPC_ERR_TIMEOUT);
 
@@ -523,7 +523,7 @@ TEST_CASE("channel data - different sizes") {
   }
 
   for (size_t i = 0; i < written_data.size(); ++i) {
-    IpcEntry entry;
+    ipc_entry_t entry;
     IpcChannelReadResult read_result =
         ipc_channel_read(channel, &entry, &timeout);
 
@@ -535,7 +535,7 @@ TEST_CASE("channel data - different sizes") {
     free(entry.payload);
   }
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   IpcChannelTryReadResult read_result = ipc_channel_try_read(channel, &entry);
   CHECK(read_result.ipc_status == IPC_EMPTY);
 

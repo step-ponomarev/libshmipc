@@ -117,10 +117,10 @@ typedef enum {
     return e.hasBody;                                                          \
   }
 
-typedef struct IpcEntry {
+typedef struct ipc_entry_t {
   uint64_t offset;
   void *payload;
   size_t size;
-} IpcEntry;
+} ipc_entry_t;
 
 SHMIPC_END_DECLS

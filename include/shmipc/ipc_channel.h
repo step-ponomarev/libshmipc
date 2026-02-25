@@ -34,34 +34,26 @@ typedef struct IpcChannelReadError {
 } IpcChannelReadError;
 IPC_RESULT_UNIT(IpcChannelReadResult, IpcChannelReadError)
 SHMIPC_API IpcChannelReadResult ipc_channel_read(
-    ipc_channel_t *channel, IpcEntry *dest, const struct timespec *timeout);
+    ipc_channel_t *channel, ipc_entry_t *dest, const struct timespec *timeout);
 
 typedef struct IpcChannelTryReadError {
   uint64_t offset;
 } IpcChannelTryReadError;
 IPC_RESULT_UNIT(IpcChannelTryReadResult, IpcChannelTryReadError)
 SHMIPC_API IpcChannelTryReadResult ipc_channel_try_read(ipc_channel_t *channel,
-                                                        IpcEntry *dest);
+                                                        ipc_entry_t *dest);
 
 typedef struct IpcChannelPeekError {
   uint64_t offset;
 } IpcChannelPeekError;
 IPC_RESULT_UNIT(IpcChannelPeekResult, IpcChannelPeekError)
 SHMIPC_API IpcChannelPeekResult ipc_channel_peek(const ipc_channel_t *channel,
-                                                 IpcEntry *dest);
+                                                 ipc_entry_t *dest);
 
 typedef struct IpcChannelSkipError {
   uint64_t offset;
 } IpcChannelSkipError;
 IPC_RESULT(IpcChannelSkipResult, uint64_t, IpcChannelSkipError)
-SHMIPC_API IpcChannelSkipResult ipc_channel_skip(ipc_channel_t *channel,
-                                                 const uint64_t offset);
-
-typedef struct IpcChannelSkipForceError {
-  bool _unit;
-} IpcChannelSkipForceError;
-IPC_RESULT(IpcChannelSkipForceResult, uint64_t, IpcChannelSkipForceError)
-SHMIPC_API IpcChannelSkipForceResult
-ipc_channel_skip_force(ipc_channel_t *channel);
+SHMIPC_API IpcChannelSkipResult ipc_channel_skip(ipc_channel_t *channel, uint64_t offset);
 
 SHMIPC_END_DECLS

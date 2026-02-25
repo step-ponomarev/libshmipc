@@ -37,7 +37,7 @@ inline void consume_buffer(ipc_buffer_t *buffer,
                            UnsafeCollector<size_t> &collector,
                            ConcurrencyManager<size_t> &manager) {
   test_utils::EntryWrapper entry(sizeof(size_t));
-  IpcEntry entry_ref = entry.get();
+  ipc_entry_t entry_ref = entry.get();
 
   bool finished = false;
   while (true) {
@@ -56,7 +56,7 @@ inline void consume_buffer(ipc_buffer_t *buffer,
 inline void consume_channel(ipc_channel_t *channel,
                             UnsafeCollector<size_t> &collector,
                             ConcurrencyManager<size_t> &manager) {
-  IpcEntry entry;
+  ipc_entry_t entry;
   bool finished = false;
   while (true) {
     finished = manager.all_producers_finished();
@@ -79,7 +79,7 @@ inline void consume_channel_with_timeout(ipc_channel_t *channel,
 
   bool finished = false;
   while (true) {
-    IpcEntry entry;
+    ipc_entry_t entry;
 
     finished = manager.all_producers_finished();
     IpcChannelReadResult result = ipc_channel_read(channel, &entry, timeout);

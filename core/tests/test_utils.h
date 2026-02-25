@@ -124,7 +124,7 @@ namespace test_utils {
             }
         }
 
-        IpcEntry get() const {
+        ipc_entry_t get() const {
             return {.offset = 0, .payload = payload_, .size = size_};
         }
 
@@ -305,7 +305,7 @@ namespace test_utils {
     template<typename T>
     T read_data(ipc_buffer_t *buffer) {
         EntryWrapper entry(sizeof(T));
-        IpcEntry entry_ref = entry.get();
+        ipc_entry_t entry_ref = entry.get();
         const IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
         CHECK(result.ipc_status == IPC_OK);
 
@@ -323,7 +323,7 @@ namespace test_utils {
 
     template<typename T>
     T read_data(ipc_channel_t *channel, const struct timespec *timeout) {
-        IpcEntry entry;
+        ipc_entry_t entry;
         const IpcChannelReadResult result =
                 ipc_channel_read(channel, &entry, timeout);
         CHECK(result.ipc_status == IPC_OK);
@@ -336,7 +336,7 @@ namespace test_utils {
 
     template<typename T>
     T peek_data(ipc_buffer_t *buffer) {
-        IpcEntry entry;
+        ipc_entry_t entry;
         const IpcBufferPeekResult result = ipc_buffer_peek(buffer, &entry);
         CHECK_OK(result);
 
@@ -347,7 +347,7 @@ namespace test_utils {
 
     template<typename T>
     T peek_data(ipc_channel_t *channel) {
-        IpcEntry entry;
+        ipc_entry_t entry;
         const IpcChannelPeekResult result = ipc_channel_peek(channel, &entry);
         CHECK(IpcChannelPeekResult_is_ok(result));
 
@@ -379,7 +379,7 @@ namespace test_utils {
     template<typename T>
     T read_data_safe(ipc_buffer_t *buffer) {
         test_utils::EntryWrapper entry(sizeof(T));
-        IpcEntry entry_ref = entry.get();
+        ipc_entry_t entry_ref = entry.get();
         const IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
         if (result.ipc_status != IPC_OK) {
             throw std::runtime_error("Failed to read from buffer");
@@ -392,7 +392,7 @@ namespace test_utils {
 
     template<typename T>
     T read_data_safe(ipc_channel_t *channel, const struct timespec *timeout) {
-        IpcEntry entry;
+        ipc_entry_t entry;
         const IpcChannelReadResult result =
                 ipc_channel_read(channel, &entry, timeout);
         if (result.ipc_status != IPC_OK) {

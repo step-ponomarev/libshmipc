@@ -136,7 +136,7 @@ TEST_CASE("race between skip and read") {
     const size_t val = 42;
     test_utils::write_data(buffer.get(), val);
 
-    IpcEntry entry;
+    ipc_entry_t entry;
     IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer.get(), &entry);
     CHECK(peek_res.ipc_status == IPC_OK);
 
@@ -155,7 +155,7 @@ TEST_CASE("race between skip and read") {
 
     std::thread t2([&] {
       test_utils::EntryWrapper e(sizeof(size_t));
-      IpcEntry e_ref = e.get();
+      ipc_entry_t e_ref = e.get();
       IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &e_ref);
 
       if (result.ipc_status == IPC_OK) {
@@ -236,7 +236,7 @@ TEST_CASE("race between write and read") {
   std::thread reader([&] {
     test_utils::EntryWrapper entry(sizeof(size_t));
     for (size_t i = 0; i < iterations; ++i) {
-      IpcEntry entry_ref = entry.get();
+      ipc_entry_t entry_ref = entry.get();
       IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &entry_ref);
 
       if (IpcBufferReadResult_is_ok(result)) {
@@ -268,7 +268,7 @@ TEST_CASE("multiple threads peek") {
       test_utils::EntryWrapper entry(sizeof(size_t));
 
       for (size_t i = 0; i < peeks_per_thread; ++i) {
-        IpcEntry entry_ref = entry.get();
+        ipc_entry_t entry_ref = entry.get();
         IpcBufferPeekResult result = ipc_buffer_peek(buffer.get(), &entry_ref);
 
         if (IpcBufferPeekResult_is_ok(result)) {
@@ -299,7 +299,7 @@ TEST_CASE("race between peek and read") {
   std::thread peek_thread([&] {
     test_utils::EntryWrapper entry(sizeof(size_t));
     for (size_t i = 0; i < iterations; ++i) {
-      IpcEntry entry_ref = entry.get();
+      ipc_entry_t entry_ref = entry.get();
       IpcBufferPeekResult result = ipc_buffer_peek(buffer.get(), &entry_ref);
 
       if (IpcBufferPeekResult_is_ok(result)) {
@@ -311,7 +311,7 @@ TEST_CASE("race between peek and read") {
   std::thread read_thread([&] {
     test_utils::EntryWrapper entry(sizeof(size_t));
     for (size_t i = 0; i < iterations; ++i) {
-      IpcEntry entry_ref = entry.get();
+      ipc_entry_t entry_ref = entry.get();
       IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &entry_ref);
 
       if (IpcBufferReadResult_is_ok(result)) {
@@ -384,7 +384,7 @@ TEST_CASE("race between skip_force and read") {
   std::thread read_thread([&] {
     test_utils::EntryWrapper entry(sizeof(size_t));
     for (size_t i = 0; i < iterations; ++i) {
-      IpcEntry entry_ref = entry.get();
+      ipc_entry_t entry_ref = entry.get();
       IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &entry_ref);
 
       if (IpcBufferReadResult_is_ok(result)) {
@@ -513,7 +513,7 @@ TEST_CASE("extreme stress - rapid fill and drain cycles") {
       readers.emplace_back([&] {
         for (size_t i = 0; i < items_per_writer * 2; ++i) {
           test_utils::EntryWrapper entry(sizeof(size_t));
-          IpcEntry entry_ref = entry.get();
+          ipc_entry_t entry_ref = entry.get();
           IpcBufferReadResult result =
               ipc_buffer_read(buffer.get(), &entry_ref);
 
@@ -566,7 +566,7 @@ TEST_CASE("extreme stress - system stability under chaos") {
           }
           case 1: {
             test_utils::EntryWrapper entry(sizeof(int));
-            IpcEntry entry_ref = entry.get();
+            ipc_entry_t entry_ref = entry.get();
             IpcBufferReadResult result =
                 ipc_buffer_read(buffer.get(), &entry_ref);
 
@@ -577,7 +577,7 @@ TEST_CASE("extreme stress - system stability under chaos") {
           }
           case 2: {
             test_utils::EntryWrapper entry(sizeof(int));
-            IpcEntry entry_ref = entry.get();
+            ipc_entry_t entry_ref = entry.get();
             IpcBufferPeekResult result =
                 ipc_buffer_peek(buffer.get(), &entry_ref);
 
@@ -629,7 +629,7 @@ TEST_CASE("multiple writer multiple reader - different data sizes") {
     test_utils::EntryWrapper entry(sizeof(TestData));
     while (true) {
       bool finished = manager.all_producers_finished();
-      IpcEntry entry_ref = entry.get();
+      ipc_entry_t entry_ref = entry.get();
       IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
 
       if (result.ipc_status == IPC_OK) {

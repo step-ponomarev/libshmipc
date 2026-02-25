@@ -23,13 +23,15 @@ typedef enum {
     IPC_ERR_CODE_INVALID_CAPACITY,
 
     IPC_ERR_CODE_OFFSET_CAS_FAILED,
+    IPC_ERR_CODE_ENTRY_CORRUPTED,
 
     IPC_ERR_CODE_ALLOCATION
 } ipc_error_code_t;
 
 typedef enum {
     IPC_CAS_TARGET_NONE,
-    IPC_CAS_TARGET_TAIL
+    IPC_CAS_TARGET_TAIL,
+    IPC_CAS_TARGET_HEAD
 } ipc_cas_target_t;
 
 typedef struct {
@@ -46,13 +48,21 @@ typedef struct {
 } ipc_error_size_t;
 
 typedef struct {
+    size_t provided_capacity;
+    size_t required_capacity;
+} ipc_error_capacity_t;
+
+typedef struct {
     ipc_error_kind_t kind;
     ipc_error_code_t code;
     const char *message;
 
     union {
         struct {
-            ipc_error_size_t size;
+            union {
+                ipc_error_size_t size;
+                ipc_error_capacity_t capacity;
+            };
         } arg;
 
         struct {
@@ -60,7 +70,10 @@ typedef struct {
         } sys;
 
         struct {
-            ipc_error_cas_t cas;
+            union {
+                ipc_error_cas_t cas;
+                uint64_t offset;
+            };
         } internal;
     } as;
 } ipc_error_t;

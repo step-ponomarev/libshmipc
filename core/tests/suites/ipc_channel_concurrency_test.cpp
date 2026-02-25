@@ -145,7 +145,7 @@ TEST_CASE("multiple writer multiple reader stress") {
 
   manager.run_and_wait();
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   IpcChannelPeekResult peek_res = ipc_channel_peek(channel, &entry);
   CHECK(peek_res.ipc_status == IPC_EMPTY);
 
@@ -172,14 +172,14 @@ TEST_CASE("race between skip and read") {
     const size_t val = 42;
     test_utils::write_data(channel.get(), val);
 
-    IpcEntry entry;
+    ipc_entry_t entry;
     IpcChannelPeekResult pk = ipc_channel_peek(channel.get(), &entry);
     CHECK(pk.ipc_status == IPC_OK);
 
     std::atomic<bool> skip_done = false;
     std::atomic<bool> read_done = false;
 
-    IpcEntry e;
+    ipc_entry_t e;
 
     std::thread t1([&] {
       IpcChannelSkipResult result =
@@ -250,7 +250,7 @@ TEST_CASE("extreme stress test - small buffer") {
 
     manager.run_and_wait();
 
-    IpcEntry entry;
+    ipc_entry_t entry;
     IpcChannelPeekResult peek_res = ipc_channel_peek(channel, &entry);
     CHECK(peek_res.ipc_status == IPC_EMPTY);
 
@@ -294,7 +294,7 @@ TEST_CASE("blocks reader until writer writes") {
     test_utils::write_data(channel, 42);
   });
 
-  IpcEntry entry;
+  ipc_entry_t entry;
   struct timespec timeout = {.tv_sec = 2000, .tv_nsec = 0};
 
   reader_ready.store(true, std::memory_order_release);
