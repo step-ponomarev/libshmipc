@@ -22,7 +22,7 @@ namespace test_utils {
     class BufferWrapper {
     public:
         explicit BufferWrapper(size_t size) : mem_(ipc_buffer_suggest_size(size)) {
-            const ipc_status_t status = ipc_buffer_create(mem_.data(), ipc_buffer_suggest_size(size), &buffer_, NULL);
+            const ipc_status_t status = ipc_buffer_init(mem_.data(), ipc_buffer_suggest_size(size), &buffer_, NULL);
             CHECK(status == IPC_STATUS_OK);
         }
 

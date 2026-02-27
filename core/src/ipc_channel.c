@@ -32,11 +32,11 @@ static IpcChannelReadResult _try_read(ipc_channel_t *, ipc_entry_t *);
 static bool _is_error_status(const IpcStatus);
 
 inline uint64_t ipc_channel_get_memory_overhead(void) {
-    return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_get_memory_overhead();
+    return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_memory_overhead();
 }
 
 inline uint64_t ipc_channel_get_min_size(void) {
-    return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_get_min_size();
+    return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_min_size();
 }
 
 inline uint32_t ipc_channel_get_notify_signal(ipc_channel_t *channel) {
@@ -85,7 +85,7 @@ ipc_status_t ipc_channel_create(void *mem, size_t size, ipc_channel_t **out, ipc
 
     uint8_t *buffer_memory = (uint8_t *) mem + CHANNEL_HEADER_SIZE_ALIGNED;
     ipc_buffer_t *buffer;
-    const ipc_status_t status = ipc_buffer_create(
+    const ipc_status_t status = ipc_buffer_init(
         buffer_memory, size - CHANNEL_HEADER_SIZE_ALIGNED, &buffer, err);
 
     if (status != IPC_STATUS_OK) {
