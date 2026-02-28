@@ -64,22 +64,6 @@ static ipc_status_t ipc_error_arg_capacity(
     return IPC_STATUS_ERROR;
 }
 
-static ipc_status_t ipc_error_state(
-    ipc_error_t *err,
-    ipc_error_code_t code,
-    const char *message
-) {
-    if (err == NULL) {
-        return IPC_STATUS_ERROR;
-    }
-
-    err->kind = IPC_ERR_KIND_STATE;
-    err->code = code;
-    err->message = message;
-
-    return IPC_STATUS_ERROR;
-}
-
 static ipc_status_t ipc_error_sys(
     ipc_error_t *err,
     ipc_error_code_t code,

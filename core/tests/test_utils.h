@@ -73,7 +73,7 @@ namespace test_utils {
 
         ~ChannelWrapper() {
             if (channel_) {
-                ipc_channel_detach(channel_);
+                ipc_channel_detach(channel_, nullptr);
             }
         }
 
@@ -99,7 +99,7 @@ namespace test_utils {
         ChannelWrapper &operator=(ChannelWrapper &&other) noexcept {
             if (this != &other) {
                 if (channel_) {
-                    ipc_channel_detach(channel_);
+                    ipc_channel_detach(channel_, nullptr);
                 }
                 channel_ = other.channel_;
                 mem_ = std::move(other.mem_);
@@ -197,66 +197,6 @@ namespace test_utils {
         CHECK(err.message == nullptr);
     }
 
-    inline void CHECK_OK(const IpcChannelDestroyResult &result) {
-        CHECK(IpcChannelDestroyResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcChannelDestroyResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcChannelDestroyResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
-    inline void CHECK_OK(const IpcChannelSkipForceResult &result) {
-        CHECK(IpcChannelSkipForceResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcChannelSkipForceResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcChannelSkipForceResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
-    inline void CHECK_OK(const IpcChannelReadResult &result) {
-        CHECK(result.ipc_status == IPC_OK);
-    }
-
-    inline void CHECK_ERROR(const IpcChannelReadResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcChannelReadResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
-    inline void CHECK_OK(const IpcChannelPeekResult &result) {
-        CHECK(IpcChannelPeekResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcChannelPeekResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcChannelPeekResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
-    inline void CHECK_OK(const IpcChannelTryReadResult &result) {
-        CHECK(IpcChannelTryReadResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcChannelTryReadResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcChannelTryReadResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
-    inline void CHECK_OK(const IpcChannelSkipResult &result) {
-        CHECK(IpcChannelSkipResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcChannelSkipResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcChannelSkipResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
     template<typename T>
     void write_data(ipc_buffer_t *buffer, const T &data) {
         const ipc_status_t status =
@@ -286,24 +226,13 @@ namespace test_utils {
     template<typename T>
     T read_data(ipc_channel_t *channel, const struct timespec *timeout) {
         ipc_entry_t entry;
-        const IpcChannelReadResult result =
-                ipc_channel_read(channel, &entry, timeout);
-        CHECK(result.ipc_status == IPC_OK);
+        const ipc_status_t status =
+                ipc_channel_read(channel, &entry, timeout, nullptr);
+        CHECK(status == IPC_STATUS_OK);
 
         T data;
         memcpy(&data, entry.payload, sizeof(T));
         free(entry.payload);
-        return data;
-    }
-
-    template<typename T>
-    T peek_data(ipc_channel_t *channel) {
-        ipc_entry_t entry;
-        const IpcChannelPeekResult result = ipc_channel_peek(channel, &entry);
-        CHECK(IpcChannelPeekResult_is_ok(result));
-
-        T data;
-        memcpy(&data, entry.payload, sizeof(T));
         return data;
     }
 
@@ -344,9 +273,9 @@ namespace test_utils {
     template<typename T>
     T read_data_safe(ipc_channel_t *channel, const struct timespec *timeout) {
         ipc_entry_t entry;
-        const IpcChannelReadResult result =
-                ipc_channel_read(channel, &entry, timeout);
-        if (result.ipc_status != IPC_OK) {
+        const ipc_status_t status =
+                ipc_channel_read(channel, &entry, timeout, nullptr);
+        if (status != IPC_STATUS_OK) {
             throw std::runtime_error("Failed to read from channel");
         }
 

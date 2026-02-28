@@ -3,6 +3,7 @@
 #include <shmipc/ipc_error.h>
 #include <shmipc/ipc_status.h>
 #include <shmipc/ipc_export.h>
+#include <shmipc/ipc_entry.h>
 #include <time.h>
 
 SHMIPC_BEGIN_DECLS

@@ -40,7 +40,7 @@ TEST_CASE("single writer single reader") {
     CHECK(collected.contains(i));
   }
 
-  ipc_channel_detach(channel);
+  ipc_channel_detach(channel, nullptr);
 }
 
 TEST_CASE("single writer single reader with timeout") {
@@ -73,7 +73,7 @@ TEST_CASE("single writer single reader with timeout") {
     CHECK(collected.contains(i));
   }
 
-  ipc_channel_detach(channel);
+  ipc_channel_detach(channel, nullptr);
 }
 
 TEST_CASE("multiple writer single reader") {
@@ -110,7 +110,7 @@ TEST_CASE("multiple writer single reader") {
     CHECK(collected.contains(i));
   }
 
-  ipc_channel_detach(channel);
+  ipc_channel_detach(channel, nullptr);
 }
 
 TEST_CASE("multiple writer multiple reader stress") {
@@ -145,8 +145,8 @@ TEST_CASE("multiple writer multiple reader stress") {
   manager.run_and_wait();
 
   ipc_entry_t entry;
-  IpcChannelPeekResult peek_res = ipc_channel_peek(channel, &entry);
-  CHECK(peek_res.ipc_status == IPC_EMPTY);
+  const ipc_status_t try_read_status = ipc_channel_try_read(channel, &entry, nullptr);
+  CHECK(try_read_status == IPC_STATUS_EMPTY);
 
   auto collected1 = collector1.get_all_collected();
   auto collected2 = collector2.get_all_collected();
@@ -162,57 +162,7 @@ TEST_CASE("multiple writer multiple reader stress") {
     CHECK(all_collected.contains(i));
   }
 
-  ipc_channel_detach(channel);
-}
-
-TEST_CASE("race between skip and read") {
-  for (int i = 0; i < 1000; i++) {
-    test_utils::ChannelWrapper channel(test_utils::SMALL_BUFFER_SIZE);
-    const size_t val = 42;
-    test_utils::write_data(channel.get(), val);
-
-    ipc_entry_t entry;
-    IpcChannelPeekResult pk = ipc_channel_peek(channel.get(), &entry);
-    CHECK(pk.ipc_status == IPC_OK);
-
-    std::atomic<bool> skip_done = false;
-    std::atomic<bool> read_done = false;
-
-    ipc_entry_t e;
-
-    std::thread t1([&] {
-      IpcChannelSkipResult result =
-          ipc_channel_skip(channel.get(), entry.offset);
-      skip_done.store(true);
-
-      bool valid_status = (result.ipc_status == IPC_OK ||
-                           result.ipc_status == IPC_ERR_OFFSET_MISMATCH ||
-                           result.ipc_status == IPC_EMPTY ||
-                           result.ipc_status == IPC_ERR_LOCKED);
-      CHECK(valid_status);
-    });
-
-    std::thread t2([&] {
-      IpcChannelTryReadResult result = ipc_channel_try_read(channel.get(), &e);
-      read_done.store(true);
-      if (result.ipc_status == IPC_OK) {
-        size_t v;
-        memcpy(&v, e.payload, e.size);
-        CHECK(v == val);
-        free(e.payload);
-      } else {
-        bool valid_status =
-            (result.ipc_status == IPC_OK || result.ipc_status == IPC_EMPTY ||
-             result.ipc_status == IPC_ERR_LOCKED);
-        CHECK(valid_status);
-      }
-    });
-
-    t1.join();
-    t2.join();
-    CHECK(skip_done.load());
-    CHECK(read_done.load());
-  }
+  ipc_channel_detach(channel, nullptr);
 }
 
 TEST_CASE("extreme stress test - small buffer") {
@@ -250,8 +200,8 @@ TEST_CASE("extreme stress test - small buffer") {
     manager.run_and_wait();
 
     ipc_entry_t entry;
-    IpcChannelPeekResult peek_res = ipc_channel_peek(channel, &entry);
-    CHECK(peek_res.ipc_status == IPC_EMPTY);
+    const ipc_status_t try_read_status = ipc_channel_try_read(channel, &entry, nullptr);
+    CHECK(try_read_status == IPC_STATUS_EMPTY);
 
     auto collected1 = collector1.get_all_collected();
     auto collected2 = collector2.get_all_collected();
@@ -267,7 +217,7 @@ TEST_CASE("extreme stress test - small buffer") {
       CHECK(all_collected.contains(i));
     }
 
-    ipc_channel_detach(channel);
+    ipc_channel_detach(channel, nullptr);
   }
 }
 
@@ -298,9 +248,9 @@ TEST_CASE("blocks reader until writer writes") {
 
   reader_ready.store(true, std::memory_order_release);
 
-  const IpcChannelReadResult result =
-      ipc_channel_read(channel, &entry, &timeout);
-  CHECK(result.ipc_status == IPC_OK);
+  const ipc_status_t read_status =
+      ipc_channel_read(channel, &entry, &timeout, nullptr);
+  CHECK(read_status == IPC_STATUS_OK);
 
   int value;
   memcpy(&value, entry.payload, sizeof(value));
@@ -309,5 +259,5 @@ TEST_CASE("blocks reader until writer writes") {
 
   writer.join();
 
-  ipc_channel_detach(channel);
+  ipc_channel_detach(channel, nullptr);
 }

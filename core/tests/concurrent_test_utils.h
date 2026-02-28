@@ -57,13 +57,13 @@ inline void consume_channel(ipc_channel_t *channel,
   bool finished = false;
   while (true) {
     finished = manager.all_producers_finished();
-    IpcChannelTryReadResult result = ipc_channel_try_read(channel, &entry);
-    if (result.ipc_status == IPC_OK) {
+    const ipc_status_t status = ipc_channel_try_read(channel, &entry, nullptr);
+    if (status == IPC_STATUS_OK) {
       size_t res;
       memcpy(&res, entry.payload, entry.size);
       collector.collect(res);
       free(entry.payload);
-    } else if (finished && result.ipc_status == IPC_EMPTY) {
+    } else if (finished && status == IPC_STATUS_EMPTY) {
       break;
     }
   }
@@ -79,14 +79,14 @@ inline void consume_channel_with_timeout(ipc_channel_t *channel,
     ipc_entry_t entry;
 
     finished = manager.all_producers_finished();
-    IpcChannelReadResult result = ipc_channel_read(channel, &entry, timeout);
-    if (result.ipc_status == IPC_OK) {
+    const ipc_status_t status = ipc_channel_read(channel, &entry, timeout, nullptr);
+    if (status == IPC_STATUS_OK) {
       size_t res;
       memcpy(&res, entry.payload, entry.size);
       collector.collect(res);
       free(entry.payload);
-    } else if (finished && (result.ipc_status == IPC_EMPTY ||
-                            result.ipc_status == IPC_ERR_TIMEOUT)) {
+    } else if (finished && (status == IPC_STATUS_EMPTY ||
+                            status == IPC_STATUS_TIMEOUT)) {
       break;
     }
   }
