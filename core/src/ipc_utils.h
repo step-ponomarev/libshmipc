@@ -1,7 +1,7 @@
 #pragma once
 
-#include <shmipc/ipc_common.h>
 #include <shmipc/ipc_export.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <time.h>
 
@@ -16,6 +16,6 @@ SHMIPC_BEGIN_DECLS
 
 uint64_t find_next_power_of_2(uint64_t n);
 uint64_t ipc_timespec_to_nanos(const struct timespec *);
-bool is_power_of_2(const uint64_t size);
+bool is_power_of_2(uint64_t size);
 
 SHMIPC_END_DECLS

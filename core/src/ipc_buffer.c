@@ -1,13 +1,11 @@
 #include "ipc_utils.h"
 #include <errno.h>
 #include <shmipc/ipc_buffer.h>
-#include <shmipc/ipc_common.h>
 #include "ipc_error_internal.h"
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 
 #define IPC_DATA_ALIGN 0x8
 
@@ -340,7 +338,7 @@ ipc_buffer_read_start:;
     return IPC_STATUS_OK;
 }
 
-ipc_status_t ipc_buffer_next_size(ipc_buffer_t *buffer, size_t *out_size, ipc_error_t *err) {
+ipc_status_t ipc_buffer_next_entry_size(ipc_buffer_t *buffer, size_t *out_size, ipc_error_t *err) {
 ipc_buffer_next_size_start:;
     ipc_error_init(err);
 

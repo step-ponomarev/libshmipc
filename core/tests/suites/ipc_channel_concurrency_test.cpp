@@ -4,7 +4,6 @@
 #include "concurrency_manager.hpp"
 #include "concurrent_test_utils.h"
 #include "shmipc/ipc_channel.h"
-#include "shmipc/ipc_common.h"
 #include "test_utils.h"
 #include "unsafe_collector.hpp"
 #include <atomic>
@@ -20,7 +19,7 @@ TEST_CASE("single writer single reader") {
   ipc_channel_t *channel = nullptr;
   ipc_error_t err;
   const ipc_status_t status =
-      ipc_channel_create(mem.data(), size, &channel, &err);
+      ipc_channel_init(mem.data(), size, &channel, &err);
   CHECK(status == IPC_STATUS_OK);
   CHECK(channel != nullptr);
 
@@ -41,7 +40,7 @@ TEST_CASE("single writer single reader") {
     CHECK(collected.contains(i));
   }
 
-  ipc_channel_destroy(channel);
+  ipc_channel_detach(channel);
 }
 
 TEST_CASE("single writer single reader with timeout") {
@@ -51,7 +50,7 @@ TEST_CASE("single writer single reader with timeout") {
   ipc_channel_t *channel = nullptr;
   ipc_error_t err;
   const ipc_status_t status =
-      ipc_channel_create(mem.data(), size, &channel, &err);
+      ipc_channel_init(mem.data(), size, &channel, &err);
   CHECK(status == IPC_STATUS_OK);
   CHECK(channel != nullptr);
 
@@ -74,7 +73,7 @@ TEST_CASE("single writer single reader with timeout") {
     CHECK(collected.contains(i));
   }
 
-  ipc_channel_destroy(channel);
+  ipc_channel_detach(channel);
 }
 
 TEST_CASE("multiple writer single reader") {
@@ -84,7 +83,7 @@ TEST_CASE("multiple writer single reader") {
   ipc_channel_t *channel = nullptr;
   ipc_error_t err;
   const ipc_status_t status =
-      ipc_channel_create(mem.data(), size, &channel, &err);
+      ipc_channel_init(mem.data(), size, &channel, &err);
   CHECK(status == IPC_STATUS_OK);
   CHECK(channel != nullptr);
 
@@ -111,7 +110,7 @@ TEST_CASE("multiple writer single reader") {
     CHECK(collected.contains(i));
   }
 
-  ipc_channel_destroy(channel);
+  ipc_channel_detach(channel);
 }
 
 TEST_CASE("multiple writer multiple reader stress") {
@@ -122,7 +121,7 @@ TEST_CASE("multiple writer multiple reader stress") {
   ipc_channel_t *channel = nullptr;
   ipc_error_t err;
   const ipc_status_t status =
-      ipc_channel_create(mem.data(), size, &channel, &err);
+      ipc_channel_init(mem.data(), size, &channel, &err);
   CHECK(status == IPC_STATUS_OK);
   CHECK(channel != nullptr);
 
@@ -163,7 +162,7 @@ TEST_CASE("multiple writer multiple reader stress") {
     CHECK(all_collected.contains(i));
   }
 
-  ipc_channel_destroy(channel);
+  ipc_channel_detach(channel);
 }
 
 TEST_CASE("race between skip and read") {
@@ -225,7 +224,7 @@ TEST_CASE("extreme stress test - small buffer") {
     ipc_channel_t *channel = nullptr;
     ipc_error_t err;
     const ipc_status_t status =
-        ipc_channel_create(mem.data(), size, &channel, &err);
+        ipc_channel_init(mem.data(), size, &channel, &err);
     CHECK(status == IPC_STATUS_OK);
     CHECK(channel != nullptr);
 
@@ -268,7 +267,7 @@ TEST_CASE("extreme stress test - small buffer") {
       CHECK(all_collected.contains(i));
     }
 
-    ipc_channel_destroy(channel);
+    ipc_channel_detach(channel);
   }
 }
 
@@ -279,7 +278,7 @@ TEST_CASE("blocks reader until writer writes") {
   ipc_channel_t *channel = nullptr;
   ipc_error_t err;
   const ipc_status_t status =
-      ipc_channel_create(mem.data(), size, &channel, &err);
+      ipc_channel_init(mem.data(), size, &channel, &err);
   CHECK(status == IPC_STATUS_OK);
   CHECK(channel != nullptr);
 
@@ -310,5 +309,5 @@ TEST_CASE("blocks reader until writer writes") {
 
   writer.join();
 
-  ipc_channel_destroy(channel);
+  ipc_channel_detach(channel);
 }

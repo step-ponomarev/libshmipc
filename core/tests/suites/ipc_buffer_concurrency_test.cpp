@@ -130,50 +130,6 @@ TEST_CASE("multiple writer multiple reader stress") {
   }
 }
 
-TEST_CASE("race between skip and read") {
-  for (int i = 0; i < 1000; i++) {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
-    const size_t val = 42;
-    test_utils::write_data(buffer.get(), val);
-
-    ipc_entry_t entry;
-    IpcBufferPeekResult peek_res = ipc_buffer_peek(buffer.get(), &entry);
-    CHECK(peek_res.ipc_status == IPC_OK);
-
-    std::thread t1([&] {
-      IpcBufferSkipResult result = ipc_buffer_skip(buffer.get(), entry.offset);
-      if (IpcBufferSkipResult_is_ok(result)) {
-        bool valid_status =
-            (result.ipc_status == IPC_OK || result.ipc_status == IPC_EMPTY);
-        CHECK(valid_status);
-      } else {
-        bool valid_status = (result.ipc_status == IPC_ERR_OFFSET_MISMATCH ||
-                             result.ipc_status == IPC_ERR_LOCKED);
-        CHECK(valid_status);
-      }
-    });
-
-    std::thread t2([&] {
-      test_utils::EntryWrapper e(sizeof(size_t));
-      ipc_entry_t e_ref = e.get();
-      IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &e_ref);
-
-      if (result.ipc_status == IPC_OK) {
-        size_t v;
-        memcpy(&v, e_ref.payload, e_ref.size);
-        CHECK(v == val);
-      } else {
-        bool valid_status = (result.ipc_status == IPC_EMPTY) ||
-                            (result.ipc_status == IPC_ERR_LOCKED);
-        CHECK(valid_status);
-      }
-    });
-
-    t1.join();
-    t2.join();
-  }
-}
-
 TEST_CASE("multiple threads write") {
   test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
   const size_t num_threads = 5;
@@ -237,9 +193,9 @@ TEST_CASE("race between write and read") {
     test_utils::EntryWrapper entry(sizeof(size_t));
     for (size_t i = 0; i < iterations; ++i) {
       ipc_entry_t entry_ref = entry.get();
-      IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &entry_ref);
+      const ipc_status_t status = ipc_buffer_read(buffer.get(), &entry_ref, nullptr);
 
-      if (IpcBufferReadResult_is_ok(result)) {
+      if (status == IPC_STATUS_OK) {
         successful_operations.fetch_add(1);
       }
     }
@@ -251,59 +207,22 @@ TEST_CASE("race between write and read") {
   CHECK(successful_operations.load() > 0);
 }
 
-TEST_CASE("multiple threads peek") {
-  test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
-
-  for (size_t i = 0; i < 5; ++i) {
-    ipc_buffer_write(buffer.get(), &i, sizeof(size_t), nullptr);
-  }
-
-  const size_t num_threads = 3;
-  const size_t peeks_per_thread = 50;
-  std::atomic<size_t> successful_peeks{0};
-  std::vector<std::thread> threads;
-
-  for (size_t t = 0; t < num_threads; ++t) {
-    threads.emplace_back([&] {
-      test_utils::EntryWrapper entry(sizeof(size_t));
-
-      for (size_t i = 0; i < peeks_per_thread; ++i) {
-        ipc_entry_t entry_ref = entry.get();
-        IpcBufferPeekResult result = ipc_buffer_peek(buffer.get(), &entry_ref);
-
-        if (IpcBufferPeekResult_is_ok(result)) {
-          successful_peeks.fetch_add(1);
-        }
-
-        std::this_thread::sleep_for(std::chrono::microseconds(1));
-      }
-    });
-  }
-
-  for (auto &thread : threads) {
-    thread.join();
-  }
-
-  CHECK(successful_peeks.load() >= 0);
-}
-
-TEST_CASE("race between peek and read") {
+TEST_CASE("race between next_size and read") {
   test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
   const size_t iterations = 1000;
 
   test_utils::write_data(buffer.get(), 42);
 
-  std::atomic<size_t> peek_count{0};
+  std::atomic<size_t> next_size_count{0};
   std::atomic<size_t> read_count{0};
 
-  std::thread peek_thread([&] {
-    test_utils::EntryWrapper entry(sizeof(size_t));
+  std::thread next_size_thread([&] {
     for (size_t i = 0; i < iterations; ++i) {
-      ipc_entry_t entry_ref = entry.get();
-      IpcBufferPeekResult result = ipc_buffer_peek(buffer.get(), &entry_ref);
+      size_t out_size = 0;
+      const ipc_status_t status = ipc_buffer_next_entry_size(buffer.get(), &out_size, nullptr);
 
-      if (IpcBufferPeekResult_is_ok(result)) {
-        peek_count.fetch_add(1);
+      if (status == IPC_STATUS_OK) {
+        next_size_count.fetch_add(1);
       }
     }
   });
@@ -312,91 +231,18 @@ TEST_CASE("race between peek and read") {
     test_utils::EntryWrapper entry(sizeof(size_t));
     for (size_t i = 0; i < iterations; ++i) {
       ipc_entry_t entry_ref = entry.get();
-      IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &entry_ref);
+      const ipc_status_t status = ipc_buffer_read(buffer.get(), &entry_ref, nullptr);
 
-      if (IpcBufferReadResult_is_ok(result)) {
+      if (status == IPC_STATUS_OK) {
         read_count.fetch_add(1);
       }
     }
   });
 
-  peek_thread.join();
+  next_size_thread.join();
   read_thread.join();
 
-  CHECK(peek_count.load() > 0);
-  CHECK(read_count.load() >= 0);
-}
-
-TEST_CASE("multiple threads skip_force") {
-  test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
-
-  for (size_t i = 0; i < 10; ++i) {
-    ipc_buffer_write(buffer.get(), &i, sizeof(size_t), nullptr);
-  }
-
-  const size_t num_threads = 3;
-  std::atomic<size_t> successful_skips{0};
-  std::vector<std::thread> threads;
-
-  for (size_t t = 0; t < num_threads; ++t) {
-    threads.emplace_back([&] {
-      size_t thread_skips = 0;
-      for (size_t i = 0; i < 10; ++i) {
-        IpcBufferSkipForceResult result = ipc_buffer_skip_force(buffer.get());
-
-        if (IpcBufferSkipForceResult_is_ok(result)) {
-          thread_skips++;
-        }
-
-        std::this_thread::sleep_for(std::chrono::microseconds(1));
-      }
-
-      successful_skips.fetch_add(thread_skips);
-    });
-  }
-
-  for (auto &thread : threads) {
-    thread.join();
-  }
-
-  CHECK(successful_skips.load() >= 0);
-}
-
-TEST_CASE("race between skip_force and read") {
-  test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
-  const size_t iterations = 1000;
-
-  test_utils::write_data(buffer.get(), 42);
-
-  std::atomic<size_t> skip_count{0};
-  std::atomic<size_t> read_count{0};
-
-  std::thread skip_thread([&] {
-    for (size_t i = 0; i < iterations; ++i) {
-      IpcBufferSkipForceResult result = ipc_buffer_skip_force(buffer.get());
-
-      if (IpcBufferSkipForceResult_is_ok(result)) {
-        skip_count.fetch_add(1);
-      }
-    }
-  });
-
-  std::thread read_thread([&] {
-    test_utils::EntryWrapper entry(sizeof(size_t));
-    for (size_t i = 0; i < iterations; ++i) {
-      ipc_entry_t entry_ref = entry.get();
-      IpcBufferReadResult result = ipc_buffer_read(buffer.get(), &entry_ref);
-
-      if (IpcBufferReadResult_is_ok(result)) {
-        read_count.fetch_add(1);
-      }
-    }
-  });
-
-  skip_thread.join();
-  read_thread.join();
-
-  CHECK(skip_count.load() >= 0);
+  CHECK(next_size_count.load() > 0);
   CHECK(read_count.load() >= 0);
 }
 
@@ -514,12 +360,12 @@ TEST_CASE("extreme stress - rapid fill and drain cycles") {
         for (size_t i = 0; i < items_per_writer * 2; ++i) {
           test_utils::EntryWrapper entry(sizeof(size_t));
           ipc_entry_t entry_ref = entry.get();
-          IpcBufferReadResult result =
-              ipc_buffer_read(buffer.get(), &entry_ref);
+          const ipc_status_t status =
+              ipc_buffer_read(buffer.get(), &entry_ref, nullptr);
 
-          if (IpcBufferReadResult_is_ok(result)) {
+          if (status == IPC_STATUS_OK) {
             total_read.fetch_add(1);
-          } else if (result.ipc_status == IPC_EMPTY) {
+          } else if (status == IPC_STATUS_EMPTY) {
             break;
           }
         }
@@ -552,8 +398,7 @@ TEST_CASE("extreme stress - system stability under chaos") {
     threads.emplace_back([&, t] {
       for (size_t i = 0; i < operations_per_thread; ++i) {
         try {
-
-          int op = (t + i) % 3;
+          int op = (t + i) % 2;
 
           switch (op) {
           case 0: {
@@ -567,21 +412,10 @@ TEST_CASE("extreme stress - system stability under chaos") {
           case 1: {
             test_utils::EntryWrapper entry(sizeof(int));
             ipc_entry_t entry_ref = entry.get();
-            IpcBufferReadResult result =
-                ipc_buffer_read(buffer.get(), &entry_ref);
+            const ipc_status_t status =
+                ipc_buffer_read(buffer.get(), &entry_ref, nullptr);
 
-            if (result.ipc_status == IPC_OK) {
-              successful_operations.fetch_add(1);
-            }
-            break;
-          }
-          case 2: {
-            test_utils::EntryWrapper entry(sizeof(int));
-            ipc_entry_t entry_ref = entry.get();
-            IpcBufferPeekResult result =
-                ipc_buffer_peek(buffer.get(), &entry_ref);
-
-            if (IpcBufferPeekResult_is_ok(result)) {
+            if (status == IPC_STATUS_OK) {
               successful_operations.fetch_add(1);
             }
             break;
@@ -630,13 +464,13 @@ TEST_CASE("multiple writer multiple reader - different data sizes") {
     while (true) {
       bool finished = manager.all_producers_finished();
       ipc_entry_t entry_ref = entry.get();
-      IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
+      const ipc_status_t status = ipc_buffer_read(buffer, &entry_ref, nullptr);
 
-      if (result.ipc_status == IPC_OK) {
+      if (status == IPC_STATUS_OK) {
         TestData data;
         memcpy(&data, entry_ref.payload, sizeof(TestData));
         collector.collect(data.id);
-      } else if (finished && result.ipc_status == IPC_EMPTY) {
+      } else if (finished && status == IPC_STATUS_EMPTY) {
         break;
       }
     }

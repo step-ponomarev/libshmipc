@@ -1,13 +1,10 @@
 #pragma once
 
 #include "concurrency_manager.hpp"
-#include "include/shmipc/ipc_common.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_channel.h"
-#include "shmipc/ipc_common.h"
 #include "test_utils.h"
 #include "unsafe_collector.hpp"
-#include <cstddef>
 
 namespace concurrent_test_utils {
 
@@ -42,12 +39,12 @@ inline void consume_buffer(ipc_buffer_t *buffer,
   bool finished = false;
   while (true) {
     finished = manager.all_producers_finished();
-    IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
-    if (result.ipc_status == IPC_OK) {
+    const ipc_status_t status = ipc_buffer_read(buffer, &entry_ref, nullptr);
+    if (status == IPC_STATUS_OK) {
       size_t res;
       memcpy(&res, entry_ref.payload, entry_ref.size);
       collector.collect(res);
-    } else if (finished && result.ipc_status == IPC_EMPTY) {
+    } else if (finished && status == IPC_STATUS_EMPTY) {
       break;
     }
   }

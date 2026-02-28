@@ -3,7 +3,6 @@
 #include "doctest/doctest.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_channel.h"
-#include "shmipc/ipc_common.h"
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
@@ -27,6 +26,9 @@ namespace test_utils {
         }
 
         ~BufferWrapper() {
+            if (buffer_) {
+                ipc_buffer_detach(buffer_, nullptr);
+            }
         }
 
         ipc_buffer_t *get() const { return buffer_; }
@@ -61,7 +63,7 @@ namespace test_utils {
             channel_ = nullptr;
             ipc_error_t err;
             const ipc_status_t status =
-                    ipc_channel_create(mem_.data(),
+                    ipc_channel_init(mem_.data(),
                                        ipc_channel_suggest_size(size),
                                        &channel_,
                                        &err);
@@ -71,7 +73,7 @@ namespace test_utils {
 
         ~ChannelWrapper() {
             if (channel_) {
-                ipc_channel_destroy(channel_);
+                ipc_channel_detach(channel_);
             }
         }
 
@@ -97,7 +99,7 @@ namespace test_utils {
         ChannelWrapper &operator=(ChannelWrapper &&other) noexcept {
             if (this != &other) {
                 if (channel_) {
-                    ipc_channel_destroy(channel_);
+                    ipc_channel_detach(channel_);
                 }
                 channel_ = other.channel_;
                 mem_ = std::move(other.mem_);
@@ -195,46 +197,6 @@ namespace test_utils {
         CHECK(err.message == nullptr);
     }
 
-    inline void CHECK_OK(const IpcBufferSkipResult &result) {
-        CHECK(IpcBufferSkipResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcBufferSkipResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcBufferSkipResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
-    inline void CHECK_OK(const IpcBufferSkipForceResult &result) {
-        CHECK(IpcBufferSkipForceResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcBufferSkipForceResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcBufferSkipForceResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
-    inline void CHECK_OK(const IpcBufferReadResult &result) {
-        CHECK(result.ipc_status == IPC_OK);
-    }
-
-    inline void CHECK_ERROR(const IpcBufferReadResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcBufferReadResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
-    inline void CHECK_OK(const IpcBufferPeekResult &result) {
-        CHECK(IpcBufferPeekResult_is_ok(result));
-    }
-
-    inline void CHECK_ERROR(const IpcBufferPeekResult &result,
-                            IpcStatus expected_status) {
-        CHECK(IpcBufferPeekResult_is_error(result));
-        CHECK(result.ipc_status == expected_status);
-    }
-
     inline void CHECK_OK(const IpcChannelDestroyResult &result) {
         CHECK(IpcChannelDestroyResult_is_ok(result));
     }
@@ -306,8 +268,8 @@ namespace test_utils {
     T read_data(ipc_buffer_t *buffer) {
         EntryWrapper entry(sizeof(T));
         ipc_entry_t entry_ref = entry.get();
-        const IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
-        CHECK(result.ipc_status == IPC_OK);
+        const ipc_status_t status = ipc_buffer_read(buffer, &entry_ref, nullptr);
+        CHECK(status == IPC_STATUS_OK);
 
         T data;
         memcpy(&data, entry_ref.payload, sizeof(T));
@@ -331,17 +293,6 @@ namespace test_utils {
         T data;
         memcpy(&data, entry.payload, sizeof(T));
         free(entry.payload);
-        return data;
-    }
-
-    template<typename T>
-    T peek_data(ipc_buffer_t *buffer) {
-        ipc_entry_t entry;
-        const IpcBufferPeekResult result = ipc_buffer_peek(buffer, &entry);
-        CHECK_OK(result);
-
-        T data;
-        memcpy(&data, entry.payload, sizeof(T));
         return data;
     }
 
@@ -380,8 +331,8 @@ namespace test_utils {
     T read_data_safe(ipc_buffer_t *buffer) {
         test_utils::EntryWrapper entry(sizeof(T));
         ipc_entry_t entry_ref = entry.get();
-        const IpcBufferReadResult result = ipc_buffer_read(buffer, &entry_ref);
-        if (result.ipc_status != IPC_OK) {
+        const ipc_status_t status = ipc_buffer_read(buffer, &entry_ref, nullptr);
+        if (status != IPC_STATUS_OK) {
             throw std::runtime_error("Failed to read from buffer");
         }
 

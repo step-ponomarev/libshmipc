@@ -24,7 +24,7 @@ uint64_t ipc_timespec_to_nanos(const struct timespec *secs) {
   return (uint64_t)secs->tv_sec * NANOS_PER_SEC + secs->tv_nsec;
 }
 
-inline bool is_power_of_2(const uint64_t size) {
+inline bool is_power_of_2(uint64_t size) {
   uint64_t res = 1;
   while (res < size) {
     res <<= 1;
