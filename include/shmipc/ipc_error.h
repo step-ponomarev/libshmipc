@@ -81,5 +81,4 @@ typedef struct {
     } as;
 } ipc_error_t;
 
-
 SHMIPC_END_DECLS

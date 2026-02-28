@@ -1,7 +1,6 @@
 #pragma once
 
 #include <shmipc/ipc_export.h>
-#include <stddef.h>
 #include <stdint.h>
 
 SHMIPC_BEGIN_DECLS
