@@ -11,8 +11,9 @@
 #include <unordered_set>
 #include <vector>
 
-TEST_CASE("single writer single reader") {
+#include "core/src/ipc_utils.h"
 
+TEST_CASE("single writer single reader") {
   const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
   std::vector<uint8_t> mem(size);
 
@@ -60,10 +61,9 @@ TEST_CASE("single writer single reader with timeout") {
   manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
                        test_utils::DEFAULT_COUNT);
 
-  const timespec timeout = {.tv_sec = 0, .tv_nsec = 10 * 1000000};
   manager.add_consumer(concurrent_test_utils::consume_channel_with_timeout,
                        channel, std::ref(collector),
-                       std::ref(manager.get_manager()), &timeout);
+                       std::ref(manager.get_manager()), 10 * 1000000);
 
   manager.run_and_wait();
 
@@ -244,12 +244,10 @@ TEST_CASE("blocks reader until writer writes") {
   });
 
   ipc_entry_t entry;
-  struct timespec timeout = {.tv_sec = 2000, .tv_nsec = 0};
-
   reader_ready.store(true, std::memory_order_release);
 
   const ipc_status_t read_status =
-      ipc_channel_read(channel, &entry, &timeout, nullptr);
+      ipc_channel_read(channel, &entry, ipc_utils_sec_to_nanos(2000), nullptr);
   CHECK(read_status == IPC_STATUS_OK);
 
   int value;

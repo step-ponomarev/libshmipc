@@ -72,14 +72,14 @@ inline void consume_channel(ipc_channel_t *channel,
 inline void consume_channel_with_timeout(ipc_channel_t *channel,
                                          UnsafeCollector<size_t> &collector,
                                          ConcurrencyManager<size_t> &manager,
-                                         const timespec *timeout) {
+                                         const uint64_t timeout_ns) {
 
   bool finished = false;
   while (true) {
     ipc_entry_t entry;
 
     finished = manager.all_producers_finished();
-    const ipc_status_t status = ipc_channel_read(channel, &entry, timeout, nullptr);
+    const ipc_status_t status = ipc_channel_read(channel, &entry, timeout_ns, nullptr);
     if (status == IPC_STATUS_OK) {
       size_t res;
       memcpy(&res, entry.payload, entry.size);

@@ -132,7 +132,7 @@ public final class IpcChannel implements Closeable {
         try (Arena tmpArena = Arena.ofConfined()) {
             final long timeoutNs = timeout.toNanos();
 
-            final MemorySegment outPtr = tmpArena.allocate(ValueLayout.ADDRESS);
+            final MemorySegment entry = ipc_entry_t.allocate(tmpArena);
             final MemorySegment err = ipc_error_t.allocate(tmpArena);
             final IpcStatus status;
 
@@ -142,13 +142,12 @@ public final class IpcChannel implements Closeable {
                     throw new IllegalStateException("channel is closed");
                 }
 
-                status = IpcStatus.of(ipc_channel_h.ipc_channel_read(channel, outPtr, timeoutNs, err));
+                status = IpcStatus.of(ipc_channel_h.ipc_channel_read(channel, entry, timeoutNs, err));
             } finally {
                 lock.readLock().unlock();
             }
 
             if (status == IpcStatus.IPC_STATUS_OK) {
-                MemorySegment entry = outPtr.get(ValueLayout.ADDRESS, 0);
                 try {
                     return ipcEntryToBytes(entry);
                 } finally {

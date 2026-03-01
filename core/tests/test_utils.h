@@ -236,10 +236,10 @@ namespace test_utils {
     }
 
     template<typename T>
-    T read_data(ipc_channel_t *channel, const struct timespec *timeout) {
+    T read_data(ipc_channel_t *channel, uint64_t timeout_ns) {
         ipc_entry_t entry;
         const ipc_status_t status =
-                ipc_channel_read(channel, &entry, timeout, nullptr);
+                ipc_channel_read(channel, &entry, timeout_ns, nullptr);
         CHECK(status == IPC_STATUS_OK);
 
         T data;
@@ -283,10 +283,10 @@ namespace test_utils {
     }
 
     template<typename T>
-    T read_data_safe(ipc_channel_t *channel, const struct timespec *timeout) {
+    T read_data_safe(ipc_channel_t *channel, uint64_t timeout_ns) {
         ipc_entry_t entry;
         const ipc_status_t status =
-                ipc_channel_read(channel, &entry, timeout, nullptr);
+                ipc_channel_read(channel, &entry, timeout_ns, nullptr);
         if (status != IPC_STATUS_OK) {
             throw std::runtime_error("Failed to read from channel");
         }

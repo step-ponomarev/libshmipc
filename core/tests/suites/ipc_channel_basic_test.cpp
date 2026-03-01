@@ -7,9 +7,9 @@
 #include <vector>
 
 namespace {
-    constexpr timespec DEFAULT_TIMEOUT = {0, 100000000}; // 100ms
+    constexpr uint64_t DEFAULT_TIMEOUT_NS = 100000000;
 
-    uint64_t timespec_to_nanos(const struct timespec *ts) {
+    uint64_t timespec_to_nanos(const timespec *ts) {
         return (uint64_t) ts->tv_sec * 1000000000ULL + (uint64_t) ts->tv_nsec;
     }
 }
@@ -163,7 +163,7 @@ TEST_CASE("channel attach - success case") {
             ipc_channel_attach(mem.data(), &attached, nullptr);
     CHECK(attach_status == IPC_STATUS_OK);
 
-    const int res = test_utils::read_data_safe<int>(attached, &DEFAULT_TIMEOUT);
+    const int res = test_utils::read_data_safe<int>(attached, DEFAULT_TIMEOUT_NS);
     CHECK(res == test_value);
 
     ipc_channel_detach(created, nullptr);
@@ -256,7 +256,7 @@ TEST_CASE("channel write then read") {
     CHECK(attach_status == IPC_STATUS_OK);
     CHECK(consumer != nullptr);
 
-    const int res = test_utils::read_data_safe<int>(consumer, &DEFAULT_TIMEOUT);
+    const int res = test_utils::read_data_safe<int>(consumer, DEFAULT_TIMEOUT_NS);
     CHECK(res == val);
 
     ipc_channel_detach(producer, nullptr);
@@ -322,16 +322,15 @@ TEST_CASE("channel read - timeout") {
     CHECK(status == IPC_STATUS_OK);
     CHECK(channel != nullptr);
 
-    const struct timespec timeout = {.tv_sec = 0, .tv_nsec = 1000000};
-    const uint64_t timeout_ns = timespec_to_nanos(&timeout);
+    const uint64_t timeout_ns = 1000000;
 
-    struct timespec time;
+    timespec time;
     CHECK(clock_gettime(CLOCK_MONOTONIC, &time) == 0);
     const uint64_t before_ns = timespec_to_nanos(&time);
 
     ipc_entry_t entry;
     const ipc_status_t read_status =
-            ipc_channel_read(channel, &entry, &timeout, nullptr);
+            ipc_channel_read(channel, &entry, timeout_ns, nullptr);
     CHECK(read_status == IPC_STATUS_TIMEOUT);
 
     CHECK(clock_gettime(CLOCK_MONOTONIC, &time) == 0);
@@ -345,7 +344,6 @@ TEST_CASE("channel read - timeout") {
 // ── data tests ──
 
 TEST_CASE("channel data - different sizes") {
-    struct timespec timeout = {0, 100000000}; // 100ms
     const uint64_t size = ipc_channel_suggest_size(2048);
     std::vector<uint8_t> mem(size);
 
@@ -384,7 +382,7 @@ TEST_CASE("channel data - different sizes") {
     for (size_t i = 0; i < written_data.size(); ++i) {
         ipc_entry_t entry;
         const ipc_status_t read_status =
-                ipc_channel_read(channel, &entry, &timeout, nullptr);
+                ipc_channel_read(channel, &entry, 100000000, nullptr);
 
         CHECK(read_status == IPC_STATUS_OK);
         CHECK(entry.size == written_data[i].size());

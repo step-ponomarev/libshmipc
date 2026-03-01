@@ -16,6 +16,7 @@ SHMIPC_BEGIN_DECLS
 
 uint64_t find_next_power_of_2(uint64_t n);
 uint64_t ipc_timespec_to_nanos(const struct timespec *);
+uint64_t ipc_utils_sec_to_nanos(uint64_t sec);
 bool is_power_of_2(uint64_t size);
 
 SHMIPC_END_DECLS
