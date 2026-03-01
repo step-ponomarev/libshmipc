@@ -175,6 +175,18 @@ namespace test_utils {
         CHECK(err.message != nullptr);
     }
 
+    inline void CHECK_CAPACITY_ERROR(ipc_status_t status,
+                                     ipc_error_t err,
+                                     size_t expected_provided,
+                                     size_t expected_required) {
+        CHECK(status == IPC_STATUS_ERROR);
+        CHECK(err.kind == IPC_ERR_KIND_ARG);
+        CHECK(err.code == IPC_ERR_CODE_INVALID_CAPACITY);
+        CHECK(err.message != nullptr);
+        CHECK(err.as.arg.capacity.provided_capacity == expected_provided);
+        CHECK(err.as.arg.capacity.required_capacity == expected_required);
+    }
+
     inline void CHECK_SIZE_ERROR(ipc_status_t expected_status,
                                  ipc_error_t err,
                                  ipc_error_code_t expected_code,

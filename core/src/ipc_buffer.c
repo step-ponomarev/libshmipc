@@ -312,13 +312,14 @@ ipc_buffer_read_start:;
         );
     }
 
-    // data size is const
     const uint64_t rel_offset = RELATIVE(head, atomic_load(&buffer->header->buffer_size));
     memcpy(dest->payload, buffer->data + rel_offset + sizeof(entry_header_t), header->payload_size);
     dest->offset = head;
     dest->size = header->payload_size;
 
-    if (!unlock(&buffer->header->head, head)) {
+    uint64_t expected_offset = LOCK(head);
+    if (!atomic_compare_exchange_strong(&buffer->header->head, &expected_offset, head + header->entry_size)) {
+        // read->write strict seq_cst synch
         dest->offset = 0;
         dest->size = 0;
 
@@ -327,10 +328,8 @@ ipc_buffer_read_start:;
             IPC_ERR_CODE_OFFSET_CAS_FAILED,
             "unexpected head value during commit",
             (ipc_error_cas_t){
-                .target = IPC_CAS_TARGET_HEAD,
-                .expected_offset = LOCK(head),
-                .actual_offset = read_head(buffer),
-                .desired_offset = head
+                .target = IPC_CAS_TARGET_HEAD, .expected_offset = expected_offset, .actual_offset = expected_offset,
+                .desired_offset = head + header->entry_size
             }
         );
     }
