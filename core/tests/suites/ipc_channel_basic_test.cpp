@@ -14,8 +14,6 @@ namespace {
     }
 }
 
-// ── init ──
-
 TEST_CASE("channel init - null out") {
     const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);

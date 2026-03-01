@@ -34,10 +34,6 @@ inline uint64_t ipc_channel_min_size(void) {
     return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_min_size();
 }
 
-inline uint32_t ipc_channel_get_notify_signal(ipc_channel_t *channel) {
-    return atomic_load(&channel->header->notify);
-}
-
 inline bool ipc_channel_is_retry_status(ipc_status_t status) {
     return status == IPC_STATUS_BUSY || status == IPC_STATUS_EMPTY;
 }
@@ -199,8 +195,7 @@ ipc_status_t ipc_channel_try_read(ipc_channel_t *channel, ipc_entry_t *dest, ipc
     return status;
 }
 
-ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, const struct timespec *timeout,
-                              ipc_error_t *err) {
+ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_t timeout_ns, ipc_error_t *err) {
     ipc_error_init(err);
 
     if (channel == NULL) {
@@ -211,16 +206,7 @@ ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, const s
         return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "dest is null");
     }
 
-    if (timeout == NULL) {
-        return ipc_error_arg(err, IPC_ERR_CODE_NULL_ARG, "timeout is null");
-    }
-
-    if (timeout->tv_nsec < 0 || timeout->tv_sec < 0) {
-        return ipc_error_arg(err, IPC_ERR_CODE_INVALID_TIMEOUT, "timeout is invalid");
-    }
-
     uint64_t start_ns = 0;
-    uint64_t timeout_ns = 0;
     struct timespec start_time;
     if (clock_gettime(CLOCK_MONOTONIC, &start_time) != 0) {
         return ipc_error_sys(
@@ -231,7 +217,6 @@ ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, const s
         );
     }
     start_ns = ipc_timespec_to_nanos(&start_time);
-    timeout_ns = ipc_timespec_to_nanos(timeout);
 
     ipc_entry_t read_entry = {.offset = 0, .payload = NULL, .size = 0};
     for (;;) {
@@ -280,8 +265,8 @@ ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, const s
             free(read_entry.payload);
             return ipc_error_sys(
                 err,
-                IPC_ERR_CODE_FUTEX,
-                "futex is failed",
+                IPC_ERR_CODE_FUTEX_WAIT,
+                "ipc_futex_wait failed",
                 wait_res
             );
         }

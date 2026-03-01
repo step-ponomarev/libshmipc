@@ -14,22 +14,24 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 /**
  * {@snippet lang=c :
- * struct _opaque_pthread_mutex_t {
- *     long __sig;
- *     char __opaque[56];
+ * struct {
+ *     uint64_t offset;
+ *     void *payload;
+ *     size_t size;
  * }
  * }
  */
-public class _opaque_pthread_mutex_t {
+public class ipc_entry_t {
 
-    _opaque_pthread_mutex_t() {
+    ipc_entry_t() {
         // Should not be called directly
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        ipc_channel_h.C_LONG.withName("__sig"),
-        MemoryLayout.sequenceLayout(56, ipc_channel_h.C_CHAR).withName("__opaque")
-    ).withName("_opaque_pthread_mutex_t");
+        ipc_channel_h.C_LONG_LONG.withName("offset"),
+        ipc_channel_h.C_POINTER.withName("payload"),
+        ipc_channel_h.C_LONG.withName("size")
+    ).withName("$anon$9:9");
 
     /**
      * The layout of this struct
@@ -38,125 +40,136 @@ public class _opaque_pthread_mutex_t {
         return $LAYOUT;
     }
 
-    private static final OfLong __sig$LAYOUT = (OfLong)$LAYOUT.select(groupElement("__sig"));
+    private static final OfLong offset$LAYOUT = (OfLong)$LAYOUT.select(groupElement("offset"));
 
     /**
      * Layout for field:
      * {@snippet lang=c :
-     * long __sig
+     * uint64_t offset
      * }
      */
-    public static final OfLong __sig$layout() {
-        return __sig$LAYOUT;
+    public static final OfLong offset$layout() {
+        return offset$LAYOUT;
     }
 
-    private static final long __sig$OFFSET = $LAYOUT.byteOffset(groupElement("__sig"));
+    private static final long offset$OFFSET = $LAYOUT.byteOffset(groupElement("offset"));
 
     /**
      * Offset for field:
      * {@snippet lang=c :
-     * long __sig
+     * uint64_t offset
      * }
      */
-    public static final long __sig$offset() {
-        return __sig$OFFSET;
+    public static final long offset$offset() {
+        return offset$OFFSET;
     }
 
     /**
      * Getter for field:
      * {@snippet lang=c :
-     * long __sig
+     * uint64_t offset
      * }
      */
-    public static long __sig(MemorySegment struct) {
-        return struct.get(__sig$LAYOUT, __sig$OFFSET);
+    public static long offset(MemorySegment struct) {
+        return struct.get(offset$LAYOUT, offset$OFFSET);
     }
 
     /**
      * Setter for field:
      * {@snippet lang=c :
-     * long __sig
+     * uint64_t offset
      * }
      */
-    public static void __sig(MemorySegment struct, long fieldValue) {
-        struct.set(__sig$LAYOUT, __sig$OFFSET, fieldValue);
+    public static void offset(MemorySegment struct, long fieldValue) {
+        struct.set(offset$LAYOUT, offset$OFFSET, fieldValue);
     }
 
-    private static final SequenceLayout __opaque$LAYOUT = (SequenceLayout)$LAYOUT.select(groupElement("__opaque"));
+    private static final AddressLayout payload$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("payload"));
 
     /**
      * Layout for field:
      * {@snippet lang=c :
-     * char __opaque[56]
+     * void *payload
      * }
      */
-    public static final SequenceLayout __opaque$layout() {
-        return __opaque$LAYOUT;
+    public static final AddressLayout payload$layout() {
+        return payload$LAYOUT;
     }
 
-    private static final long __opaque$OFFSET = $LAYOUT.byteOffset(groupElement("__opaque"));
+    private static final long payload$OFFSET = $LAYOUT.byteOffset(groupElement("payload"));
 
     /**
      * Offset for field:
      * {@snippet lang=c :
-     * char __opaque[56]
+     * void *payload
      * }
      */
-    public static final long __opaque$offset() {
-        return __opaque$OFFSET;
+    public static final long payload$offset() {
+        return payload$OFFSET;
     }
 
     /**
      * Getter for field:
      * {@snippet lang=c :
-     * char __opaque[56]
+     * void *payload
      * }
      */
-    public static MemorySegment __opaque(MemorySegment struct) {
-        return struct.asSlice(__opaque$OFFSET, __opaque$LAYOUT.byteSize());
+    public static MemorySegment payload(MemorySegment struct) {
+        return struct.get(payload$LAYOUT, payload$OFFSET);
     }
 
     /**
      * Setter for field:
      * {@snippet lang=c :
-     * char __opaque[56]
+     * void *payload
      * }
      */
-    public static void __opaque(MemorySegment struct, MemorySegment fieldValue) {
-        MemorySegment.copy(fieldValue, 0L, struct, __opaque$OFFSET, __opaque$LAYOUT.byteSize());
+    public static void payload(MemorySegment struct, MemorySegment fieldValue) {
+        struct.set(payload$LAYOUT, payload$OFFSET, fieldValue);
     }
 
-    private static long[] __opaque$DIMS = { 56 };
+    private static final OfLong size$LAYOUT = (OfLong)$LAYOUT.select(groupElement("size"));
 
     /**
-     * Dimensions for array field:
+     * Layout for field:
      * {@snippet lang=c :
-     * char __opaque[56]
+     * size_t size
      * }
      */
-    public static long[] __opaque$dimensions() {
-        return __opaque$DIMS;
-    }
-    private static final VarHandle __opaque$ELEM_HANDLE = __opaque$LAYOUT.varHandle(sequenceElement());
-
-    /**
-     * Indexed getter for field:
-     * {@snippet lang=c :
-     * char __opaque[56]
-     * }
-     */
-    public static byte __opaque(MemorySegment struct, long index0) {
-        return (byte)__opaque$ELEM_HANDLE.get(struct, __opaque$OFFSET, index0);
+    public static final OfLong size$layout() {
+        return size$LAYOUT;
     }
 
+    private static final long size$OFFSET = $LAYOUT.byteOffset(groupElement("size"));
+
     /**
-     * Indexed setter for field:
+     * Offset for field:
      * {@snippet lang=c :
-     * char __opaque[56]
+     * size_t size
      * }
      */
-    public static void __opaque(MemorySegment struct, long index0, byte fieldValue) {
-        __opaque$ELEM_HANDLE.set(struct, __opaque$OFFSET, index0, fieldValue);
+    public static final long size$offset() {
+        return size$OFFSET;
+    }
+
+    /**
+     * Getter for field:
+     * {@snippet lang=c :
+     * size_t size
+     * }
+     */
+    public static long size(MemorySegment struct) {
+        return struct.get(size$LAYOUT, size$OFFSET);
+    }
+
+    /**
+     * Setter for field:
+     * {@snippet lang=c :
+     * size_t size
+     * }
+     */
+    public static void size(MemorySegment struct, long fieldValue) {
+        struct.set(size$LAYOUT, size$OFFSET, fieldValue);
     }
 
     /**

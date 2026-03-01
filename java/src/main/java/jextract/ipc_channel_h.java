@@ -20,36 +20,10 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     static final Arena LIBRARY_ARENA = Arena.ofAuto();
 
-    static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.loaderLookup()
+    static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.libraryLookup(System.mapLibraryName("shmipc_shared"), LIBRARY_ARENA)
+            .or(SymbolLookup.loaderLookup())
             .or(Linker.nativeLinker().defaultLookup());
 
-    private static final int true_ = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define true 1
-     * }
-     */
-    public static int true_() {
-        return true_;
-    }
-    private static final int false_ = (int)0L;
-    /**
-     * {@snippet lang=c :
-     * #define false 0
-     * }
-     */
-    public static int false_() {
-        return false_;
-    }
-    private static final int __bool_true_false_are_defined = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define __bool_true_false_are_defined 1
-     * }
-     */
-    public static int __bool_true_false_are_defined() {
-        return __bool_true_false_are_defined;
-    }
     private static final int __WORDSIZE = (int)64L;
     /**
      * {@snippet lang=c :
@@ -3481,24 +3455,6 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     }
     /**
      * {@snippet lang=c :
-     * typedef long ptrdiff_t
-     * }
-     */
-    public static final OfLong ptrdiff_t = ipc_channel_h.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned long size_t
-     * }
-     */
-    public static final OfLong size_t = ipc_channel_h.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef int wchar_t
-     * }
-     */
-    public static final OfInt wchar_t = ipc_channel_h.C_INT;
-    /**
-     * {@snippet lang=c :
      * typedef signed char int8_t
      * }
      */
@@ -3915,149 +3871,313 @@ public class ipc_channel_h extends ipc_channel_h$shared {
      * }
      */
     public static final OfLong uintmax_t = ipc_channel_h.C_LONG;
-    private static final int IPC_OK = (int)0L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_OK = 0
+     * typedef long ptrdiff_t
      * }
      */
-    public static int IPC_OK() {
-        return IPC_OK;
+    public static final OfLong ptrdiff_t = ipc_channel_h.C_LONG;
+    /**
+     * {@snippet lang=c :
+     * typedef unsigned long size_t
+     * }
+     */
+    public static final OfLong size_t = ipc_channel_h.C_LONG;
+    /**
+     * {@snippet lang=c :
+     * typedef unsigned long rsize_t
+     * }
+     */
+    public static final OfLong rsize_t = ipc_channel_h.C_LONG;
+    /**
+     * {@snippet lang=c :
+     * typedef int wchar_t
+     * }
+     */
+    public static final OfInt wchar_t = ipc_channel_h.C_INT;
+    private static final int IPC_ERR_KIND_NONE = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_ERR_KIND_NONE = 0
+     * }
+     */
+    public static int IPC_ERR_KIND_NONE() {
+        return IPC_ERR_KIND_NONE;
     }
-    private static final int IPC_EMPTY = (int)1L;
+    private static final int IPC_ERR_KIND_ARG = (int)1L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_EMPTY = 1
+     * enum <anonymous>.IPC_ERR_KIND_ARG = 1
      * }
      */
-    public static int IPC_EMPTY() {
-        return IPC_EMPTY;
+    public static int IPC_ERR_KIND_ARG() {
+        return IPC_ERR_KIND_ARG;
     }
-    private static final int IPC_ALREADY_SKIPPED = (int)2L;
+    private static final int IPC_ERR_KIND_INTERNAL = (int)2L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ALREADY_SKIPPED = 2
+     * enum <anonymous>.IPC_ERR_KIND_INTERNAL = 2
      * }
      */
-    public static int IPC_ALREADY_SKIPPED() {
-        return IPC_ALREADY_SKIPPED;
+    public static int IPC_ERR_KIND_INTERNAL() {
+        return IPC_ERR_KIND_INTERNAL;
     }
-    private static final int IPC_PLACEHOLDER = (int)3L;
+    private static final int IPC_ERR_KIND_SYS = (int)3L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_PLACEHOLDER = 3
+     * enum <anonymous>.IPC_ERR_KIND_SYS = 3
      * }
      */
-    public static int IPC_PLACEHOLDER() {
-        return IPC_PLACEHOLDER;
+    public static int IPC_ERR_KIND_SYS() {
+        return IPC_ERR_KIND_SYS;
     }
-    private static final int IPC_ERR_ENTRY_TOO_LARGE = (int)-1L;
+    private static final int IPC_ERR_CODE_NONE = (int)0L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_ENTRY_TOO_LARGE = -1
+     * enum <anonymous>.IPC_ERR_CODE_NONE = 0
      * }
      */
-    public static int IPC_ERR_ENTRY_TOO_LARGE() {
-        return IPC_ERR_ENTRY_TOO_LARGE;
+    public static int IPC_ERR_CODE_NONE() {
+        return IPC_ERR_CODE_NONE;
     }
-    private static final int IPC_ERR_ALLOCATION = (int)-2L;
+    private static final int IPC_ERR_CODE_NULL_ARG = (int)1L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_ALLOCATION = -2
+     * enum <anonymous>.IPC_ERR_CODE_NULL_ARG = 1
      * }
      */
-    public static int IPC_ERR_ALLOCATION() {
-        return IPC_ERR_ALLOCATION;
+    public static int IPC_ERR_CODE_NULL_ARG() {
+        return IPC_ERR_CODE_NULL_ARG;
     }
-    private static final int IPC_ERR_INVALID_ARGUMENT = (int)-3L;
+    private static final int IPC_ERR_CODE_TOO_SMALL_SIZE = (int)2L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_INVALID_ARGUMENT = -3
+     * enum <anonymous>.IPC_ERR_CODE_TOO_SMALL_SIZE = 2
      * }
      */
-    public static int IPC_ERR_INVALID_ARGUMENT() {
-        return IPC_ERR_INVALID_ARGUMENT;
+    public static int IPC_ERR_CODE_TOO_SMALL_SIZE() {
+        return IPC_ERR_CODE_TOO_SMALL_SIZE;
     }
-    private static final int IPC_ERR_TOO_SMALL = (int)-4L;
+    private static final int IPC_ERR_CODE_ZERO_SIZE = (int)3L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_TOO_SMALL = -4
+     * enum <anonymous>.IPC_ERR_CODE_ZERO_SIZE = 3
      * }
      */
-    public static int IPC_ERR_TOO_SMALL() {
-        return IPC_ERR_TOO_SMALL;
+    public static int IPC_ERR_CODE_ZERO_SIZE() {
+        return IPC_ERR_CODE_ZERO_SIZE;
     }
-    private static final int IPC_ERR_ILLEGAL_STATE = (int)-5L;
+    private static final int IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER = (int)4L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_ILLEGAL_STATE = -5
+     * enum <anonymous>.IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER = 4
      * }
      */
-    public static int IPC_ERR_ILLEGAL_STATE() {
-        return IPC_ERR_ILLEGAL_STATE;
+    public static int IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER() {
+        return IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER;
     }
-    private static final int IPC_ERR_SYSTEM = (int)-6L;
+    private static final int IPC_ERR_CODE_INVALID_CAPACITY = (int)5L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_SYSTEM = -6
+     * enum <anonymous>.IPC_ERR_CODE_INVALID_CAPACITY = 5
      * }
      */
-    public static int IPC_ERR_SYSTEM() {
-        return IPC_ERR_SYSTEM;
+    public static int IPC_ERR_CODE_INVALID_CAPACITY() {
+        return IPC_ERR_CODE_INVALID_CAPACITY;
     }
-    private static final int IPC_ERR_NO_SPACE_CONTIGUOUS = (int)-7L;
+    private static final int IPC_ERR_CODE_INVALID_TIMEOUT = (int)6L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_NO_SPACE_CONTIGUOUS = -7
+     * enum <anonymous>.IPC_ERR_CODE_INVALID_TIMEOUT = 6
      * }
      */
-    public static int IPC_ERR_NO_SPACE_CONTIGUOUS() {
-        return IPC_ERR_NO_SPACE_CONTIGUOUS;
+    public static int IPC_ERR_CODE_INVALID_TIMEOUT() {
+        return IPC_ERR_CODE_INVALID_TIMEOUT;
     }
-    private static final int IPC_ERR_NOT_READY = (int)-8L;
+    private static final int IPC_ERR_CODE_OFFSET_CAS_FAILED = (int)7L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_NOT_READY = -8
+     * enum <anonymous>.IPC_ERR_CODE_OFFSET_CAS_FAILED = 7
      * }
      */
-    public static int IPC_ERR_NOT_READY() {
-        return IPC_ERR_NOT_READY;
+    public static int IPC_ERR_CODE_OFFSET_CAS_FAILED() {
+        return IPC_ERR_CODE_OFFSET_CAS_FAILED;
     }
-    private static final int IPC_ERR_LOCKED = (int)-9L;
+    private static final int IPC_ERR_CODE_ENTRY_CORRUPTED = (int)8L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_LOCKED = -9
+     * enum <anonymous>.IPC_ERR_CODE_ENTRY_CORRUPTED = 8
      * }
      */
-    public static int IPC_ERR_LOCKED() {
-        return IPC_ERR_LOCKED;
+    public static int IPC_ERR_CODE_ENTRY_CORRUPTED() {
+        return IPC_ERR_CODE_ENTRY_CORRUPTED;
     }
-    private static final int IPC_ERR_OFFSET_MISMATCH = (int)-10L;
+    private static final int IPC_ERR_CODE_ALLOCATION = (int)9L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_OFFSET_MISMATCH = -10
+     * enum <anonymous>.IPC_ERR_CODE_ALLOCATION = 9
      * }
      */
-    public static int IPC_ERR_OFFSET_MISMATCH() {
-        return IPC_ERR_OFFSET_MISMATCH;
+    public static int IPC_ERR_CODE_ALLOCATION() {
+        return IPC_ERR_CODE_ALLOCATION;
     }
-    private static final int IPC_ERR_TIMEOUT = (int)-11L;
+    private static final int IPC_ERR_CODE_GET_TIME = (int)10L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_TIMEOUT = -11
+     * enum <anonymous>.IPC_ERR_CODE_GET_TIME = 10
      * }
      */
-    public static int IPC_ERR_TIMEOUT() {
-        return IPC_ERR_TIMEOUT;
+    public static int IPC_ERR_CODE_GET_TIME() {
+        return IPC_ERR_CODE_GET_TIME;
     }
-    private static final int IPC_ERR_CORRUPTED = (int)-12L;
+    private static final int IPC_ERR_CODE_FUTEX_WAIT = (int)11L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_CORRUPTED = -12
+     * enum <anonymous>.IPC_ERR_CODE_FUTEX_WAIT = 11
      * }
      */
-    public static int IPC_ERR_CORRUPTED() {
-        return IPC_ERR_CORRUPTED;
+    public static int IPC_ERR_CODE_FUTEX_WAIT() {
+        return IPC_ERR_CODE_FUTEX_WAIT;
+    }
+    private static final int IPC_CAS_TARGET_NONE = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_CAS_TARGET_NONE = 0
+     * }
+     */
+    public static int IPC_CAS_TARGET_NONE() {
+        return IPC_CAS_TARGET_NONE;
+    }
+    private static final int IPC_CAS_TARGET_TAIL = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_CAS_TARGET_TAIL = 1
+     * }
+     */
+    public static int IPC_CAS_TARGET_TAIL() {
+        return IPC_CAS_TARGET_TAIL;
+    }
+    private static final int IPC_CAS_TARGET_HEAD = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_CAS_TARGET_HEAD = 2
+     * }
+     */
+    public static int IPC_CAS_TARGET_HEAD() {
+        return IPC_CAS_TARGET_HEAD;
+    }
+    private static final int IPC_STATUS_OK = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_STATUS_OK = 0
+     * }
+     */
+    public static int IPC_STATUS_OK() {
+        return IPC_STATUS_OK;
+    }
+    private static final int IPC_STATUS_EMPTY = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_STATUS_EMPTY = 1
+     * }
+     */
+    public static int IPC_STATUS_EMPTY() {
+        return IPC_STATUS_EMPTY;
+    }
+    private static final int IPC_STATUS_BUSY = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_STATUS_BUSY = 2
+     * }
+     */
+    public static int IPC_STATUS_BUSY() {
+        return IPC_STATUS_BUSY;
+    }
+    private static final int IPC_STATUS_TIMEOUT = (int)3L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_STATUS_TIMEOUT = 3
+     * }
+     */
+    public static int IPC_STATUS_TIMEOUT() {
+        return IPC_STATUS_TIMEOUT;
+    }
+    private static final int IPC_STATUS_NO_SPACE = (int)4L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_STATUS_NO_SPACE = 4
+     * }
+     */
+    public static int IPC_STATUS_NO_SPACE() {
+        return IPC_STATUS_NO_SPACE;
+    }
+    private static final int IPC_STATUS_ERROR = (int)5L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_STATUS_ERROR = 5
+     * }
+     */
+    public static int IPC_STATUS_ERROR() {
+        return IPC_STATUS_ERROR;
+    }
+
+    private static class ipc_entry_destroy {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
+            ipc_entry_t.layout()
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_entry_destroy");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * void ipc_entry_destroy(ipc_entry_t entry)
+     * }
+     */
+    public static FunctionDescriptor ipc_entry_destroy$descriptor() {
+        return ipc_entry_destroy.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * void ipc_entry_destroy(ipc_entry_t entry)
+     * }
+     */
+    public static MethodHandle ipc_entry_destroy$handle() {
+        return ipc_entry_destroy.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * void ipc_entry_destroy(ipc_entry_t entry)
+     * }
+     */
+    public static MemorySegment ipc_entry_destroy$address() {
+        return ipc_entry_destroy.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * void ipc_entry_destroy(ipc_entry_t entry)
+     * }
+     */
+    public static void ipc_entry_destroy(MemorySegment entry) {
+        var mh$ = ipc_entry_destroy.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("ipc_entry_destroy", entry);
+            }
+            mh$.invokeExact(entry);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
     /**
      * {@snippet lang=c :
@@ -6050,11 +6170,11 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
-    private static class ipc_channel_get_memory_overhead {
+    private static class ipc_channel_memory_overhead {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             ipc_channel_h.C_LONG_LONG    );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_get_memory_overhead");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_memory_overhead");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6062,43 +6182,43 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_memory_overhead()
+     * uint64_t ipc_channel_memory_overhead()
      * }
      */
-    public static FunctionDescriptor ipc_channel_get_memory_overhead$descriptor() {
-        return ipc_channel_get_memory_overhead.DESC;
+    public static FunctionDescriptor ipc_channel_memory_overhead$descriptor() {
+        return ipc_channel_memory_overhead.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_memory_overhead()
+     * uint64_t ipc_channel_memory_overhead()
      * }
      */
-    public static MethodHandle ipc_channel_get_memory_overhead$handle() {
-        return ipc_channel_get_memory_overhead.HANDLE;
+    public static MethodHandle ipc_channel_memory_overhead$handle() {
+        return ipc_channel_memory_overhead.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_memory_overhead()
+     * uint64_t ipc_channel_memory_overhead()
      * }
      */
-    public static MemorySegment ipc_channel_get_memory_overhead$address() {
-        return ipc_channel_get_memory_overhead.ADDR;
+    public static MemorySegment ipc_channel_memory_overhead$address() {
+        return ipc_channel_memory_overhead.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_memory_overhead()
+     * uint64_t ipc_channel_memory_overhead()
      * }
      */
-    public static long ipc_channel_get_memory_overhead() {
-        var mh$ = ipc_channel_get_memory_overhead.HANDLE;
+    public static long ipc_channel_memory_overhead() {
+        var mh$ = ipc_channel_memory_overhead.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_get_memory_overhead");
+                traceDowncall("ipc_channel_memory_overhead");
             }
             return (long)mh$.invokeExact();
         } catch (Error | RuntimeException ex) {
@@ -6108,11 +6228,11 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
-    private static class ipc_channel_get_min_size {
+    private static class ipc_channel_min_size {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             ipc_channel_h.C_LONG_LONG    );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_get_min_size");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_min_size");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6120,43 +6240,43 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_min_size()
+     * uint64_t ipc_channel_min_size()
      * }
      */
-    public static FunctionDescriptor ipc_channel_get_min_size$descriptor() {
-        return ipc_channel_get_min_size.DESC;
+    public static FunctionDescriptor ipc_channel_min_size$descriptor() {
+        return ipc_channel_min_size.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_min_size()
+     * uint64_t ipc_channel_min_size()
      * }
      */
-    public static MethodHandle ipc_channel_get_min_size$handle() {
-        return ipc_channel_get_min_size.HANDLE;
+    public static MethodHandle ipc_channel_min_size$handle() {
+        return ipc_channel_min_size.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_min_size()
+     * uint64_t ipc_channel_min_size()
      * }
      */
-    public static MemorySegment ipc_channel_get_min_size$address() {
-        return ipc_channel_get_min_size.ADDR;
+    public static MemorySegment ipc_channel_min_size$address() {
+        return ipc_channel_min_size.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_min_size()
+     * uint64_t ipc_channel_min_size()
      * }
      */
-    public static long ipc_channel_get_min_size() {
-        var mh$ = ipc_channel_get_min_size.HANDLE;
+    public static long ipc_channel_min_size() {
+        var mh$ = ipc_channel_min_size.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_get_min_size");
+                traceDowncall("ipc_channel_min_size");
             }
             return (long)mh$.invokeExact();
         } catch (Error | RuntimeException ex) {
@@ -6226,134 +6346,16 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
-    private static class ipc_channel_get_notify_signal {
+    private static class ipc_channel_init {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             ipc_channel_h.C_INT,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_get_notify_signal");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
-     * }
-     */
-    public static FunctionDescriptor ipc_channel_get_notify_signal$descriptor() {
-        return ipc_channel_get_notify_signal.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
-     * }
-     */
-    public static MethodHandle ipc_channel_get_notify_signal$handle() {
-        return ipc_channel_get_notify_signal.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
-     * }
-     */
-    public static MemorySegment ipc_channel_get_notify_signal$address() {
-        return ipc_channel_get_notify_signal.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
-     * }
-     */
-    public static int ipc_channel_get_notify_signal(MemorySegment channel) {
-        var mh$ = ipc_channel_get_notify_signal.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_get_notify_signal", channel);
-            }
-            return (int)mh$.invokeExact(channel);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ipc_channel_is_retry_status {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_BOOL,
-            ipc_channel_h.C_INT
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_is_retry_status");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * bool ipc_channel_is_retry_status(const IpcStatus)
-     * }
-     */
-    public static FunctionDescriptor ipc_channel_is_retry_status$descriptor() {
-        return ipc_channel_is_retry_status.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * bool ipc_channel_is_retry_status(const IpcStatus)
-     * }
-     */
-    public static MethodHandle ipc_channel_is_retry_status$handle() {
-        return ipc_channel_is_retry_status.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * bool ipc_channel_is_retry_status(const IpcStatus)
-     * }
-     */
-    public static MemorySegment ipc_channel_is_retry_status$address() {
-        return ipc_channel_is_retry_status.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * bool ipc_channel_is_retry_status(const IpcStatus)
-     * }
-     */
-    public static boolean ipc_channel_is_retry_status(int x0) {
-        var mh$ = ipc_channel_is_retry_status.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_is_retry_status", x0);
-            }
-            return (boolean)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ipc_channel_create {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelCreateResult.layout(),
             ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_LONG
+            ipc_channel_h.C_LONG,
+            ipc_channel_h.C_POINTER,
+            ipc_channel_h.C_POINTER
         );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_create");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_init");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6361,45 +6363,45 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
+     * ipc_status_t ipc_channel_init(void *mem, size_t size, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static FunctionDescriptor ipc_channel_create$descriptor() {
-        return ipc_channel_create.DESC;
+    public static FunctionDescriptor ipc_channel_init$descriptor() {
+        return ipc_channel_init.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
+     * ipc_status_t ipc_channel_init(void *mem, size_t size, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MethodHandle ipc_channel_create$handle() {
-        return ipc_channel_create.HANDLE;
+    public static MethodHandle ipc_channel_init$handle() {
+        return ipc_channel_init.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
+     * ipc_status_t ipc_channel_init(void *mem, size_t size, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_create$address() {
-        return ipc_channel_create.ADDR;
+    public static MemorySegment ipc_channel_init$address() {
+        return ipc_channel_init.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
+     * ipc_status_t ipc_channel_init(void *mem, size_t size, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_create(SegmentAllocator allocator, MemorySegment mem, long size) {
-        var mh$ = ipc_channel_create.HANDLE;
+    public static int ipc_channel_init(MemorySegment mem, long size, MemorySegment out, MemorySegment err) {
+        var mh$ = ipc_channel_init.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_create", allocator, mem, size);
+                traceDowncall("ipc_channel_init", mem, size, out, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, mem, size);
+            return (int)mh$.invokeExact(mem, size, out, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6407,13 +6409,15 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
-    private static class ipc_channel_connect {
+    private static class ipc_channel_attach {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelConnectResult.layout(),
+            ipc_channel_h.C_INT,
+            ipc_channel_h.C_POINTER,
+            ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER
         );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_connect");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_attach");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6421,45 +6425,45 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelConnectResult ipc_channel_connect(void *mem)
+     * ipc_status_t ipc_channel_attach(void *mem, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static FunctionDescriptor ipc_channel_connect$descriptor() {
-        return ipc_channel_connect.DESC;
+    public static FunctionDescriptor ipc_channel_attach$descriptor() {
+        return ipc_channel_attach.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelConnectResult ipc_channel_connect(void *mem)
+     * ipc_status_t ipc_channel_attach(void *mem, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MethodHandle ipc_channel_connect$handle() {
-        return ipc_channel_connect.HANDLE;
+    public static MethodHandle ipc_channel_attach$handle() {
+        return ipc_channel_attach.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelConnectResult ipc_channel_connect(void *mem)
+     * ipc_status_t ipc_channel_attach(void *mem, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_connect$address() {
-        return ipc_channel_connect.ADDR;
+    public static MemorySegment ipc_channel_attach$address() {
+        return ipc_channel_attach.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * IpcChannelConnectResult ipc_channel_connect(void *mem)
+     * ipc_status_t ipc_channel_attach(void *mem, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_connect(SegmentAllocator allocator, MemorySegment mem) {
-        var mh$ = ipc_channel_connect.HANDLE;
+    public static int ipc_channel_attach(MemorySegment mem, MemorySegment out, MemorySegment err) {
+        var mh$ = ipc_channel_attach.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_connect", allocator, mem);
+                traceDowncall("ipc_channel_attach", mem, out, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, mem);
+            return (int)mh$.invokeExact(mem, out, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6467,13 +6471,14 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
-    private static class ipc_channel_destroy {
+    private static class ipc_channel_detach {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelDestroyResult.layout(),
+            ipc_channel_h.C_INT,
+            ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER
         );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_destroy");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_detach");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6481,45 +6486,45 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel)
+     * ipc_status_t ipc_channel_detach(ipc_channel_t *channel, ipc_error_t *err)
      * }
      */
-    public static FunctionDescriptor ipc_channel_destroy$descriptor() {
-        return ipc_channel_destroy.DESC;
+    public static FunctionDescriptor ipc_channel_detach$descriptor() {
+        return ipc_channel_detach.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel)
+     * ipc_status_t ipc_channel_detach(ipc_channel_t *channel, ipc_error_t *err)
      * }
      */
-    public static MethodHandle ipc_channel_destroy$handle() {
-        return ipc_channel_destroy.HANDLE;
+    public static MethodHandle ipc_channel_detach$handle() {
+        return ipc_channel_detach.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel)
+     * ipc_status_t ipc_channel_detach(ipc_channel_t *channel, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_destroy$address() {
-        return ipc_channel_destroy.ADDR;
+    public static MemorySegment ipc_channel_detach$address() {
+        return ipc_channel_detach.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel)
+     * ipc_status_t ipc_channel_detach(ipc_channel_t *channel, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_destroy(SegmentAllocator allocator, MemorySegment channel) {
-        var mh$ = ipc_channel_destroy.HANDLE;
+    public static int ipc_channel_detach(MemorySegment channel, MemorySegment err) {
+        var mh$ = ipc_channel_detach.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_destroy", allocator, channel);
+                traceDowncall("ipc_channel_detach", channel, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, channel);
+            return (int)mh$.invokeExact(channel, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6529,10 +6534,11 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     private static class ipc_channel_write {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelWriteResult.layout(),
+            ipc_channel_h.C_INT,
             ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_LONG
+            ipc_channel_h.C_LONG,
+            ipc_channel_h.C_POINTER
         );
 
         public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_write");
@@ -6543,7 +6549,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data, const size_t size)
+     * ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t size, ipc_error_t *err)
      * }
      */
     public static FunctionDescriptor ipc_channel_write$descriptor() {
@@ -6553,7 +6559,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data, const size_t size)
+     * ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t size, ipc_error_t *err)
      * }
      */
     public static MethodHandle ipc_channel_write$handle() {
@@ -6563,7 +6569,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data, const size_t size)
+     * ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t size, ipc_error_t *err)
      * }
      */
     public static MemorySegment ipc_channel_write$address() {
@@ -6572,16 +6578,16 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     /**
      * {@snippet lang=c :
-     * IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data, const size_t size)
+     * ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t size, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_write(SegmentAllocator allocator, MemorySegment channel, MemorySegment data, long size) {
+    public static int ipc_channel_write(MemorySegment channel, MemorySegment data, long size, MemorySegment err) {
         var mh$ = ipc_channel_write.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_write", allocator, channel, data, size);
+                traceDowncall("ipc_channel_write", channel, data, size, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, channel, data, size);
+            return (int)mh$.invokeExact(channel, data, size, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6591,9 +6597,10 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     private static class ipc_channel_read {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelReadResult.layout(),
+            ipc_channel_h.C_INT,
             ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER,
+            ipc_channel_h.C_LONG_LONG,
             ipc_channel_h.C_POINTER
         );
 
@@ -6605,7 +6612,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout)
+     * ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_t timeout_ns, ipc_error_t *err)
      * }
      */
     public static FunctionDescriptor ipc_channel_read$descriptor() {
@@ -6615,7 +6622,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout)
+     * ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_t timeout_ns, ipc_error_t *err)
      * }
      */
     public static MethodHandle ipc_channel_read$handle() {
@@ -6625,7 +6632,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout)
+     * ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_t timeout_ns, ipc_error_t *err)
      * }
      */
     public static MemorySegment ipc_channel_read$address() {
@@ -6634,16 +6641,16 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     /**
      * {@snippet lang=c :
-     * IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout)
+     * ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_t timeout_ns, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_read(SegmentAllocator allocator, MemorySegment channel, MemorySegment dest, MemorySegment timeout) {
+    public static int ipc_channel_read(MemorySegment channel, MemorySegment dest, long timeout_ns, MemorySegment err) {
         var mh$ = ipc_channel_read.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_read", allocator, channel, dest, timeout);
+                traceDowncall("ipc_channel_read", channel, dest, timeout_ns, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, channel, dest, timeout);
+            return (int)mh$.invokeExact(channel, dest, timeout_ns, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6653,7 +6660,8 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     private static class ipc_channel_try_read {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelTryReadResult.layout(),
+            ipc_channel_h.C_INT,
+            ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER
         );
@@ -6666,7 +6674,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest)
+     * ipc_status_t ipc_channel_try_read(ipc_channel_t *channel, ipc_entry_t *dest, ipc_error_t *err)
      * }
      */
     public static FunctionDescriptor ipc_channel_try_read$descriptor() {
@@ -6676,7 +6684,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest)
+     * ipc_status_t ipc_channel_try_read(ipc_channel_t *channel, ipc_entry_t *dest, ipc_error_t *err)
      * }
      */
     public static MethodHandle ipc_channel_try_read$handle() {
@@ -6686,7 +6694,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest)
+     * ipc_status_t ipc_channel_try_read(ipc_channel_t *channel, ipc_entry_t *dest, ipc_error_t *err)
      * }
      */
     public static MemorySegment ipc_channel_try_read$address() {
@@ -6695,212 +6703,21 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     /**
      * {@snippet lang=c :
-     * IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest)
+     * ipc_status_t ipc_channel_try_read(ipc_channel_t *channel, ipc_entry_t *dest, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_try_read(SegmentAllocator allocator, MemorySegment channel, MemorySegment dest) {
+    public static int ipc_channel_try_read(MemorySegment channel, MemorySegment dest, MemorySegment err) {
         var mh$ = ipc_channel_try_read.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_try_read", allocator, channel, dest);
+                traceDowncall("ipc_channel_try_read", channel, dest, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, channel, dest);
+            return (int)mh$.invokeExact(channel, dest, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
-    }
-
-    private static class ipc_channel_peek {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelPeekResult.layout(),
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_peek");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel, IpcEntry *dest)
-     * }
-     */
-    public static FunctionDescriptor ipc_channel_peek$descriptor() {
-        return ipc_channel_peek.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel, IpcEntry *dest)
-     * }
-     */
-    public static MethodHandle ipc_channel_peek$handle() {
-        return ipc_channel_peek.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel, IpcEntry *dest)
-     * }
-     */
-    public static MemorySegment ipc_channel_peek$address() {
-        return ipc_channel_peek.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel, IpcEntry *dest)
-     * }
-     */
-    public static MemorySegment ipc_channel_peek(SegmentAllocator allocator, MemorySegment channel, MemorySegment dest) {
-        var mh$ = ipc_channel_peek.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_peek", allocator, channel, dest);
-            }
-            return (MemorySegment)mh$.invokeExact(allocator, channel, dest);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ipc_channel_skip {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelSkipResult.layout(),
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_LONG_LONG
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_skip");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel, const uint64_t offset)
-     * }
-     */
-    public static FunctionDescriptor ipc_channel_skip$descriptor() {
-        return ipc_channel_skip.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel, const uint64_t offset)
-     * }
-     */
-    public static MethodHandle ipc_channel_skip$handle() {
-        return ipc_channel_skip.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel, const uint64_t offset)
-     * }
-     */
-    public static MemorySegment ipc_channel_skip$address() {
-        return ipc_channel_skip.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel, const uint64_t offset)
-     * }
-     */
-    public static MemorySegment ipc_channel_skip(SegmentAllocator allocator, MemorySegment channel, long offset) {
-        var mh$ = ipc_channel_skip.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_skip", allocator, channel, offset);
-            }
-            return (MemorySegment)mh$.invokeExact(allocator, channel, offset);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ipc_channel_skip_force {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelSkipForceResult.layout(),
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_skip_force");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel)
-     * }
-     */
-    public static FunctionDescriptor ipc_channel_skip_force$descriptor() {
-        return ipc_channel_skip_force.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel)
-     * }
-     */
-    public static MethodHandle ipc_channel_skip_force$handle() {
-        return ipc_channel_skip_force.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel)
-     * }
-     */
-    public static MemorySegment ipc_channel_skip_force$address() {
-        return ipc_channel_skip_force.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel)
-     * }
-     */
-    public static MemorySegment ipc_channel_skip_force(SegmentAllocator allocator, MemorySegment channel) {
-        var mh$ = ipc_channel_skip_force.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_skip_force", allocator, channel);
-            }
-            return (MemorySegment)mh$.invokeExact(allocator, channel);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-    private static final MemorySegment NULL = MemorySegment.ofAddress(0L);
-    /**
-     * {@snippet lang=c :
-     * #define NULL (void*) 0
-     * }
-     */
-    public static MemorySegment NULL() {
-        return NULL;
     }
     /**
      * {@snippet lang=c :
@@ -7372,6 +7189,15 @@ public class ipc_channel_h extends ipc_channel_h$shared {
      */
     public static int SIG_ATOMIC_MAX() {
         return SIG_ATOMIC_MAX;
+    }
+    private static final MemorySegment NULL = MemorySegment.ofAddress(0L);
+    /**
+     * {@snippet lang=c :
+     * #define NULL (void*) 0
+     * }
+     */
+    public static MemorySegment NULL() {
+        return NULL;
     }
     private static final int __DARWIN_WCHAR_MAX = (int)2147483647L;
     /**

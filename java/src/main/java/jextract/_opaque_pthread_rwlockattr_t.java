@@ -27,8 +27,8 @@ public class _opaque_pthread_rwlockattr_t {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        ipc_common_h.C_LONG.withName("__sig"),
-        MemoryLayout.sequenceLayout(16, ipc_common_h.C_CHAR).withName("__opaque")
+        ipc_channel_h.C_LONG.withName("__sig"),
+        MemoryLayout.sequenceLayout(16, ipc_channel_h.C_CHAR).withName("__opaque")
     ).withName("_opaque_pthread_rwlockattr_t");
 
     /**

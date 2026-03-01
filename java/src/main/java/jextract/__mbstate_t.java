@@ -27,8 +27,8 @@ public class __mbstate_t {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.unionLayout(
-        MemoryLayout.sequenceLayout(128, ipc_common_h.C_CHAR).withName("__mbstate8"),
-        ipc_common_h.C_LONG_LONG.withName("_mbstateL")
+        MemoryLayout.sequenceLayout(128, ipc_channel_h.C_CHAR).withName("__mbstate8"),
+        ipc_channel_h.C_LONG_LONG.withName("_mbstateL")
     ).withName("$anon$67:9");
 
     /**

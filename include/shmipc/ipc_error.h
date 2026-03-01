@@ -2,6 +2,7 @@
 
 #include <shmipc/ipc_export.h>
 #include <stdint.h>
+#include <stddef.h>
 
 SHMIPC_BEGIN_DECLS
 
@@ -28,7 +29,7 @@ typedef enum {
 
     IPC_ERR_CODE_ALLOCATION,
     IPC_ERR_CODE_GET_TIME,
-    IPC_ERR_CODE_FUTEX
+    IPC_ERR_CODE_FUTEX_WAIT
 } ipc_error_code_t;
 
 typedef enum {
