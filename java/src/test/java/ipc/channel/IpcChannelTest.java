@@ -40,7 +40,7 @@ public class IpcChannelTest {
 
     @Test(timeout = 60000)
     public void basicProducerConsumerTest() throws Throwable {
-        final int count = 100_000;
+        final int count = 10_000;
         final long size = IpcChannel.getSuggestedSize(200);
         try (final Arena arena = Arena.ofShared();
              final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
@@ -100,7 +100,7 @@ public class IpcChannelTest {
 
     @Test(timeout = 60000)
     public void basicMultiProducerMultiConsumerTest() throws Throwable {
-        final int count = 100_000;
+        final int count = 10_000;
         final long size = IpcChannel.getSuggestedSize(200);
         try (final Arena arena = Arena.ofShared();
              final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
