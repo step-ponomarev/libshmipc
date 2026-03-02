@@ -16,10 +16,9 @@ int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
   int res = __ulock_wait(UL_COMPARE_AND_WAIT, addr, expected,
                          timeout->tv_sec * 1000000 + timeout->tv_nsec / 1000);
   if (res != 0) {
-    // EAGAIN/EWOULDBLOCK: value changed before we slept - this is normal
+    // ENOENT: value changed before we slept (compare failed) - this is normal
     // EINTR: interrupted by signal - continue waiting
-    // ETIMEDOUT: timeout expired - return error so caller can check
-    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+    if (errno == ENOENT || errno == EINTR) {
       return 0; // Treat as success, continue loop
     }
     // For ETIMEDOUT and other errors, return -1
