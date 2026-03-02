@@ -36,50 +36,50 @@ public class IpcChannelTest {
             }
         }
     }
-//
-//    @Test
-//    public void basicProducerConsumerTest() throws InterruptedException {
-//        final int count = 1_000_000;
-//        final long size = IpcChannel.getSuggestedSize(200);
-//        try (final Arena arena = Arena.ofShared();
-//             final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
-//        ) {
-//            final AtomicInteger received = new AtomicInteger(0);
-//            final MemorySegment memory = arena.allocate(size);
-//            try (IpcChannel producer = IpcChannel.init(memory, size);
-//                 IpcChannel consumer = IpcChannel.attach(memory)) {
-//
-//                final String messageTemplate = "Message %d";
-//                exec.execute(() -> {
-//                    for (int i = 0; i < count; i++) {
-//                        String formatted = messageTemplate.formatted(i);
-//                        byte[] bytes = formatted.getBytes(StandardCharsets.UTF_8);
-//                        if (producer.write(bytes) != IpcStatus.IPC_STATUS_OK) {
-//                            i--;
-//                        }
-//                    }
-//                });
-//
-//                exec.execute(() -> {
-//                    while (true) {
-//                        byte[] readResult = consumer.read(Duration.ofSeconds(1));
-//                        if (readResult != null) {
-//                            final String expectedMessage = messageTemplate.formatted(received.getAndIncrement());
-//                            String message = new String(readResult, StandardCharsets.UTF_8);
-//                            Assert.assertEquals(expectedMessage, message);
-//                        }
-//
-//                        if (received.get() == count) {
-//                            return;
-//                        }
-//                    }
-//                });
-//
-//                exec.shutdown();
-//                exec.awaitTermination(10, TimeUnit.SECONDS);
-//            }
-//        }
-//    }
+
+    @Test
+    public void basicProducerConsumerTest() throws InterruptedException {
+        final int count = 1_000_000;
+        final long size = IpcChannel.getSuggestedSize(200);
+        try (final Arena arena = Arena.ofShared();
+             final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
+        ) {
+            final AtomicInteger received = new AtomicInteger(0);
+            final MemorySegment memory = arena.allocate(size);
+            try (IpcChannel producer = IpcChannel.init(memory, size);
+                 IpcChannel consumer = IpcChannel.attach(memory)) {
+
+                final String messageTemplate = "Message %d";
+                exec.execute(() -> {
+                    for (int i = 0; i < count; i++) {
+                        String formatted = messageTemplate.formatted(i);
+                        byte[] bytes = formatted.getBytes(StandardCharsets.UTF_8);
+                        if (producer.write(bytes) != IpcStatus.IPC_STATUS_OK) {
+                            i--;
+                        }
+                    }
+                });
+
+                exec.execute(() -> {
+                    while (true) {
+                        byte[] readResult = consumer.read(Duration.ofSeconds(1));
+                        if (readResult != null) {
+                            final String expectedMessage = messageTemplate.formatted(received.getAndIncrement());
+                            String message = new String(readResult, StandardCharsets.UTF_8);
+                            Assert.assertEquals(expectedMessage, message);
+                        }
+
+                        if (received.get() == count) {
+                            return;
+                        }
+                    }
+                });
+
+                exec.shutdown();
+                exec.awaitTermination(10, TimeUnit.SECONDS);
+            }
+        }
+    }
 //
 //    @Test(timeout = 60000)
 //    public void basicMultiProducerMultiConsumerTest() throws InterruptedException {
