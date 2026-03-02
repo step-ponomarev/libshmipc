@@ -1,4 +1,3 @@
-#pragma once
 #include "ipc_futex.h"
 #include <errno.h>
 
