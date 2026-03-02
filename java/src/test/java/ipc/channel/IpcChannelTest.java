@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class IpcChannelTest {
     private static final Object STUB = new Object();
@@ -38,51 +39,65 @@ public class IpcChannelTest {
     }
 
     @Test
-    public void basicProducerConsumerTest() throws InterruptedException {
+    public void basicProducerConsumerTest() throws Throwable {
         final int count = 1_000_000;
         final long size = IpcChannel.getSuggestedSize(200);
         try (final Arena arena = Arena.ofShared();
              final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
         ) {
             final AtomicInteger received = new AtomicInteger(0);
+            final AtomicReference<Throwable> error = new AtomicReference<>();
             final MemorySegment memory = arena.allocate(size);
             try (IpcChannel producer = IpcChannel.init(memory, size);
                  IpcChannel consumer = IpcChannel.attach(memory)) {
 
                 final String messageTemplate = "Message %d";
                 exec.execute(() -> {
-                    for (int i = 0; i < count; i++) {
-                        String formatted = messageTemplate.formatted(i);
-                        byte[] bytes = formatted.getBytes(StandardCharsets.UTF_8);
-                        if (producer.write(bytes) != IpcStatus.IPC_STATUS_OK) {
-                            i--;
+                    try {
+                        for (int i = 0; i < count && error.get() == null; i++) {
+                            String formatted = messageTemplate.formatted(i);
+                            byte[] bytes = formatted.getBytes(StandardCharsets.UTF_8);
+                            if (producer.write(bytes) != IpcStatus.IPC_STATUS_OK) {
+                                i--;
+                            }
                         }
+                    } catch (Throwable t) {
+                        error.compareAndSet(null, t);
                     }
                 });
 
                 exec.execute(() -> {
-                    while (true) {
-                        byte[] readResult = consumer.read(Duration.ofSeconds(1));
-                        if (readResult != null) {
-                            final String expectedMessage = messageTemplate.formatted(received.getAndIncrement());
-                            String message = new String(readResult, StandardCharsets.UTF_8);
-                            Assert.assertEquals(expectedMessage, message);
-                        }
+                    try {
+                        while (error.get() == null) {
+                            byte[] readResult = consumer.read(Duration.ofSeconds(1));
+                            if (readResult != null) {
+                                final String expectedMessage = messageTemplate.formatted(received.getAndIncrement());
+                                String message = new String(readResult, StandardCharsets.UTF_8);
+                                Assert.assertEquals(expectedMessage, message);
+                            }
 
-                        if (received.get() == count) {
-                            return;
+                            if (received.get() == count) {
+                                return;
+                            }
                         }
+                    } catch (Throwable t) {
+                        error.compareAndSet(null, t);
                     }
                 });
 
                 exec.shutdown();
                 exec.awaitTermination(10, TimeUnit.SECONDS);
             }
+
+            final Throwable t = error.get();
+            if (t != null) {
+                throw t;
+            }
         }
     }
 
     @Test(timeout = 60000)
-    public void basicMultiProducerMultiConsumerTest() throws InterruptedException {
+    public void basicMultiProducerMultiConsumerTest() throws Throwable {
         final int count = 100_000;
         final long size = IpcChannel.getSuggestedSize(200);
         try (final Arena arena = Arena.ofShared();
@@ -90,6 +105,7 @@ public class IpcChannelTest {
         ) {
             final MemorySegment memory = arena.allocate(size);
             final AtomicInteger send = new AtomicInteger(0);
+            final AtomicReference<Throwable> error = new AtomicReference<>();
             final ConcurrentHashMap<String, Object> sendEntities = new ConcurrentHashMap<>();
             final String messageTemplate = "Message %d";
 
@@ -97,19 +113,23 @@ public class IpcChannelTest {
             for (int i = 0; i < 2; i++) {
                 IpcChannel producer = IpcChannel.attach(memory);
                 exec.execute(() -> {
-                    while (true) {
-                        final int num = send.getAndIncrement();
-                        if (num >= count) {
-                            break;
-                        }
-
-                        final String msg = messageTemplate.formatted(num);
-                        while (true) {
-                            if (producer.write(msg.getBytes(StandardCharsets.UTF_8)) == IpcStatus.IPC_STATUS_OK) {
-                                sendEntities.put(msg, STUB);
+                    try {
+                        while (error.get() == null) {
+                            final int num = send.getAndIncrement();
+                            if (num >= count) {
                                 break;
                             }
+
+                            final String msg = messageTemplate.formatted(num);
+                            while (error.get() == null) {
+                                if (producer.write(msg.getBytes(StandardCharsets.UTF_8)) == IpcStatus.IPC_STATUS_OK) {
+                                    sendEntities.put(msg, STUB);
+                                    break;
+                                }
+                            }
                         }
+                    } catch (Throwable t) {
+                        error.compareAndSet(null, t);
                     }
                 });
             }
@@ -118,18 +138,28 @@ public class IpcChannelTest {
             for (int i = 0; i < 10; i++) {
                 IpcChannel consumer = IpcChannel.attach(memory);
                 exec.execute(() -> {
-                    while (receivedEntities.size() != count) {
-                        byte[] readResult = consumer.read(Duration.ofSeconds(1));
-                        if (readResult != null) {
-                            String message = new String(readResult, StandardCharsets.UTF_8);
-                            receivedEntities.put(message, STUB);
+                    try {
+                        while (error.get() == null && receivedEntities.size() != count) {
+                            byte[] readResult = consumer.read(Duration.ofSeconds(1));
+                            if (readResult != null) {
+                                String message = new String(readResult, StandardCharsets.UTF_8);
+                                receivedEntities.put(message, STUB);
+                            }
                         }
+                    } catch (Throwable t) {
+                        error.compareAndSet(null, t);
                     }
                 });
             }
 
             exec.shutdown();
             exec.awaitTermination(10, TimeUnit.SECONDS);
+
+            Throwable t = error.get();
+            if (t != null) {
+                throw t;
+            }
+
             Assert.assertEquals(sendEntities.keySet(), receivedEntities.keySet());
             Assert.assertEquals(count, sendEntities.size());
         }
