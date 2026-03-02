@@ -94,8 +94,6 @@ TEST_CASE("channel init - success case") {
     ipc_channel_detach(channel, nullptr);
 }
 
-// ── attach ──
-
 TEST_CASE("channel attach - null out") {
     const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
@@ -170,15 +168,11 @@ TEST_CASE("channel attach - success case") {
     ipc_channel_detach(attached, nullptr);
 }
 
-// ── detach ──
-
 TEST_CASE("channel detach - null channel") {
     ipc_error_t err;
     const ipc_status_t status = ipc_channel_detach(nullptr, &err);
     test_utils::CHECK_NULL_ARG_ERROR(status, err);
 }
-
-// ── write ──
 
 TEST_CASE("channel write - null channel") {
     const int test_data = 42;
@@ -234,8 +228,6 @@ TEST_CASE("channel write - size exceeds buffer") {
     ipc_channel_detach(channel, nullptr);
 }
 
-// ── read ──
-
 TEST_CASE("channel write then read") {
     const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
@@ -262,8 +254,6 @@ TEST_CASE("channel write then read") {
     ipc_channel_detach(producer, nullptr);
     ipc_channel_detach(consumer, nullptr);
 }
-
-// ── try_read ──
 
 TEST_CASE("channel try_read - success") {
     const uint64_t size = ipc_channel_suggest_size(128);

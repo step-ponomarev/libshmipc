@@ -6,7 +6,6 @@
 #include <vector>
 
 template <typename T> class ConcurrencyManager {
-private:
   std::atomic<int> active_producers{0};
   std::atomic<bool> producers_finished{false};
   std::vector<std::function<void()>> producer_tasks;
