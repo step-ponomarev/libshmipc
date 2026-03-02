@@ -253,8 +253,8 @@ ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_
 
         const uint64_t remaining_ns = timeout_ns - elapsed_ns;
         struct timespec remaining_timeout = {
-            .tv_sec = (__darwin_time_t) (remaining_ns / NANOS_PER_SEC),
-            .tv_nsec = (__darwin_time_t) (remaining_ns % NANOS_PER_SEC)
+            .tv_sec = remaining_ns / NANOS_PER_SEC,
+            .tv_nsec = remaining_ns % NANOS_PER_SEC
         };
 
         uint32_t expected_notify = atomic_load(&channel->header->notify);
