@@ -6,6 +6,8 @@
 #include <cstring>
 #include <vector>
 
+#include "core/src/ipc_utils.h"
+
 namespace {
     constexpr uint64_t DEFAULT_TIMEOUT_NS = 100000000;
 
@@ -299,8 +301,6 @@ TEST_CASE("channel try_read - empty") {
     ipc_channel_detach(channel, nullptr);
 }
 
-// ── read timeout ──
-
 TEST_CASE("channel read - timeout") {
     const uint64_t size = ipc_channel_suggest_size(128);
     std::vector<uint8_t> mem(size);
@@ -312,8 +312,7 @@ TEST_CASE("channel read - timeout") {
     CHECK(status == IPC_STATUS_OK);
     CHECK(channel != nullptr);
 
-    const uint64_t timeout_ns = 1000000;
-
+    const uint64_t timeout_ns = ipc_utils_sec_to_nanos(1);
     timespec time;
     CHECK(clock_gettime(CLOCK_MONOTONIC, &time) == 0);
     const uint64_t before_ns = timespec_to_nanos(&time);
@@ -322,7 +321,6 @@ TEST_CASE("channel read - timeout") {
     const ipc_status_t read_status =
             ipc_channel_read(channel, &entry, timeout_ns, nullptr);
     CHECK(read_status == IPC_STATUS_TIMEOUT);
-
     CHECK(clock_gettime(CLOCK_MONOTONIC, &time) == 0);
 
     const uint64_t after_ns = timespec_to_nanos(&time);
@@ -330,8 +328,6 @@ TEST_CASE("channel read - timeout") {
 
     ipc_channel_detach(channel, nullptr);
 }
-
-// ── data tests ──
 
 TEST_CASE("channel data - different sizes") {
     const uint64_t size = ipc_channel_suggest_size(2048);
