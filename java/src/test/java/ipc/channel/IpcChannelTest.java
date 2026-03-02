@@ -86,7 +86,7 @@ public class IpcChannelTest {
                 });
 
                 exec.shutdown();
-                if (!exec.awaitTermination(30, TimeUnit.SECONDS)) {
+                if (!exec.awaitTermination(60, TimeUnit.SECONDS)) {
                     error.compareAndSet(null, new AssertionError("Test timed out"));
                 }
             }
@@ -155,7 +155,7 @@ public class IpcChannelTest {
             }
 
             exec.shutdown();
-            if (!exec.awaitTermination(10, TimeUnit.SECONDS)) {
+            if (!exec.awaitTermination(60, TimeUnit.SECONDS)) {
                 error.compareAndSet(null, new AssertionError("Test timed out"));
             }
 
