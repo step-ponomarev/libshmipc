@@ -134,21 +134,21 @@ public class IpcChannelTest {
             Assert.assertEquals(count, sendEntities.size());
         }
     }
-//
-//    @Test(timeout = 1000)
-//    public void timeout() {
-//        final Duration readTimeoutMs = Duration.ofMillis(250);
-//        final long size = IpcChannel.getSuggestedSize(2000);
-//        try (final Arena arena = Arena.ofConfined()) {
-//            final MemorySegment memory = arena.allocate(size);
-//            try (IpcChannel ignored = IpcChannel.init(memory, size);
-//                 IpcChannel consumer = IpcChannel.attach(memory)) {
-//
-//                long beforeRead = System.currentTimeMillis();
-//                byte[] result = consumer.read(readTimeoutMs);
-//                Assert.assertNull(result);
-//                Assert.assertTrue(System.currentTimeMillis() - beforeRead >= readTimeoutMs.toMillis());
-//            }
-//        }
-//    }
+
+    @Test(timeout = 1000)
+    public void timeout() {
+        final Duration readTimeoutMs = Duration.ofMillis(250);
+        final long size = IpcChannel.getSuggestedSize(2000);
+        try (final Arena arena = Arena.ofConfined()) {
+            final MemorySegment memory = arena.allocate(size);
+            try (IpcChannel ignored = IpcChannel.init(memory, size);
+                 IpcChannel consumer = IpcChannel.attach(memory)) {
+
+                long beforeRead = System.currentTimeMillis();
+                byte[] result = consumer.read(readTimeoutMs);
+                Assert.assertNull(result);
+                Assert.assertTrue(System.currentTimeMillis() - beforeRead >= readTimeoutMs.toMillis());
+            }
+        }
+    }
 }
