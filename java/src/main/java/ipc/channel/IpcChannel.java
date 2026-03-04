@@ -133,12 +133,33 @@ public final class IpcChannel implements Closeable {
             final long start = System.nanoTime();
             final long timeNs = timeout.toNanos();
 
-            //TODO: locks
-            long notify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
+            long notify;
+            lock.readLock().lock();
+            try {
+                if (closed) {
+                    throw new IllegalStateException("channel is closed");
+                }
+
+                notify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
+            } finally {
+                lock.readLock().unlock();
+            }
+
             final MemorySegment err = ipc_error_t.allocate(arena);
             final MemorySegment entry = ipc_entry_t.allocate(arena);
             do {
-                final IpcStatus status = IpcStatus.of(ipc_channel_h.ipc_channel_try_read(channel, entry, err));
+                final IpcStatus status;
+                lock.readLock().lock();
+                try {
+                    if (closed) {
+                        throw new IllegalStateException("channel is closed");
+                    }
+
+                    status = IpcStatus.of(ipc_channel_h.ipc_channel_try_read(channel, entry, err));
+                } finally {
+                    lock.readLock().unlock();
+                }
+
                 if (status == IpcStatus.IPC_STATUS_ERROR) {
                     throw IpcException.from(err);
                 }
@@ -156,7 +177,18 @@ public final class IpcChannel implements Closeable {
                         return null;
                     }
 
-                    long currNotify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
+                    long currNotify;
+                    lock.readLock().lock();
+                    try {
+                        if (closed) {
+                            throw new IllegalStateException("channel is closed");
+                        }
+
+                        currNotify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
+                    } finally {
+                        lock.readLock().unlock();
+                    }
+
                     if (currNotify != notify) {
                         notify = currNotify;
                         break;
