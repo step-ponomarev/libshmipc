@@ -129,37 +129,41 @@ public final class IpcChannel implements Closeable {
             throw new NullPointerException("timeout is null");
         }
 
-        try (Arena tmpArena = Arena.ofConfined()) {
-            final long timeoutNs = timeout.toNanos();
+        try (Arena arena = Arena.ofConfined()) {
+            final long start = System.nanoTime();
+            final long timeNs = timeout.toNanos();
 
-            final MemorySegment entry = ipc_entry_t.allocate(tmpArena);
-            final MemorySegment err = ipc_error_t.allocate(tmpArena);
-            final IpcStatus status;
-
-            lock.readLock().lock();
-            try {
-                if (closed) {
-                    throw new IllegalStateException("channel is closed");
+            //TODO: locks
+            long notify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
+            final MemorySegment err = ipc_error_t.allocate(arena);
+            final MemorySegment entry = ipc_entry_t.allocate(arena);
+            do {
+                final IpcStatus status = IpcStatus.of(ipc_channel_h.ipc_channel_try_read(channel, entry, err));
+                if (status == IpcStatus.IPC_STATUS_ERROR) {
+                    throw IpcException.from(err);
                 }
 
-                status = IpcStatus.of(ipc_channel_h.ipc_channel_read(channel, entry, timeoutNs, err));
-            } finally {
-                lock.readLock().unlock();
-            }
-
-            if (status == IpcStatus.IPC_STATUS_OK) {
-                try {
-                    return ipcEntryToBytes(entry);
-                } finally {
-                    ipc_entry_h.ipc_entry_destroy(entry);
+                if (status == IpcStatus.IPC_STATUS_OK) {
+                    try {
+                        return ipcEntryToBytes(entry);
+                    } finally {
+                        ipc_entry_h.ipc_entry_destroy(entry);
+                    }
                 }
-            }
 
-            if (status == IpcStatus.IPC_STATUS_ERROR) {
-                throw IpcException.from(err);
-            }
+                while (true) {
+                    if (System.nanoTime() - start >= timeNs) {
+                        return null;
+                    }
 
-            return null;
+                    long currNotify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
+                    if (currNotify != notify) {
+                        notify = currNotify;
+                        break;
+                    }
+                    Thread.onSpinWait();
+                }
+            } while (true);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {

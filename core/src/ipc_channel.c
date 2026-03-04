@@ -24,7 +24,7 @@ struct ipc_channel_t {
     ipc_buffer_t *buffer;
 };
 
-static ipc_status_t try_read(ipc_channel_t *, ipc_entry_t *, ipc_error_t *err);
+static ipc_status_t try_read(ipc_channel_t * channel, ipc_entry_t * dest, ipc_error_t *err);
 
 inline uint64_t ipc_channel_memory_overhead(void) {
     return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_memory_overhead();
@@ -36,6 +36,11 @@ inline uint64_t ipc_channel_min_size(void) {
 
 inline bool ipc_channel_is_retry_status(ipc_status_t status) {
     return status == IPC_STATUS_BUSY || status == IPC_STATUS_EMPTY;
+}
+
+//TODO: safe contract
+inline uint32_t ipc_channel_get_notify_signal(ipc_channel_t *channel) {
+    return atomic_load(&channel->header->notify);
 }
 
 uint64_t ipc_channel_suggest_size(size_t desired_capacity) {

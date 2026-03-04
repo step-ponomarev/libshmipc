@@ -40,7 +40,7 @@ public class IpcChannelTest {
 
     @Test(timeout = 60000)
     public void basicProducerConsumerTest() throws Throwable {
-        final int count = 1000;
+        final int count = 100_000;
         final long size = IpcChannel.getSuggestedSize(200);
         try (final Arena arena = Arena.ofShared();
              final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
@@ -100,7 +100,7 @@ public class IpcChannelTest {
 
     @Test(timeout = 60000)
     public void basicMultiProducerMultiConsumerTest() throws Throwable {
-        final int count = 1000;
+        final int count = 100_000;
         final long size = IpcChannel.getSuggestedSize(200);
         try (final Arena arena = Arena.ofShared();
              final ExecutorService exec = Executors.newVirtualThreadPerTaskExecutor()
@@ -178,10 +178,10 @@ public class IpcChannelTest {
             try (IpcChannel ignored = IpcChannel.init(memory, size);
                  IpcChannel consumer = IpcChannel.attach(memory)) {
 
-                long beforeRead = System.currentTimeMillis();
+                long beforeRead = System.nanoTime();
                 byte[] result = consumer.read(readTimeoutMs);
                 Assert.assertNull(result);
-                Assert.assertTrue(System.currentTimeMillis() - beforeRead >= readTimeoutMs.toMillis());
+                Assert.assertTrue(System.nanoTime() - beforeRead >= readTimeoutMs.toNanos());
             }
         }
     }
