@@ -151,7 +151,7 @@ public final class IpcChannel implements Closeable {
                     }
                 }
 
-                while (true) {
+                while (true) { // TODO: measure and optimise, do not use native wait
                     if (System.nanoTime() - start >= timeNs) {
                         return null;
                     }
