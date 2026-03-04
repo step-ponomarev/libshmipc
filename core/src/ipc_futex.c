@@ -3,6 +3,25 @@
 
 #ifdef __APPLE__
 
+static uint32_t to_ulock_timeout_us(const struct timespec *timeout) {
+  if (timeout == NULL) {
+    return 0; // 0 = бесконечно (ok для случая "без таймаута")
+  }
+
+  uint64_t us = (uint64_t) timeout->tv_sec * 1000000ULL;
+  us += ((uint64_t) timeout->tv_nsec + 999ULL) / 1000ULL;
+
+  if (us == 0) {
+    us = 1;
+  }
+
+  if (us > UINT32_MAX) {
+    us = UINT32_MAX;
+  }
+
+  return (uint32_t) us;
+}
+
 extern int __ulock_wait(uint32_t operation, void *addr, uint64_t value,
                         uint32_t timeout);
 extern int __ulock_wake(uint32_t operation, void *addr, uint64_t wake_value);
@@ -12,8 +31,7 @@ extern int __ulock_wake(uint32_t operation, void *addr, uint64_t wake_value);
 
 int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
                    const struct timespec *timeout) {
-  int res = __ulock_wait(UL_COMPARE_AND_WAIT, addr, expected,
-                         timeout->tv_sec * 1000000 + timeout->tv_nsec / 1000);
+  int res = __ulock_wait(UL_COMPARE_AND_WAIT, addr, expected, to_ulock_timeout_us(timeout));
   if (res != 0) {
     // ENOENT: value changed before we slept (compare failed) - this is normal
     // EINTR: interrupted by signal - continue waiting
@@ -54,7 +72,7 @@ int ipc_futex_wake_all(_Atomic uint32_t *addr) {
 
 int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
                    const struct timespec *timeout) {
-  int res = syscall(SYS_futex, addr, FUTEX_WAIT, expected, timeout);
+  int res = syscall(SYS_futex, addr, FUTEX_WAIT, expected,  to_ulock_timeout_us(timeout));
   if (res != 0) {
     // EAGAIN: value changed before we slept - this is normal, continue loop
     // EINTR: interrupted by signal - continue waiting
