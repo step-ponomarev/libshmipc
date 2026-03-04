@@ -14,6 +14,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.time.Duration;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -172,8 +173,10 @@ public final class IpcChannel implements Closeable {
                     }
                 }
 
+                long waitStart = 10;
                 while (true) { // TODO: measure and optimise, do not use native wait
-                    if (System.nanoTime() - start >= timeNs) {
+                    final long spend = System.nanoTime() - start;
+                    if (spend >= timeNs) {
                         return null;
                     }
 
@@ -193,7 +196,7 @@ public final class IpcChannel implements Closeable {
                         notify = currNotify;
                         break;
                     }
-                    Thread.onSpinWait();
+                    LockSupport.parkNanos(Math.min(waitStart *= 2, timeNs - spend)); // virtual threads fix
                 }
             } while (true);
         } catch (RuntimeException e) {
