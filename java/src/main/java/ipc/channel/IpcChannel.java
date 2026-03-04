@@ -173,7 +173,7 @@ public final class IpcChannel implements Closeable {
                     }
                 }
 
-                long waitStart = 10;
+                long sleep = 10;
                 while (true) { // TODO: measure and optimise, do not use native wait
                     final long spend = System.nanoTime() - start;
                     if (spend >= timeNs) {
@@ -196,7 +196,10 @@ public final class IpcChannel implements Closeable {
                         notify = currNotify;
                         break;
                     }
-                    LockSupport.parkNanos(Math.min(waitStart *= 2, timeNs - spend)); // virtual threads fix
+
+                    //TODO fix owerflow
+                    sleep = Math.min(Math.max(sleep * 2, sleep), timeNs - spend);
+                    LockSupport.parkNanos(sleep); // virtual threads fix
                 }
             } while (true);
         } catch (RuntimeException e) {
