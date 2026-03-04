@@ -27,8 +27,8 @@ public class ipc_error_capacity_t {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        ipc_channel_h.C_LONG.withName("provided_capacity"),
-        ipc_channel_h.C_LONG.withName("required_capacity")
+        ipc_error_h.C_LONG.withName("provided_capacity"),
+        ipc_error_h.C_LONG.withName("required_capacity")
     ).withName("$anon$54:9");
 
     /**

@@ -45,9 +45,9 @@ public class ipc_error_t {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        ipc_channel_h.C_INT.withName("kind"),
-        ipc_channel_h.C_INT.withName("code"),
-        ipc_channel_h.C_POINTER.withName("message"),
+        ipc_error_h.C_INT.withName("kind"),
+        ipc_error_h.C_INT.withName("code"),
+        ipc_error_h.C_POINTER.withName("message"),
         ipc_error_t.as.layout().withName("as")
     ).withName("$anon$59:9");
 
@@ -471,7 +471,7 @@ public class ipc_error_t {
             }
 
             private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-                ipc_channel_h.C_INT.withName("sys_errno")
+                ipc_error_h.C_INT.withName("sys_errno")
             ).withName("$anon$72:9");
 
             /**
@@ -641,7 +641,7 @@ public class ipc_error_t {
             private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
                 MemoryLayout.unionLayout(
                     ipc_error_cas_t.layout().withName("cas"),
-                    ipc_channel_h.C_LONG_LONG.withName("offset")
+                    ipc_error_h.C_LONG_LONG.withName("offset")
                 ).withName("$anon$77:13")
             ).withName("$anon$76:9");
 

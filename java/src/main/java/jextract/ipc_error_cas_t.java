@@ -29,11 +29,11 @@ public class ipc_error_cas_t {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        ipc_channel_h.C_INT.withName("target"),
+        ipc_error_h.C_INT.withName("target"),
         MemoryLayout.paddingLayout(4),
-        ipc_channel_h.C_LONG_LONG.withName("expected_offset"),
-        ipc_channel_h.C_LONG_LONG.withName("actual_offset"),
-        ipc_channel_h.C_LONG_LONG.withName("desired_offset")
+        ipc_error_h.C_LONG_LONG.withName("expected_offset"),
+        ipc_error_h.C_LONG_LONG.withName("actual_offset"),
+        ipc_error_h.C_LONG_LONG.withName("desired_offset")
     ).withName("$anon$41:9");
 
     /**

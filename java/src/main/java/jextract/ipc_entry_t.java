@@ -28,9 +28,9 @@ public class ipc_entry_t {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        ipc_channel_h.C_LONG_LONG.withName("offset"),
-        ipc_channel_h.C_POINTER.withName("payload"),
-        ipc_channel_h.C_LONG.withName("size")
+        ipc_entry_h.C_LONG_LONG.withName("offset"),
+        ipc_entry_h.C_POINTER.withName("payload"),
+        ipc_entry_h.C_LONG.withName("size")
     ).withName("$anon$9:9");
 
     /**

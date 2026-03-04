@@ -28,9 +28,9 @@ public class ipc_error_size_t {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        ipc_channel_h.C_LONG.withName("limit"),
-        ipc_channel_h.C_LONG.withName("requested_size"),
-        ipc_channel_h.C_LONG.withName("suggested_size")
+        ipc_error_h.C_LONG.withName("limit"),
+        ipc_error_h.C_LONG.withName("requested_size"),
+        ipc_error_h.C_LONG.withName("suggested_size")
     ).withName("$anon$48:9");
 
     /**
