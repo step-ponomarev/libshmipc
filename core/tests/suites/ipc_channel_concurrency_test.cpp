@@ -4,7 +4,6 @@
 #include "concurrency_manager.hpp"
 #include "concurrent_test_utils.h"
 #include "shmipc/ipc_channel.h"
-#include "shmipc/ipc_common.h"
 #include "test_utils.h"
 #include "unsafe_collector.hpp"
 #include <atomic>
@@ -12,205 +11,83 @@
 #include <unordered_set>
 #include <vector>
 
+#include "core/src/ipc_utils.h"
+
 TEST_CASE("single writer single reader") {
+    const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
+    std::vector<uint8_t> mem(size);
 
-  const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
-  std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+    ipc_channel_t *channel = nullptr;
+    ipc_error_t err;
+    const ipc_status_t status =
+            ipc_channel_init(mem.data(), size, &channel, &err);
+    CHECK(status == IPC_STATUS_OK);
+    CHECK(channel != nullptr);
 
-  UnsafeCollector<size_t> collector;
-  ConcurrencyManager<size_t> manager;
+    UnsafeCollector<size_t> collector;
+    ConcurrencyManager<size_t> manager;
 
-  manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
-                       test_utils::DEFAULT_COUNT);
+    manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
+                         test_utils::DEFAULT_COUNT);
 
-  manager.add_consumer(concurrent_test_utils::consume_channel, channel,
-                       std::ref(collector), std::ref(manager.get_manager()));
+    manager.add_consumer(concurrent_test_utils::consume_channel, channel,
+                         std::ref(collector), std::ref(manager.get_manager()));
 
-  manager.run_and_wait();
+    manager.run_and_wait();
 
-  auto collected = collector.get_all_collected();
-  CHECK(collected.size() == test_utils::DEFAULT_COUNT);
-  for (size_t i = 0; i < test_utils::DEFAULT_COUNT; i++) {
-    CHECK(collected.contains(i));
-  }
+    auto collected = collector.get_all_collected();
+    CHECK(collected.size() == test_utils::DEFAULT_COUNT);
+    for (size_t i = 0; i < test_utils::DEFAULT_COUNT; i++) {
+        CHECK(collected.contains(i));
+    }
 
-  ipc_channel_destroy(channel);
+    ipc_channel_detach(channel, nullptr);
 }
 
 TEST_CASE("single writer single reader with timeout") {
-  const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
-  std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+    const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
+    std::vector<uint8_t> mem(size);
 
-  UnsafeCollector<size_t> collector;
-  ConcurrencyManager<size_t> manager;
+    ipc_channel_t *channel = nullptr;
+    ipc_error_t err;
+    const ipc_status_t status =
+            ipc_channel_init(mem.data(), size, &channel, &err);
+    CHECK(status == IPC_STATUS_OK);
+    CHECK(channel != nullptr);
 
-  manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
-                       test_utils::DEFAULT_COUNT);
+    UnsafeCollector<size_t> collector;
+    ConcurrencyManager<size_t> manager;
 
-  const timespec timeout = {.tv_sec = 0, .tv_nsec = 10 * 1000000};
-  manager.add_consumer(concurrent_test_utils::consume_channel_with_timeout,
-                       channel, std::ref(collector),
-                       std::ref(manager.get_manager()), &timeout);
+    manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
+                         test_utils::DEFAULT_COUNT);
 
-  manager.run_and_wait();
+    manager.add_consumer(concurrent_test_utils::consume_channel_with_timeout,
+                         channel, std::ref(collector),
+                         std::ref(manager.get_manager()), 10 * 1000000);
 
-  auto collected = collector.get_all_collected();
-  CHECK(collected.size() == test_utils::DEFAULT_COUNT);
-  for (size_t i = 0; i < test_utils::DEFAULT_COUNT; i++) {
-    CHECK(collected.contains(i));
-  }
+    manager.run_and_wait();
 
-  ipc_channel_destroy(channel);
+    auto collected = collector.get_all_collected();
+    CHECK(collected.size() == test_utils::DEFAULT_COUNT);
+    for (size_t i = 0; i < test_utils::DEFAULT_COUNT; i++) {
+        CHECK(collected.contains(i));
+    }
+
+    ipc_channel_detach(channel, nullptr);
 }
 
 TEST_CASE("multiple writer single reader") {
-  const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
-  std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
-
-  UnsafeCollector<size_t> collector;
-  ConcurrencyManager<size_t> manager;
-
-  manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
-                       test_utils::LARGE_COUNT / 3);
-  manager.add_producer(concurrent_test_utils::produce_channel, channel,
-                       test_utils::LARGE_COUNT / 3,
-                       2 * test_utils::LARGE_COUNT / 3);
-  manager.add_producer(concurrent_test_utils::produce_channel, channel,
-                       2 * test_utils::LARGE_COUNT / 3,
-                       test_utils::LARGE_COUNT);
-
-  manager.add_consumer(concurrent_test_utils::consume_channel, channel,
-                       std::ref(collector), std::ref(manager.get_manager()));
-
-  manager.run_and_wait();
-
-  auto collected = collector.get_all_collected();
-  CHECK(collected.size() == test_utils::LARGE_COUNT);
-  for (size_t i = 0; i < test_utils::LARGE_COUNT; i++) {
-    CHECK(collected.contains(i));
-  }
-
-  ipc_channel_destroy(channel);
-}
-
-TEST_CASE("multiple writer multiple reader stress") {
-  const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
-  std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-
-  const size_t total = 500000;
-  IpcChannel *channel = channel_result.result;
-
-  UnsafeCollector<size_t> collector1, collector2, collector3;
-  ConcurrencyManager<size_t> manager;
-
-  manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
-                       total / 3);
-  manager.add_producer(concurrent_test_utils::produce_channel, channel,
-                       total / 3, 2 * total / 3);
-  manager.add_producer(concurrent_test_utils::produce_channel, channel,
-                       2 * total / 3, total);
-
-  manager.add_consumer(concurrent_test_utils::consume_channel, channel,
-                       std::ref(collector1), std::ref(manager.get_manager()));
-  manager.add_consumer(concurrent_test_utils::consume_channel, channel,
-                       std::ref(collector2), std::ref(manager.get_manager()));
-  manager.add_consumer(concurrent_test_utils::consume_channel, channel,
-                       std::ref(collector3), std::ref(manager.get_manager()));
-
-  manager.run_and_wait();
-
-  IpcEntry entry;
-  IpcChannelPeekResult peek_res = ipc_channel_peek(channel, &entry);
-  CHECK(peek_res.ipc_status == IPC_EMPTY);
-
-  auto collected1 = collector1.get_all_collected();
-  auto collected2 = collector2.get_all_collected();
-  auto collected3 = collector3.get_all_collected();
-
-  std::unordered_set<size_t> all_collected;
-  all_collected.insert(collected1.begin(), collected1.end());
-  all_collected.insert(collected2.begin(), collected2.end());
-  all_collected.insert(collected3.begin(), collected3.end());
-
-  CHECK(all_collected.size() == total);
-  for (size_t i = 0; i < total; i++) {
-    CHECK(all_collected.contains(i));
-  }
-
-  ipc_channel_destroy(channel);
-}
-
-TEST_CASE("race between skip and read") {
-  for (int i = 0; i < 1000; i++) {
-    test_utils::ChannelWrapper channel(test_utils::SMALL_BUFFER_SIZE);
-    const size_t val = 42;
-    test_utils::write_data(channel.get(), val);
-
-    IpcEntry entry;
-    IpcChannelPeekResult pk = ipc_channel_peek(channel.get(), &entry);
-    CHECK(pk.ipc_status == IPC_OK);
-
-    std::atomic<bool> skip_done = false;
-    std::atomic<bool> read_done = false;
-
-    IpcEntry e;
-
-    std::thread t1([&] {
-      IpcChannelSkipResult result =
-          ipc_channel_skip(channel.get(), entry.offset);
-      skip_done.store(true);
-
-      bool valid_status = (result.ipc_status == IPC_OK ||
-                           result.ipc_status == IPC_ERR_OFFSET_MISMATCH ||
-                           result.ipc_status == IPC_EMPTY ||
-                           result.ipc_status == IPC_ERR_LOCKED);
-      CHECK(valid_status);
-    });
-
-    std::thread t2([&] {
-      IpcChannelTryReadResult result = ipc_channel_try_read(channel.get(), &e);
-      read_done.store(true);
-      if (result.ipc_status == IPC_OK) {
-        size_t v;
-        memcpy(&v, e.payload, e.size);
-        CHECK(v == val);
-        free(e.payload);
-      } else {
-        bool valid_status =
-            (result.ipc_status == IPC_OK || result.ipc_status == IPC_EMPTY ||
-             result.ipc_status == IPC_ERR_LOCKED);
-        CHECK(valid_status);
-      }
-    });
-
-    t1.join();
-    t2.join();
-    CHECK(skip_done.load());
-    CHECK(read_done.load());
-  }
-}
-
-TEST_CASE("extreme stress test - small buffer") {
-  for (int i = 0; i < 5; i++) {
-    const uint64_t size =
-        ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
+    const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
     std::vector<uint8_t> mem(size);
-    const IpcChannelCreateResult channel_result =
-        ipc_channel_create(mem.data(), size);
-    IpcChannel *channel = channel_result.result;
 
-    UnsafeCollector<size_t> collector1, collector2, collector3;
+    ipc_channel_t *channel = nullptr;
+    ipc_error_t err;
+    const ipc_status_t status =
+            ipc_channel_init(mem.data(), size, &channel, &err);
+    CHECK(status == IPC_STATUS_OK);
+    CHECK(channel != nullptr);
+
+    UnsafeCollector<size_t> collector;
     ConcurrencyManager<size_t> manager;
 
     manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
@@ -223,6 +100,42 @@ TEST_CASE("extreme stress test - small buffer") {
                          test_utils::LARGE_COUNT);
 
     manager.add_consumer(concurrent_test_utils::consume_channel, channel,
+                         std::ref(collector), std::ref(manager.get_manager()));
+
+    manager.run_and_wait();
+
+    auto collected = collector.get_all_collected();
+    CHECK(collected.size() == test_utils::LARGE_COUNT);
+    for (size_t i = 0; i < test_utils::LARGE_COUNT; i++) {
+        CHECK(collected.contains(i));
+    }
+
+    ipc_channel_detach(channel, nullptr);
+}
+
+TEST_CASE("multiple writer multiple reader stress") {
+    const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
+    std::vector<uint8_t> mem(size);
+    const size_t total = 500000;
+
+    ipc_channel_t *channel = nullptr;
+    ipc_error_t err;
+    const ipc_status_t status =
+            ipc_channel_init(mem.data(), size, &channel, &err);
+    CHECK(status == IPC_STATUS_OK);
+    CHECK(channel != nullptr);
+
+    UnsafeCollector<size_t> collector1, collector2, collector3;
+    ConcurrencyManager<size_t> manager;
+
+    manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
+                         total / 3);
+    manager.add_producer(concurrent_test_utils::produce_channel, channel,
+                         total / 3, 2 * total / 3);
+    manager.add_producer(concurrent_test_utils::produce_channel, channel,
+                         2 * total / 3, total);
+
+    manager.add_consumer(concurrent_test_utils::consume_channel, channel,
                          std::ref(collector1), std::ref(manager.get_manager()));
     manager.add_consumer(concurrent_test_utils::consume_channel, channel,
                          std::ref(collector2), std::ref(manager.get_manager()));
@@ -231,9 +144,9 @@ TEST_CASE("extreme stress test - small buffer") {
 
     manager.run_and_wait();
 
-    IpcEntry entry;
-    IpcChannelPeekResult peek_res = ipc_channel_peek(channel, &entry);
-    CHECK(peek_res.ipc_status == IPC_EMPTY);
+    ipc_entry_t entry;
+    const ipc_status_t try_read_status = ipc_channel_try_read(channel, &entry, nullptr);
+    CHECK(try_read_status == IPC_STATUS_EMPTY);
 
     auto collected1 = collector1.get_all_collected();
     auto collected2 = collector2.get_all_collected();
@@ -244,48 +157,104 @@ TEST_CASE("extreme stress test - small buffer") {
     all_collected.insert(collected2.begin(), collected2.end());
     all_collected.insert(collected3.begin(), collected3.end());
 
-    CHECK(all_collected.size() == test_utils::LARGE_COUNT);
-    for (size_t i = 0; i < test_utils::LARGE_COUNT; i++) {
-      CHECK(all_collected.contains(i));
+    CHECK(all_collected.size() == total);
+    for (size_t i = 0; i < total; i++) {
+        CHECK(all_collected.contains(i));
     }
 
-    ipc_channel_destroy(channel);
-  }
+    ipc_channel_detach(channel, nullptr);
+}
+
+TEST_CASE("extreme stress test - small buffer") {
+    for (int i = 0; i < 5; i++) {
+        const uint64_t size =
+                ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
+        std::vector<uint8_t> mem(size);
+
+        ipc_channel_t *channel = nullptr;
+        ipc_error_t err;
+        const ipc_status_t status =
+                ipc_channel_init(mem.data(), size, &channel, &err);
+        CHECK(status == IPC_STATUS_OK);
+        CHECK(channel != nullptr);
+
+        UnsafeCollector<size_t> collector1, collector2, collector3;
+        ConcurrencyManager<size_t> manager;
+
+        manager.add_producer(concurrent_test_utils::produce_channel, channel, 0,
+                             test_utils::LARGE_COUNT / 3);
+        manager.add_producer(concurrent_test_utils::produce_channel, channel,
+                             test_utils::LARGE_COUNT / 3,
+                             2 * test_utils::LARGE_COUNT / 3);
+        manager.add_producer(concurrent_test_utils::produce_channel, channel,
+                             2 * test_utils::LARGE_COUNT / 3,
+                             test_utils::LARGE_COUNT);
+
+        manager.add_consumer(concurrent_test_utils::consume_channel, channel,
+                             std::ref(collector1), std::ref(manager.get_manager()));
+        manager.add_consumer(concurrent_test_utils::consume_channel, channel,
+                             std::ref(collector2), std::ref(manager.get_manager()));
+        manager.add_consumer(concurrent_test_utils::consume_channel, channel,
+                             std::ref(collector3), std::ref(manager.get_manager()));
+
+        manager.run_and_wait();
+
+        ipc_entry_t entry;
+        const ipc_status_t try_read_status = ipc_channel_try_read(channel, &entry, nullptr);
+        CHECK(try_read_status == IPC_STATUS_EMPTY);
+
+        auto collected1 = collector1.get_all_collected();
+        auto collected2 = collector2.get_all_collected();
+        auto collected3 = collector3.get_all_collected();
+
+        std::unordered_set<size_t> all_collected;
+        all_collected.insert(collected1.begin(), collected1.end());
+        all_collected.insert(collected2.begin(), collected2.end());
+        all_collected.insert(collected3.begin(), collected3.end());
+
+        CHECK(all_collected.size() == test_utils::LARGE_COUNT);
+        for (size_t i = 0; i < test_utils::LARGE_COUNT; i++) {
+            CHECK(all_collected.contains(i));
+        }
+
+        ipc_channel_detach(channel, nullptr);
+    }
 }
 
 TEST_CASE("blocks reader until writer writes") {
-  const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
-  std::vector<uint8_t> mem(size);
-  const IpcChannelCreateResult channel_result =
-      ipc_channel_create(mem.data(), size);
-  IpcChannel *channel = channel_result.result;
+    const uint64_t size = ipc_channel_suggest_size(test_utils::SMALL_BUFFER_SIZE);
+    std::vector<uint8_t> mem(size);
 
-  std::atomic<bool> reader_ready{false};
+    ipc_channel_t *channel = nullptr;
+    ipc_error_t err;
+    const ipc_status_t status =
+            ipc_channel_init(mem.data(), size, &channel, &err);
+    CHECK(status == IPC_STATUS_OK);
+    CHECK(channel != nullptr);
 
-  std::thread writer([&]() {
-    while (!reader_ready.load(std::memory_order_acquire)) {
-      std::this_thread::yield();
-    }
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::atomic reader_ready{false};
 
-    test_utils::write_data(channel, 42);
-  });
+    std::thread writer([&]() {
+        while (!reader_ready.load(std::memory_order_acquire)) {
+            std::this_thread::yield();
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(2));
 
-  IpcEntry entry;
-  struct timespec timeout = {.tv_sec = 2000, .tv_nsec = 0};
+        test_utils::write_data(channel, 42);
+    });
 
-  reader_ready.store(true, std::memory_order_release);
+    ipc_entry_t entry;
+    reader_ready.store(true, std::memory_order_release);
 
-  const IpcChannelReadResult result =
-      ipc_channel_read(channel, &entry, &timeout);
-  CHECK(result.ipc_status == IPC_OK);
+    const ipc_status_t read_status = ipc_channel_read(channel, &entry, ipc_utils_sec_to_nanos(2000), nullptr);
+    CHECK(read_status == IPC_STATUS_OK);
 
-  int value;
-  memcpy(&value, entry.payload, sizeof(value));
-  CHECK(value == 42);
-  free(entry.payload);
+    int value;
+    memcpy(&value, entry.payload, sizeof(value));
+    CHECK(value == 42);
+    free(entry.payload);
 
-  writer.join();
+    writer.join();
 
-  ipc_channel_destroy(channel);
+    ipc_channel_detach(channel, nullptr);
 }

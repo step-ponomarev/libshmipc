@@ -10,6 +10,7 @@ def cc_tests(name, srcs, deps = [], copts = [], linkopts = [], **kwargs):
             srcs = [src],
             deps = deps,
             copts = copts,
+            timeout = "short",
             linkopts = linkopts,
             **kwargs
         )

@@ -28,9 +28,9 @@ public class _opaque_pthread_t {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        ipc_common_h.C_LONG.withName("__sig"),
-        ipc_common_h.C_POINTER.withName("__cleanup_stack"),
-        MemoryLayout.sequenceLayout(8176, ipc_common_h.C_CHAR).withName("__opaque")
+        ipc_entry_h.C_LONG.withName("__sig"),
+        ipc_entry_h.C_POINTER.withName("__cleanup_stack"),
+        MemoryLayout.sequenceLayout(8176, ipc_entry_h.C_CHAR).withName("__opaque")
     ).withName("_opaque_pthread_t");
 
     /**

@@ -23,33 +23,6 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.loaderLookup()
             .or(Linker.nativeLinker().defaultLookup());
 
-    private static final int true_ = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define true 1
-     * }
-     */
-    public static int true_() {
-        return true_;
-    }
-    private static final int false_ = (int)0L;
-    /**
-     * {@snippet lang=c :
-     * #define false 0
-     * }
-     */
-    public static int false_() {
-        return false_;
-    }
-    private static final int __bool_true_false_are_defined = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define __bool_true_false_are_defined 1
-     * }
-     */
-    public static int __bool_true_false_are_defined() {
-        return __bool_true_false_are_defined;
-    }
     private static final int __WORDSIZE = (int)64L;
     /**
      * {@snippet lang=c :
@@ -338,3165 +311,6 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     public static int UINT16_MAX() {
         return UINT16_MAX;
     }
-    private static final int _FORTIFY_SOURCE = (int)2L;
-    /**
-     * {@snippet lang=c :
-     * #define _FORTIFY_SOURCE 2
-     * }
-     */
-    public static int _FORTIFY_SOURCE() {
-        return _FORTIFY_SOURCE;
-    }
-    private static final int __API_TO_BE_DEPRECATED = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED() {
-        return __API_TO_BE_DEPRECATED;
-    }
-    private static final int __API_TO_BE_DEPRECATED_MACOS = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_MACOS 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_MACOS() {
-        return __API_TO_BE_DEPRECATED_MACOS;
-    }
-    private static final int __API_TO_BE_DEPRECATED_MACOSAPPLICATIONEXTENSION = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_MACOSAPPLICATIONEXTENSION 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_MACOSAPPLICATIONEXTENSION() {
-        return __API_TO_BE_DEPRECATED_MACOSAPPLICATIONEXTENSION;
-    }
-    private static final int __API_TO_BE_DEPRECATED_IOS = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_IOS 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_IOS() {
-        return __API_TO_BE_DEPRECATED_IOS;
-    }
-    private static final int __API_TO_BE_DEPRECATED_IOSAPPLICATIONEXTENSION = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_IOSAPPLICATIONEXTENSION 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_IOSAPPLICATIONEXTENSION() {
-        return __API_TO_BE_DEPRECATED_IOSAPPLICATIONEXTENSION;
-    }
-    private static final int __API_TO_BE_DEPRECATED_MACCATALYST = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_MACCATALYST 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_MACCATALYST() {
-        return __API_TO_BE_DEPRECATED_MACCATALYST;
-    }
-    private static final int __API_TO_BE_DEPRECATED_MACCATALYSTAPPLICATIONEXTENSION = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_MACCATALYSTAPPLICATIONEXTENSION 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_MACCATALYSTAPPLICATIONEXTENSION() {
-        return __API_TO_BE_DEPRECATED_MACCATALYSTAPPLICATIONEXTENSION;
-    }
-    private static final int __API_TO_BE_DEPRECATED_WATCHOS = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_WATCHOS 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_WATCHOS() {
-        return __API_TO_BE_DEPRECATED_WATCHOS;
-    }
-    private static final int __API_TO_BE_DEPRECATED_WATCHOSAPPLICATIONEXTENSION = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_WATCHOSAPPLICATIONEXTENSION 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_WATCHOSAPPLICATIONEXTENSION() {
-        return __API_TO_BE_DEPRECATED_WATCHOSAPPLICATIONEXTENSION;
-    }
-    private static final int __API_TO_BE_DEPRECATED_TVOS = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_TVOS 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_TVOS() {
-        return __API_TO_BE_DEPRECATED_TVOS;
-    }
-    private static final int __API_TO_BE_DEPRECATED_TVOSAPPLICATIONEXTENSION = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_TVOSAPPLICATIONEXTENSION 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_TVOSAPPLICATIONEXTENSION() {
-        return __API_TO_BE_DEPRECATED_TVOSAPPLICATIONEXTENSION;
-    }
-    private static final int __API_TO_BE_DEPRECATED_DRIVERKIT = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_DRIVERKIT 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_DRIVERKIT() {
-        return __API_TO_BE_DEPRECATED_DRIVERKIT;
-    }
-    private static final int __API_TO_BE_DEPRECATED_VISIONOS = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_VISIONOS 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_VISIONOS() {
-        return __API_TO_BE_DEPRECATED_VISIONOS;
-    }
-    private static final int __API_TO_BE_DEPRECATED_VISIONOSAPPLICATIONEXTENSION = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_VISIONOSAPPLICATIONEXTENSION 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_VISIONOSAPPLICATIONEXTENSION() {
-        return __API_TO_BE_DEPRECATED_VISIONOSAPPLICATIONEXTENSION;
-    }
-    private static final int __API_TO_BE_DEPRECATED_KERNELKIT = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __API_TO_BE_DEPRECATED_KERNELKIT 100000
-     * }
-     */
-    public static int __API_TO_BE_DEPRECATED_KERNELKIT() {
-        return __API_TO_BE_DEPRECATED_KERNELKIT;
-    }
-    private static final int __MAC_10_0 = (int)1000L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_0 1000
-     * }
-     */
-    public static int __MAC_10_0() {
-        return __MAC_10_0;
-    }
-    private static final int __MAC_10_1 = (int)1010L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_1 1010
-     * }
-     */
-    public static int __MAC_10_1() {
-        return __MAC_10_1;
-    }
-    private static final int __MAC_10_2 = (int)1020L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_2 1020
-     * }
-     */
-    public static int __MAC_10_2() {
-        return __MAC_10_2;
-    }
-    private static final int __MAC_10_3 = (int)1030L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_3 1030
-     * }
-     */
-    public static int __MAC_10_3() {
-        return __MAC_10_3;
-    }
-    private static final int __MAC_10_4 = (int)1040L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_4 1040
-     * }
-     */
-    public static int __MAC_10_4() {
-        return __MAC_10_4;
-    }
-    private static final int __MAC_10_5 = (int)1050L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_5 1050
-     * }
-     */
-    public static int __MAC_10_5() {
-        return __MAC_10_5;
-    }
-    private static final int __MAC_10_6 = (int)1060L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_6 1060
-     * }
-     */
-    public static int __MAC_10_6() {
-        return __MAC_10_6;
-    }
-    private static final int __MAC_10_7 = (int)1070L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_7 1070
-     * }
-     */
-    public static int __MAC_10_7() {
-        return __MAC_10_7;
-    }
-    private static final int __MAC_10_8 = (int)1080L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_8 1080
-     * }
-     */
-    public static int __MAC_10_8() {
-        return __MAC_10_8;
-    }
-    private static final int __MAC_10_9 = (int)1090L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_9 1090
-     * }
-     */
-    public static int __MAC_10_9() {
-        return __MAC_10_9;
-    }
-    private static final int __MAC_10_10 = (int)101000L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_10 101000
-     * }
-     */
-    public static int __MAC_10_10() {
-        return __MAC_10_10;
-    }
-    private static final int __MAC_10_10_2 = (int)101002L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_10_2 101002
-     * }
-     */
-    public static int __MAC_10_10_2() {
-        return __MAC_10_10_2;
-    }
-    private static final int __MAC_10_10_3 = (int)101003L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_10_3 101003
-     * }
-     */
-    public static int __MAC_10_10_3() {
-        return __MAC_10_10_3;
-    }
-    private static final int __MAC_10_11 = (int)101100L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_11 101100
-     * }
-     */
-    public static int __MAC_10_11() {
-        return __MAC_10_11;
-    }
-    private static final int __MAC_10_11_2 = (int)101102L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_11_2 101102
-     * }
-     */
-    public static int __MAC_10_11_2() {
-        return __MAC_10_11_2;
-    }
-    private static final int __MAC_10_11_3 = (int)101103L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_11_3 101103
-     * }
-     */
-    public static int __MAC_10_11_3() {
-        return __MAC_10_11_3;
-    }
-    private static final int __MAC_10_11_4 = (int)101104L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_11_4 101104
-     * }
-     */
-    public static int __MAC_10_11_4() {
-        return __MAC_10_11_4;
-    }
-    private static final int __MAC_10_12 = (int)101200L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_12 101200
-     * }
-     */
-    public static int __MAC_10_12() {
-        return __MAC_10_12;
-    }
-    private static final int __MAC_10_12_1 = (int)101201L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_12_1 101201
-     * }
-     */
-    public static int __MAC_10_12_1() {
-        return __MAC_10_12_1;
-    }
-    private static final int __MAC_10_12_2 = (int)101202L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_12_2 101202
-     * }
-     */
-    public static int __MAC_10_12_2() {
-        return __MAC_10_12_2;
-    }
-    private static final int __MAC_10_12_4 = (int)101204L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_12_4 101204
-     * }
-     */
-    public static int __MAC_10_12_4() {
-        return __MAC_10_12_4;
-    }
-    private static final int __MAC_10_13 = (int)101300L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_13 101300
-     * }
-     */
-    public static int __MAC_10_13() {
-        return __MAC_10_13;
-    }
-    private static final int __MAC_10_13_1 = (int)101301L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_13_1 101301
-     * }
-     */
-    public static int __MAC_10_13_1() {
-        return __MAC_10_13_1;
-    }
-    private static final int __MAC_10_13_2 = (int)101302L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_13_2 101302
-     * }
-     */
-    public static int __MAC_10_13_2() {
-        return __MAC_10_13_2;
-    }
-    private static final int __MAC_10_13_4 = (int)101304L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_13_4 101304
-     * }
-     */
-    public static int __MAC_10_13_4() {
-        return __MAC_10_13_4;
-    }
-    private static final int __MAC_10_14 = (int)101400L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_14 101400
-     * }
-     */
-    public static int __MAC_10_14() {
-        return __MAC_10_14;
-    }
-    private static final int __MAC_10_14_1 = (int)101401L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_14_1 101401
-     * }
-     */
-    public static int __MAC_10_14_1() {
-        return __MAC_10_14_1;
-    }
-    private static final int __MAC_10_14_4 = (int)101404L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_14_4 101404
-     * }
-     */
-    public static int __MAC_10_14_4() {
-        return __MAC_10_14_4;
-    }
-    private static final int __MAC_10_14_5 = (int)101405L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_14_5 101405
-     * }
-     */
-    public static int __MAC_10_14_5() {
-        return __MAC_10_14_5;
-    }
-    private static final int __MAC_10_14_6 = (int)101406L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_14_6 101406
-     * }
-     */
-    public static int __MAC_10_14_6() {
-        return __MAC_10_14_6;
-    }
-    private static final int __MAC_10_15 = (int)101500L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_15 101500
-     * }
-     */
-    public static int __MAC_10_15() {
-        return __MAC_10_15;
-    }
-    private static final int __MAC_10_15_1 = (int)101501L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_15_1 101501
-     * }
-     */
-    public static int __MAC_10_15_1() {
-        return __MAC_10_15_1;
-    }
-    private static final int __MAC_10_15_4 = (int)101504L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_15_4 101504
-     * }
-     */
-    public static int __MAC_10_15_4() {
-        return __MAC_10_15_4;
-    }
-    private static final int __MAC_10_16 = (int)101600L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_10_16 101600
-     * }
-     */
-    public static int __MAC_10_16() {
-        return __MAC_10_16;
-    }
-    private static final int __MAC_11_0 = (int)110000L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_11_0 110000
-     * }
-     */
-    public static int __MAC_11_0() {
-        return __MAC_11_0;
-    }
-    private static final int __MAC_11_1 = (int)110100L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_11_1 110100
-     * }
-     */
-    public static int __MAC_11_1() {
-        return __MAC_11_1;
-    }
-    private static final int __MAC_11_3 = (int)110300L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_11_3 110300
-     * }
-     */
-    public static int __MAC_11_3() {
-        return __MAC_11_3;
-    }
-    private static final int __MAC_11_4 = (int)110400L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_11_4 110400
-     * }
-     */
-    public static int __MAC_11_4() {
-        return __MAC_11_4;
-    }
-    private static final int __MAC_11_5 = (int)110500L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_11_5 110500
-     * }
-     */
-    public static int __MAC_11_5() {
-        return __MAC_11_5;
-    }
-    private static final int __MAC_11_6 = (int)110600L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_11_6 110600
-     * }
-     */
-    public static int __MAC_11_6() {
-        return __MAC_11_6;
-    }
-    private static final int __MAC_12_0 = (int)120000L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_12_0 120000
-     * }
-     */
-    public static int __MAC_12_0() {
-        return __MAC_12_0;
-    }
-    private static final int __MAC_12_1 = (int)120100L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_12_1 120100
-     * }
-     */
-    public static int __MAC_12_1() {
-        return __MAC_12_1;
-    }
-    private static final int __MAC_12_2 = (int)120200L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_12_2 120200
-     * }
-     */
-    public static int __MAC_12_2() {
-        return __MAC_12_2;
-    }
-    private static final int __MAC_12_3 = (int)120300L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_12_3 120300
-     * }
-     */
-    public static int __MAC_12_3() {
-        return __MAC_12_3;
-    }
-    private static final int __MAC_12_4 = (int)120400L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_12_4 120400
-     * }
-     */
-    public static int __MAC_12_4() {
-        return __MAC_12_4;
-    }
-    private static final int __MAC_12_5 = (int)120500L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_12_5 120500
-     * }
-     */
-    public static int __MAC_12_5() {
-        return __MAC_12_5;
-    }
-    private static final int __MAC_12_6 = (int)120600L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_12_6 120600
-     * }
-     */
-    public static int __MAC_12_6() {
-        return __MAC_12_6;
-    }
-    private static final int __MAC_12_7 = (int)120700L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_12_7 120700
-     * }
-     */
-    public static int __MAC_12_7() {
-        return __MAC_12_7;
-    }
-    private static final int __MAC_13_0 = (int)130000L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_13_0 130000
-     * }
-     */
-    public static int __MAC_13_0() {
-        return __MAC_13_0;
-    }
-    private static final int __MAC_13_1 = (int)130100L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_13_1 130100
-     * }
-     */
-    public static int __MAC_13_1() {
-        return __MAC_13_1;
-    }
-    private static final int __MAC_13_2 = (int)130200L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_13_2 130200
-     * }
-     */
-    public static int __MAC_13_2() {
-        return __MAC_13_2;
-    }
-    private static final int __MAC_13_3 = (int)130300L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_13_3 130300
-     * }
-     */
-    public static int __MAC_13_3() {
-        return __MAC_13_3;
-    }
-    private static final int __MAC_13_4 = (int)130400L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_13_4 130400
-     * }
-     */
-    public static int __MAC_13_4() {
-        return __MAC_13_4;
-    }
-    private static final int __MAC_13_5 = (int)130500L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_13_5 130500
-     * }
-     */
-    public static int __MAC_13_5() {
-        return __MAC_13_5;
-    }
-    private static final int __MAC_13_6 = (int)130600L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_13_6 130600
-     * }
-     */
-    public static int __MAC_13_6() {
-        return __MAC_13_6;
-    }
-    private static final int __MAC_13_7 = (int)130700L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_13_7 130700
-     * }
-     */
-    public static int __MAC_13_7() {
-        return __MAC_13_7;
-    }
-    private static final int __MAC_14_0 = (int)140000L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_14_0 140000
-     * }
-     */
-    public static int __MAC_14_0() {
-        return __MAC_14_0;
-    }
-    private static final int __MAC_14_1 = (int)140100L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_14_1 140100
-     * }
-     */
-    public static int __MAC_14_1() {
-        return __MAC_14_1;
-    }
-    private static final int __MAC_14_2 = (int)140200L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_14_2 140200
-     * }
-     */
-    public static int __MAC_14_2() {
-        return __MAC_14_2;
-    }
-    private static final int __MAC_14_3 = (int)140300L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_14_3 140300
-     * }
-     */
-    public static int __MAC_14_3() {
-        return __MAC_14_3;
-    }
-    private static final int __MAC_14_4 = (int)140400L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_14_4 140400
-     * }
-     */
-    public static int __MAC_14_4() {
-        return __MAC_14_4;
-    }
-    private static final int __MAC_14_5 = (int)140500L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_14_5 140500
-     * }
-     */
-    public static int __MAC_14_5() {
-        return __MAC_14_5;
-    }
-    private static final int __MAC_14_6 = (int)140600L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_14_6 140600
-     * }
-     */
-    public static int __MAC_14_6() {
-        return __MAC_14_6;
-    }
-    private static final int __MAC_14_7 = (int)140700L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_14_7 140700
-     * }
-     */
-    public static int __MAC_14_7() {
-        return __MAC_14_7;
-    }
-    private static final int __MAC_15_0 = (int)150000L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_15_0 150000
-     * }
-     */
-    public static int __MAC_15_0() {
-        return __MAC_15_0;
-    }
-    private static final int __MAC_15_1 = (int)150100L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_15_1 150100
-     * }
-     */
-    public static int __MAC_15_1() {
-        return __MAC_15_1;
-    }
-    private static final int __MAC_15_2 = (int)150200L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_15_2 150200
-     * }
-     */
-    public static int __MAC_15_2() {
-        return __MAC_15_2;
-    }
-    private static final int __MAC_15_3 = (int)150300L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_15_3 150300
-     * }
-     */
-    public static int __MAC_15_3() {
-        return __MAC_15_3;
-    }
-    private static final int __MAC_15_4 = (int)150400L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_15_4 150400
-     * }
-     */
-    public static int __MAC_15_4() {
-        return __MAC_15_4;
-    }
-    private static final int __MAC_15_5 = (int)150500L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_15_5 150500
-     * }
-     */
-    public static int __MAC_15_5() {
-        return __MAC_15_5;
-    }
-    private static final int __IPHONE_2_0 = (int)20000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_2_0 20000
-     * }
-     */
-    public static int __IPHONE_2_0() {
-        return __IPHONE_2_0;
-    }
-    private static final int __IPHONE_2_1 = (int)20100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_2_1 20100
-     * }
-     */
-    public static int __IPHONE_2_1() {
-        return __IPHONE_2_1;
-    }
-    private static final int __IPHONE_2_2 = (int)20200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_2_2 20200
-     * }
-     */
-    public static int __IPHONE_2_2() {
-        return __IPHONE_2_2;
-    }
-    private static final int __IPHONE_3_0 = (int)30000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_3_0 30000
-     * }
-     */
-    public static int __IPHONE_3_0() {
-        return __IPHONE_3_0;
-    }
-    private static final int __IPHONE_3_1 = (int)30100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_3_1 30100
-     * }
-     */
-    public static int __IPHONE_3_1() {
-        return __IPHONE_3_1;
-    }
-    private static final int __IPHONE_3_2 = (int)30200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_3_2 30200
-     * }
-     */
-    public static int __IPHONE_3_2() {
-        return __IPHONE_3_2;
-    }
-    private static final int __IPHONE_4_0 = (int)40000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_4_0 40000
-     * }
-     */
-    public static int __IPHONE_4_0() {
-        return __IPHONE_4_0;
-    }
-    private static final int __IPHONE_4_1 = (int)40100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_4_1 40100
-     * }
-     */
-    public static int __IPHONE_4_1() {
-        return __IPHONE_4_1;
-    }
-    private static final int __IPHONE_4_2 = (int)40200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_4_2 40200
-     * }
-     */
-    public static int __IPHONE_4_2() {
-        return __IPHONE_4_2;
-    }
-    private static final int __IPHONE_4_3 = (int)40300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_4_3 40300
-     * }
-     */
-    public static int __IPHONE_4_3() {
-        return __IPHONE_4_3;
-    }
-    private static final int __IPHONE_5_0 = (int)50000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_5_0 50000
-     * }
-     */
-    public static int __IPHONE_5_0() {
-        return __IPHONE_5_0;
-    }
-    private static final int __IPHONE_5_1 = (int)50100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_5_1 50100
-     * }
-     */
-    public static int __IPHONE_5_1() {
-        return __IPHONE_5_1;
-    }
-    private static final int __IPHONE_6_0 = (int)60000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_6_0 60000
-     * }
-     */
-    public static int __IPHONE_6_0() {
-        return __IPHONE_6_0;
-    }
-    private static final int __IPHONE_6_1 = (int)60100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_6_1 60100
-     * }
-     */
-    public static int __IPHONE_6_1() {
-        return __IPHONE_6_1;
-    }
-    private static final int __IPHONE_7_0 = (int)70000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_7_0 70000
-     * }
-     */
-    public static int __IPHONE_7_0() {
-        return __IPHONE_7_0;
-    }
-    private static final int __IPHONE_7_1 = (int)70100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_7_1 70100
-     * }
-     */
-    public static int __IPHONE_7_1() {
-        return __IPHONE_7_1;
-    }
-    private static final int __IPHONE_8_0 = (int)80000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_8_0 80000
-     * }
-     */
-    public static int __IPHONE_8_0() {
-        return __IPHONE_8_0;
-    }
-    private static final int __IPHONE_8_1 = (int)80100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_8_1 80100
-     * }
-     */
-    public static int __IPHONE_8_1() {
-        return __IPHONE_8_1;
-    }
-    private static final int __IPHONE_8_2 = (int)80200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_8_2 80200
-     * }
-     */
-    public static int __IPHONE_8_2() {
-        return __IPHONE_8_2;
-    }
-    private static final int __IPHONE_8_3 = (int)80300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_8_3 80300
-     * }
-     */
-    public static int __IPHONE_8_3() {
-        return __IPHONE_8_3;
-    }
-    private static final int __IPHONE_8_4 = (int)80400L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_8_4 80400
-     * }
-     */
-    public static int __IPHONE_8_4() {
-        return __IPHONE_8_4;
-    }
-    private static final int __IPHONE_9_0 = (int)90000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_9_0 90000
-     * }
-     */
-    public static int __IPHONE_9_0() {
-        return __IPHONE_9_0;
-    }
-    private static final int __IPHONE_9_1 = (int)90100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_9_1 90100
-     * }
-     */
-    public static int __IPHONE_9_1() {
-        return __IPHONE_9_1;
-    }
-    private static final int __IPHONE_9_2 = (int)90200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_9_2 90200
-     * }
-     */
-    public static int __IPHONE_9_2() {
-        return __IPHONE_9_2;
-    }
-    private static final int __IPHONE_9_3 = (int)90300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_9_3 90300
-     * }
-     */
-    public static int __IPHONE_9_3() {
-        return __IPHONE_9_3;
-    }
-    private static final int __IPHONE_10_0 = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_10_0 100000
-     * }
-     */
-    public static int __IPHONE_10_0() {
-        return __IPHONE_10_0;
-    }
-    private static final int __IPHONE_10_1 = (int)100100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_10_1 100100
-     * }
-     */
-    public static int __IPHONE_10_1() {
-        return __IPHONE_10_1;
-    }
-    private static final int __IPHONE_10_2 = (int)100200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_10_2 100200
-     * }
-     */
-    public static int __IPHONE_10_2() {
-        return __IPHONE_10_2;
-    }
-    private static final int __IPHONE_10_3 = (int)100300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_10_3 100300
-     * }
-     */
-    public static int __IPHONE_10_3() {
-        return __IPHONE_10_3;
-    }
-    private static final int __IPHONE_11_0 = (int)110000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_11_0 110000
-     * }
-     */
-    public static int __IPHONE_11_0() {
-        return __IPHONE_11_0;
-    }
-    private static final int __IPHONE_11_1 = (int)110100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_11_1 110100
-     * }
-     */
-    public static int __IPHONE_11_1() {
-        return __IPHONE_11_1;
-    }
-    private static final int __IPHONE_11_2 = (int)110200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_11_2 110200
-     * }
-     */
-    public static int __IPHONE_11_2() {
-        return __IPHONE_11_2;
-    }
-    private static final int __IPHONE_11_3 = (int)110300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_11_3 110300
-     * }
-     */
-    public static int __IPHONE_11_3() {
-        return __IPHONE_11_3;
-    }
-    private static final int __IPHONE_11_4 = (int)110400L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_11_4 110400
-     * }
-     */
-    public static int __IPHONE_11_4() {
-        return __IPHONE_11_4;
-    }
-    private static final int __IPHONE_12_0 = (int)120000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_12_0 120000
-     * }
-     */
-    public static int __IPHONE_12_0() {
-        return __IPHONE_12_0;
-    }
-    private static final int __IPHONE_12_1 = (int)120100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_12_1 120100
-     * }
-     */
-    public static int __IPHONE_12_1() {
-        return __IPHONE_12_1;
-    }
-    private static final int __IPHONE_12_2 = (int)120200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_12_2 120200
-     * }
-     */
-    public static int __IPHONE_12_2() {
-        return __IPHONE_12_2;
-    }
-    private static final int __IPHONE_12_3 = (int)120300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_12_3 120300
-     * }
-     */
-    public static int __IPHONE_12_3() {
-        return __IPHONE_12_3;
-    }
-    private static final int __IPHONE_12_4 = (int)120400L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_12_4 120400
-     * }
-     */
-    public static int __IPHONE_12_4() {
-        return __IPHONE_12_4;
-    }
-    private static final int __IPHONE_13_0 = (int)130000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_13_0 130000
-     * }
-     */
-    public static int __IPHONE_13_0() {
-        return __IPHONE_13_0;
-    }
-    private static final int __IPHONE_13_1 = (int)130100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_13_1 130100
-     * }
-     */
-    public static int __IPHONE_13_1() {
-        return __IPHONE_13_1;
-    }
-    private static final int __IPHONE_13_2 = (int)130200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_13_2 130200
-     * }
-     */
-    public static int __IPHONE_13_2() {
-        return __IPHONE_13_2;
-    }
-    private static final int __IPHONE_13_3 = (int)130300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_13_3 130300
-     * }
-     */
-    public static int __IPHONE_13_3() {
-        return __IPHONE_13_3;
-    }
-    private static final int __IPHONE_13_4 = (int)130400L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_13_4 130400
-     * }
-     */
-    public static int __IPHONE_13_4() {
-        return __IPHONE_13_4;
-    }
-    private static final int __IPHONE_13_5 = (int)130500L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_13_5 130500
-     * }
-     */
-    public static int __IPHONE_13_5() {
-        return __IPHONE_13_5;
-    }
-    private static final int __IPHONE_13_6 = (int)130600L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_13_6 130600
-     * }
-     */
-    public static int __IPHONE_13_6() {
-        return __IPHONE_13_6;
-    }
-    private static final int __IPHONE_13_7 = (int)130700L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_13_7 130700
-     * }
-     */
-    public static int __IPHONE_13_7() {
-        return __IPHONE_13_7;
-    }
-    private static final int __IPHONE_14_0 = (int)140000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_14_0 140000
-     * }
-     */
-    public static int __IPHONE_14_0() {
-        return __IPHONE_14_0;
-    }
-    private static final int __IPHONE_14_1 = (int)140100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_14_1 140100
-     * }
-     */
-    public static int __IPHONE_14_1() {
-        return __IPHONE_14_1;
-    }
-    private static final int __IPHONE_14_2 = (int)140200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_14_2 140200
-     * }
-     */
-    public static int __IPHONE_14_2() {
-        return __IPHONE_14_2;
-    }
-    private static final int __IPHONE_14_3 = (int)140300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_14_3 140300
-     * }
-     */
-    public static int __IPHONE_14_3() {
-        return __IPHONE_14_3;
-    }
-    private static final int __IPHONE_14_5 = (int)140500L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_14_5 140500
-     * }
-     */
-    public static int __IPHONE_14_5() {
-        return __IPHONE_14_5;
-    }
-    private static final int __IPHONE_14_4 = (int)140400L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_14_4 140400
-     * }
-     */
-    public static int __IPHONE_14_4() {
-        return __IPHONE_14_4;
-    }
-    private static final int __IPHONE_14_6 = (int)140600L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_14_6 140600
-     * }
-     */
-    public static int __IPHONE_14_6() {
-        return __IPHONE_14_6;
-    }
-    private static final int __IPHONE_14_7 = (int)140700L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_14_7 140700
-     * }
-     */
-    public static int __IPHONE_14_7() {
-        return __IPHONE_14_7;
-    }
-    private static final int __IPHONE_14_8 = (int)140800L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_14_8 140800
-     * }
-     */
-    public static int __IPHONE_14_8() {
-        return __IPHONE_14_8;
-    }
-    private static final int __IPHONE_15_0 = (int)150000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_15_0 150000
-     * }
-     */
-    public static int __IPHONE_15_0() {
-        return __IPHONE_15_0;
-    }
-    private static final int __IPHONE_15_1 = (int)150100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_15_1 150100
-     * }
-     */
-    public static int __IPHONE_15_1() {
-        return __IPHONE_15_1;
-    }
-    private static final int __IPHONE_15_2 = (int)150200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_15_2 150200
-     * }
-     */
-    public static int __IPHONE_15_2() {
-        return __IPHONE_15_2;
-    }
-    private static final int __IPHONE_15_3 = (int)150300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_15_3 150300
-     * }
-     */
-    public static int __IPHONE_15_3() {
-        return __IPHONE_15_3;
-    }
-    private static final int __IPHONE_15_4 = (int)150400L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_15_4 150400
-     * }
-     */
-    public static int __IPHONE_15_4() {
-        return __IPHONE_15_4;
-    }
-    private static final int __IPHONE_15_5 = (int)150500L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_15_5 150500
-     * }
-     */
-    public static int __IPHONE_15_5() {
-        return __IPHONE_15_5;
-    }
-    private static final int __IPHONE_15_6 = (int)150600L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_15_6 150600
-     * }
-     */
-    public static int __IPHONE_15_6() {
-        return __IPHONE_15_6;
-    }
-    private static final int __IPHONE_15_7 = (int)150700L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_15_7 150700
-     * }
-     */
-    public static int __IPHONE_15_7() {
-        return __IPHONE_15_7;
-    }
-    private static final int __IPHONE_15_8 = (int)150800L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_15_8 150800
-     * }
-     */
-    public static int __IPHONE_15_8() {
-        return __IPHONE_15_8;
-    }
-    private static final int __IPHONE_16_0 = (int)160000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_16_0 160000
-     * }
-     */
-    public static int __IPHONE_16_0() {
-        return __IPHONE_16_0;
-    }
-    private static final int __IPHONE_16_1 = (int)160100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_16_1 160100
-     * }
-     */
-    public static int __IPHONE_16_1() {
-        return __IPHONE_16_1;
-    }
-    private static final int __IPHONE_16_2 = (int)160200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_16_2 160200
-     * }
-     */
-    public static int __IPHONE_16_2() {
-        return __IPHONE_16_2;
-    }
-    private static final int __IPHONE_16_3 = (int)160300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_16_3 160300
-     * }
-     */
-    public static int __IPHONE_16_3() {
-        return __IPHONE_16_3;
-    }
-    private static final int __IPHONE_16_4 = (int)160400L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_16_4 160400
-     * }
-     */
-    public static int __IPHONE_16_4() {
-        return __IPHONE_16_4;
-    }
-    private static final int __IPHONE_16_5 = (int)160500L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_16_5 160500
-     * }
-     */
-    public static int __IPHONE_16_5() {
-        return __IPHONE_16_5;
-    }
-    private static final int __IPHONE_16_6 = (int)160600L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_16_6 160600
-     * }
-     */
-    public static int __IPHONE_16_6() {
-        return __IPHONE_16_6;
-    }
-    private static final int __IPHONE_16_7 = (int)160700L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_16_7 160700
-     * }
-     */
-    public static int __IPHONE_16_7() {
-        return __IPHONE_16_7;
-    }
-    private static final int __IPHONE_17_0 = (int)170000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_17_0 170000
-     * }
-     */
-    public static int __IPHONE_17_0() {
-        return __IPHONE_17_0;
-    }
-    private static final int __IPHONE_17_1 = (int)170100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_17_1 170100
-     * }
-     */
-    public static int __IPHONE_17_1() {
-        return __IPHONE_17_1;
-    }
-    private static final int __IPHONE_17_2 = (int)170200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_17_2 170200
-     * }
-     */
-    public static int __IPHONE_17_2() {
-        return __IPHONE_17_2;
-    }
-    private static final int __IPHONE_17_3 = (int)170300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_17_3 170300
-     * }
-     */
-    public static int __IPHONE_17_3() {
-        return __IPHONE_17_3;
-    }
-    private static final int __IPHONE_17_4 = (int)170400L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_17_4 170400
-     * }
-     */
-    public static int __IPHONE_17_4() {
-        return __IPHONE_17_4;
-    }
-    private static final int __IPHONE_17_5 = (int)170500L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_17_5 170500
-     * }
-     */
-    public static int __IPHONE_17_5() {
-        return __IPHONE_17_5;
-    }
-    private static final int __IPHONE_17_6 = (int)170600L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_17_6 170600
-     * }
-     */
-    public static int __IPHONE_17_6() {
-        return __IPHONE_17_6;
-    }
-    private static final int __IPHONE_17_7 = (int)170700L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_17_7 170700
-     * }
-     */
-    public static int __IPHONE_17_7() {
-        return __IPHONE_17_7;
-    }
-    private static final int __IPHONE_18_0 = (int)180000L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_18_0 180000
-     * }
-     */
-    public static int __IPHONE_18_0() {
-        return __IPHONE_18_0;
-    }
-    private static final int __IPHONE_18_1 = (int)180100L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_18_1 180100
-     * }
-     */
-    public static int __IPHONE_18_1() {
-        return __IPHONE_18_1;
-    }
-    private static final int __IPHONE_18_2 = (int)180200L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_18_2 180200
-     * }
-     */
-    public static int __IPHONE_18_2() {
-        return __IPHONE_18_2;
-    }
-    private static final int __IPHONE_18_3 = (int)180300L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_18_3 180300
-     * }
-     */
-    public static int __IPHONE_18_3() {
-        return __IPHONE_18_3;
-    }
-    private static final int __IPHONE_18_4 = (int)180400L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_18_4 180400
-     * }
-     */
-    public static int __IPHONE_18_4() {
-        return __IPHONE_18_4;
-    }
-    private static final int __IPHONE_18_5 = (int)180500L;
-    /**
-     * {@snippet lang=c :
-     * #define __IPHONE_18_5 180500
-     * }
-     */
-    public static int __IPHONE_18_5() {
-        return __IPHONE_18_5;
-    }
-    private static final int __WATCHOS_1_0 = (int)10000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_1_0 10000
-     * }
-     */
-    public static int __WATCHOS_1_0() {
-        return __WATCHOS_1_0;
-    }
-    private static final int __WATCHOS_2_0 = (int)20000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_2_0 20000
-     * }
-     */
-    public static int __WATCHOS_2_0() {
-        return __WATCHOS_2_0;
-    }
-    private static final int __WATCHOS_2_1 = (int)20100L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_2_1 20100
-     * }
-     */
-    public static int __WATCHOS_2_1() {
-        return __WATCHOS_2_1;
-    }
-    private static final int __WATCHOS_2_2 = (int)20200L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_2_2 20200
-     * }
-     */
-    public static int __WATCHOS_2_2() {
-        return __WATCHOS_2_2;
-    }
-    private static final int __WATCHOS_3_0 = (int)30000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_3_0 30000
-     * }
-     */
-    public static int __WATCHOS_3_0() {
-        return __WATCHOS_3_0;
-    }
-    private static final int __WATCHOS_3_1 = (int)30100L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_3_1 30100
-     * }
-     */
-    public static int __WATCHOS_3_1() {
-        return __WATCHOS_3_1;
-    }
-    private static final int __WATCHOS_3_1_1 = (int)30101L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_3_1_1 30101
-     * }
-     */
-    public static int __WATCHOS_3_1_1() {
-        return __WATCHOS_3_1_1;
-    }
-    private static final int __WATCHOS_3_2 = (int)30200L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_3_2 30200
-     * }
-     */
-    public static int __WATCHOS_3_2() {
-        return __WATCHOS_3_2;
-    }
-    private static final int __WATCHOS_4_0 = (int)40000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_4_0 40000
-     * }
-     */
-    public static int __WATCHOS_4_0() {
-        return __WATCHOS_4_0;
-    }
-    private static final int __WATCHOS_4_1 = (int)40100L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_4_1 40100
-     * }
-     */
-    public static int __WATCHOS_4_1() {
-        return __WATCHOS_4_1;
-    }
-    private static final int __WATCHOS_4_2 = (int)40200L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_4_2 40200
-     * }
-     */
-    public static int __WATCHOS_4_2() {
-        return __WATCHOS_4_2;
-    }
-    private static final int __WATCHOS_4_3 = (int)40300L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_4_3 40300
-     * }
-     */
-    public static int __WATCHOS_4_3() {
-        return __WATCHOS_4_3;
-    }
-    private static final int __WATCHOS_5_0 = (int)50000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_5_0 50000
-     * }
-     */
-    public static int __WATCHOS_5_0() {
-        return __WATCHOS_5_0;
-    }
-    private static final int __WATCHOS_5_1 = (int)50100L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_5_1 50100
-     * }
-     */
-    public static int __WATCHOS_5_1() {
-        return __WATCHOS_5_1;
-    }
-    private static final int __WATCHOS_5_2 = (int)50200L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_5_2 50200
-     * }
-     */
-    public static int __WATCHOS_5_2() {
-        return __WATCHOS_5_2;
-    }
-    private static final int __WATCHOS_5_3 = (int)50300L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_5_3 50300
-     * }
-     */
-    public static int __WATCHOS_5_3() {
-        return __WATCHOS_5_3;
-    }
-    private static final int __WATCHOS_6_0 = (int)60000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_6_0 60000
-     * }
-     */
-    public static int __WATCHOS_6_0() {
-        return __WATCHOS_6_0;
-    }
-    private static final int __WATCHOS_6_1 = (int)60100L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_6_1 60100
-     * }
-     */
-    public static int __WATCHOS_6_1() {
-        return __WATCHOS_6_1;
-    }
-    private static final int __WATCHOS_6_2 = (int)60200L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_6_2 60200
-     * }
-     */
-    public static int __WATCHOS_6_2() {
-        return __WATCHOS_6_2;
-    }
-    private static final int __WATCHOS_7_0 = (int)70000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_7_0 70000
-     * }
-     */
-    public static int __WATCHOS_7_0() {
-        return __WATCHOS_7_0;
-    }
-    private static final int __WATCHOS_7_1 = (int)70100L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_7_1 70100
-     * }
-     */
-    public static int __WATCHOS_7_1() {
-        return __WATCHOS_7_1;
-    }
-    private static final int __WATCHOS_7_2 = (int)70200L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_7_2 70200
-     * }
-     */
-    public static int __WATCHOS_7_2() {
-        return __WATCHOS_7_2;
-    }
-    private static final int __WATCHOS_7_3 = (int)70300L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_7_3 70300
-     * }
-     */
-    public static int __WATCHOS_7_3() {
-        return __WATCHOS_7_3;
-    }
-    private static final int __WATCHOS_7_4 = (int)70400L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_7_4 70400
-     * }
-     */
-    public static int __WATCHOS_7_4() {
-        return __WATCHOS_7_4;
-    }
-    private static final int __WATCHOS_7_5 = (int)70500L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_7_5 70500
-     * }
-     */
-    public static int __WATCHOS_7_5() {
-        return __WATCHOS_7_5;
-    }
-    private static final int __WATCHOS_7_6 = (int)70600L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_7_6 70600
-     * }
-     */
-    public static int __WATCHOS_7_6() {
-        return __WATCHOS_7_6;
-    }
-    private static final int __WATCHOS_8_0 = (int)80000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_8_0 80000
-     * }
-     */
-    public static int __WATCHOS_8_0() {
-        return __WATCHOS_8_0;
-    }
-    private static final int __WATCHOS_8_1 = (int)80100L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_8_1 80100
-     * }
-     */
-    public static int __WATCHOS_8_1() {
-        return __WATCHOS_8_1;
-    }
-    private static final int __WATCHOS_8_3 = (int)80300L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_8_3 80300
-     * }
-     */
-    public static int __WATCHOS_8_3() {
-        return __WATCHOS_8_3;
-    }
-    private static final int __WATCHOS_8_4 = (int)80400L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_8_4 80400
-     * }
-     */
-    public static int __WATCHOS_8_4() {
-        return __WATCHOS_8_4;
-    }
-    private static final int __WATCHOS_8_5 = (int)80500L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_8_5 80500
-     * }
-     */
-    public static int __WATCHOS_8_5() {
-        return __WATCHOS_8_5;
-    }
-    private static final int __WATCHOS_8_6 = (int)80600L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_8_6 80600
-     * }
-     */
-    public static int __WATCHOS_8_6() {
-        return __WATCHOS_8_6;
-    }
-    private static final int __WATCHOS_8_7 = (int)80700L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_8_7 80700
-     * }
-     */
-    public static int __WATCHOS_8_7() {
-        return __WATCHOS_8_7;
-    }
-    private static final int __WATCHOS_8_8 = (int)80800L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_8_8 80800
-     * }
-     */
-    public static int __WATCHOS_8_8() {
-        return __WATCHOS_8_8;
-    }
-    private static final int __WATCHOS_9_0 = (int)90000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_9_0 90000
-     * }
-     */
-    public static int __WATCHOS_9_0() {
-        return __WATCHOS_9_0;
-    }
-    private static final int __WATCHOS_9_1 = (int)90100L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_9_1 90100
-     * }
-     */
-    public static int __WATCHOS_9_1() {
-        return __WATCHOS_9_1;
-    }
-    private static final int __WATCHOS_9_2 = (int)90200L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_9_2 90200
-     * }
-     */
-    public static int __WATCHOS_9_2() {
-        return __WATCHOS_9_2;
-    }
-    private static final int __WATCHOS_9_3 = (int)90300L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_9_3 90300
-     * }
-     */
-    public static int __WATCHOS_9_3() {
-        return __WATCHOS_9_3;
-    }
-    private static final int __WATCHOS_9_4 = (int)90400L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_9_4 90400
-     * }
-     */
-    public static int __WATCHOS_9_4() {
-        return __WATCHOS_9_4;
-    }
-    private static final int __WATCHOS_9_5 = (int)90500L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_9_5 90500
-     * }
-     */
-    public static int __WATCHOS_9_5() {
-        return __WATCHOS_9_5;
-    }
-    private static final int __WATCHOS_9_6 = (int)90600L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_9_6 90600
-     * }
-     */
-    public static int __WATCHOS_9_6() {
-        return __WATCHOS_9_6;
-    }
-    private static final int __WATCHOS_10_0 = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_10_0 100000
-     * }
-     */
-    public static int __WATCHOS_10_0() {
-        return __WATCHOS_10_0;
-    }
-    private static final int __WATCHOS_10_1 = (int)100100L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_10_1 100100
-     * }
-     */
-    public static int __WATCHOS_10_1() {
-        return __WATCHOS_10_1;
-    }
-    private static final int __WATCHOS_10_2 = (int)100200L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_10_2 100200
-     * }
-     */
-    public static int __WATCHOS_10_2() {
-        return __WATCHOS_10_2;
-    }
-    private static final int __WATCHOS_10_3 = (int)100300L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_10_3 100300
-     * }
-     */
-    public static int __WATCHOS_10_3() {
-        return __WATCHOS_10_3;
-    }
-    private static final int __WATCHOS_10_4 = (int)100400L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_10_4 100400
-     * }
-     */
-    public static int __WATCHOS_10_4() {
-        return __WATCHOS_10_4;
-    }
-    private static final int __WATCHOS_10_5 = (int)100500L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_10_5 100500
-     * }
-     */
-    public static int __WATCHOS_10_5() {
-        return __WATCHOS_10_5;
-    }
-    private static final int __WATCHOS_10_6 = (int)100600L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_10_6 100600
-     * }
-     */
-    public static int __WATCHOS_10_6() {
-        return __WATCHOS_10_6;
-    }
-    private static final int __WATCHOS_10_7 = (int)100700L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_10_7 100700
-     * }
-     */
-    public static int __WATCHOS_10_7() {
-        return __WATCHOS_10_7;
-    }
-    private static final int __WATCHOS_11_0 = (int)110000L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_11_0 110000
-     * }
-     */
-    public static int __WATCHOS_11_0() {
-        return __WATCHOS_11_0;
-    }
-    private static final int __WATCHOS_11_1 = (int)110100L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_11_1 110100
-     * }
-     */
-    public static int __WATCHOS_11_1() {
-        return __WATCHOS_11_1;
-    }
-    private static final int __WATCHOS_11_2 = (int)110200L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_11_2 110200
-     * }
-     */
-    public static int __WATCHOS_11_2() {
-        return __WATCHOS_11_2;
-    }
-    private static final int __WATCHOS_11_3 = (int)110300L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_11_3 110300
-     * }
-     */
-    public static int __WATCHOS_11_3() {
-        return __WATCHOS_11_3;
-    }
-    private static final int __WATCHOS_11_4 = (int)110400L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_11_4 110400
-     * }
-     */
-    public static int __WATCHOS_11_4() {
-        return __WATCHOS_11_4;
-    }
-    private static final int __WATCHOS_11_5 = (int)110500L;
-    /**
-     * {@snippet lang=c :
-     * #define __WATCHOS_11_5 110500
-     * }
-     */
-    public static int __WATCHOS_11_5() {
-        return __WATCHOS_11_5;
-    }
-    private static final int __TVOS_9_0 = (int)90000L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_9_0 90000
-     * }
-     */
-    public static int __TVOS_9_0() {
-        return __TVOS_9_0;
-    }
-    private static final int __TVOS_9_1 = (int)90100L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_9_1 90100
-     * }
-     */
-    public static int __TVOS_9_1() {
-        return __TVOS_9_1;
-    }
-    private static final int __TVOS_9_2 = (int)90200L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_9_2 90200
-     * }
-     */
-    public static int __TVOS_9_2() {
-        return __TVOS_9_2;
-    }
-    private static final int __TVOS_10_0 = (int)100000L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_10_0 100000
-     * }
-     */
-    public static int __TVOS_10_0() {
-        return __TVOS_10_0;
-    }
-    private static final int __TVOS_10_0_1 = (int)100001L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_10_0_1 100001
-     * }
-     */
-    public static int __TVOS_10_0_1() {
-        return __TVOS_10_0_1;
-    }
-    private static final int __TVOS_10_1 = (int)100100L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_10_1 100100
-     * }
-     */
-    public static int __TVOS_10_1() {
-        return __TVOS_10_1;
-    }
-    private static final int __TVOS_10_2 = (int)100200L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_10_2 100200
-     * }
-     */
-    public static int __TVOS_10_2() {
-        return __TVOS_10_2;
-    }
-    private static final int __TVOS_11_0 = (int)110000L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_11_0 110000
-     * }
-     */
-    public static int __TVOS_11_0() {
-        return __TVOS_11_0;
-    }
-    private static final int __TVOS_11_1 = (int)110100L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_11_1 110100
-     * }
-     */
-    public static int __TVOS_11_1() {
-        return __TVOS_11_1;
-    }
-    private static final int __TVOS_11_2 = (int)110200L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_11_2 110200
-     * }
-     */
-    public static int __TVOS_11_2() {
-        return __TVOS_11_2;
-    }
-    private static final int __TVOS_11_3 = (int)110300L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_11_3 110300
-     * }
-     */
-    public static int __TVOS_11_3() {
-        return __TVOS_11_3;
-    }
-    private static final int __TVOS_11_4 = (int)110400L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_11_4 110400
-     * }
-     */
-    public static int __TVOS_11_4() {
-        return __TVOS_11_4;
-    }
-    private static final int __TVOS_12_0 = (int)120000L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_12_0 120000
-     * }
-     */
-    public static int __TVOS_12_0() {
-        return __TVOS_12_0;
-    }
-    private static final int __TVOS_12_1 = (int)120100L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_12_1 120100
-     * }
-     */
-    public static int __TVOS_12_1() {
-        return __TVOS_12_1;
-    }
-    private static final int __TVOS_12_2 = (int)120200L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_12_2 120200
-     * }
-     */
-    public static int __TVOS_12_2() {
-        return __TVOS_12_2;
-    }
-    private static final int __TVOS_12_3 = (int)120300L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_12_3 120300
-     * }
-     */
-    public static int __TVOS_12_3() {
-        return __TVOS_12_3;
-    }
-    private static final int __TVOS_12_4 = (int)120400L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_12_4 120400
-     * }
-     */
-    public static int __TVOS_12_4() {
-        return __TVOS_12_4;
-    }
-    private static final int __TVOS_13_0 = (int)130000L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_13_0 130000
-     * }
-     */
-    public static int __TVOS_13_0() {
-        return __TVOS_13_0;
-    }
-    private static final int __TVOS_13_2 = (int)130200L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_13_2 130200
-     * }
-     */
-    public static int __TVOS_13_2() {
-        return __TVOS_13_2;
-    }
-    private static final int __TVOS_13_3 = (int)130300L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_13_3 130300
-     * }
-     */
-    public static int __TVOS_13_3() {
-        return __TVOS_13_3;
-    }
-    private static final int __TVOS_13_4 = (int)130400L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_13_4 130400
-     * }
-     */
-    public static int __TVOS_13_4() {
-        return __TVOS_13_4;
-    }
-    private static final int __TVOS_14_0 = (int)140000L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_14_0 140000
-     * }
-     */
-    public static int __TVOS_14_0() {
-        return __TVOS_14_0;
-    }
-    private static final int __TVOS_14_1 = (int)140100L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_14_1 140100
-     * }
-     */
-    public static int __TVOS_14_1() {
-        return __TVOS_14_1;
-    }
-    private static final int __TVOS_14_2 = (int)140200L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_14_2 140200
-     * }
-     */
-    public static int __TVOS_14_2() {
-        return __TVOS_14_2;
-    }
-    private static final int __TVOS_14_3 = (int)140300L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_14_3 140300
-     * }
-     */
-    public static int __TVOS_14_3() {
-        return __TVOS_14_3;
-    }
-    private static final int __TVOS_14_5 = (int)140500L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_14_5 140500
-     * }
-     */
-    public static int __TVOS_14_5() {
-        return __TVOS_14_5;
-    }
-    private static final int __TVOS_14_6 = (int)140600L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_14_6 140600
-     * }
-     */
-    public static int __TVOS_14_6() {
-        return __TVOS_14_6;
-    }
-    private static final int __TVOS_14_7 = (int)140700L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_14_7 140700
-     * }
-     */
-    public static int __TVOS_14_7() {
-        return __TVOS_14_7;
-    }
-    private static final int __TVOS_15_0 = (int)150000L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_15_0 150000
-     * }
-     */
-    public static int __TVOS_15_0() {
-        return __TVOS_15_0;
-    }
-    private static final int __TVOS_15_1 = (int)150100L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_15_1 150100
-     * }
-     */
-    public static int __TVOS_15_1() {
-        return __TVOS_15_1;
-    }
-    private static final int __TVOS_15_2 = (int)150200L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_15_2 150200
-     * }
-     */
-    public static int __TVOS_15_2() {
-        return __TVOS_15_2;
-    }
-    private static final int __TVOS_15_3 = (int)150300L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_15_3 150300
-     * }
-     */
-    public static int __TVOS_15_3() {
-        return __TVOS_15_3;
-    }
-    private static final int __TVOS_15_4 = (int)150400L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_15_4 150400
-     * }
-     */
-    public static int __TVOS_15_4() {
-        return __TVOS_15_4;
-    }
-    private static final int __TVOS_15_5 = (int)150500L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_15_5 150500
-     * }
-     */
-    public static int __TVOS_15_5() {
-        return __TVOS_15_5;
-    }
-    private static final int __TVOS_15_6 = (int)150600L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_15_6 150600
-     * }
-     */
-    public static int __TVOS_15_6() {
-        return __TVOS_15_6;
-    }
-    private static final int __TVOS_16_0 = (int)160000L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_16_0 160000
-     * }
-     */
-    public static int __TVOS_16_0() {
-        return __TVOS_16_0;
-    }
-    private static final int __TVOS_16_1 = (int)160100L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_16_1 160100
-     * }
-     */
-    public static int __TVOS_16_1() {
-        return __TVOS_16_1;
-    }
-    private static final int __TVOS_16_2 = (int)160200L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_16_2 160200
-     * }
-     */
-    public static int __TVOS_16_2() {
-        return __TVOS_16_2;
-    }
-    private static final int __TVOS_16_3 = (int)160300L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_16_3 160300
-     * }
-     */
-    public static int __TVOS_16_3() {
-        return __TVOS_16_3;
-    }
-    private static final int __TVOS_16_4 = (int)160400L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_16_4 160400
-     * }
-     */
-    public static int __TVOS_16_4() {
-        return __TVOS_16_4;
-    }
-    private static final int __TVOS_16_5 = (int)160500L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_16_5 160500
-     * }
-     */
-    public static int __TVOS_16_5() {
-        return __TVOS_16_5;
-    }
-    private static final int __TVOS_16_6 = (int)160600L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_16_6 160600
-     * }
-     */
-    public static int __TVOS_16_6() {
-        return __TVOS_16_6;
-    }
-    private static final int __TVOS_17_0 = (int)170000L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_17_0 170000
-     * }
-     */
-    public static int __TVOS_17_0() {
-        return __TVOS_17_0;
-    }
-    private static final int __TVOS_17_1 = (int)170100L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_17_1 170100
-     * }
-     */
-    public static int __TVOS_17_1() {
-        return __TVOS_17_1;
-    }
-    private static final int __TVOS_17_2 = (int)170200L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_17_2 170200
-     * }
-     */
-    public static int __TVOS_17_2() {
-        return __TVOS_17_2;
-    }
-    private static final int __TVOS_17_3 = (int)170300L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_17_3 170300
-     * }
-     */
-    public static int __TVOS_17_3() {
-        return __TVOS_17_3;
-    }
-    private static final int __TVOS_17_4 = (int)170400L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_17_4 170400
-     * }
-     */
-    public static int __TVOS_17_4() {
-        return __TVOS_17_4;
-    }
-    private static final int __TVOS_17_5 = (int)170500L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_17_5 170500
-     * }
-     */
-    public static int __TVOS_17_5() {
-        return __TVOS_17_5;
-    }
-    private static final int __TVOS_17_6 = (int)170600L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_17_6 170600
-     * }
-     */
-    public static int __TVOS_17_6() {
-        return __TVOS_17_6;
-    }
-    private static final int __TVOS_18_0 = (int)180000L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_18_0 180000
-     * }
-     */
-    public static int __TVOS_18_0() {
-        return __TVOS_18_0;
-    }
-    private static final int __TVOS_18_1 = (int)180100L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_18_1 180100
-     * }
-     */
-    public static int __TVOS_18_1() {
-        return __TVOS_18_1;
-    }
-    private static final int __TVOS_18_2 = (int)180200L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_18_2 180200
-     * }
-     */
-    public static int __TVOS_18_2() {
-        return __TVOS_18_2;
-    }
-    private static final int __TVOS_18_3 = (int)180300L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_18_3 180300
-     * }
-     */
-    public static int __TVOS_18_3() {
-        return __TVOS_18_3;
-    }
-    private static final int __TVOS_18_4 = (int)180400L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_18_4 180400
-     * }
-     */
-    public static int __TVOS_18_4() {
-        return __TVOS_18_4;
-    }
-    private static final int __TVOS_18_5 = (int)180500L;
-    /**
-     * {@snippet lang=c :
-     * #define __TVOS_18_5 180500
-     * }
-     */
-    public static int __TVOS_18_5() {
-        return __TVOS_18_5;
-    }
-    private static final int __BRIDGEOS_2_0 = (int)20000L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_2_0 20000
-     * }
-     */
-    public static int __BRIDGEOS_2_0() {
-        return __BRIDGEOS_2_0;
-    }
-    private static final int __BRIDGEOS_3_0 = (int)30000L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_3_0 30000
-     * }
-     */
-    public static int __BRIDGEOS_3_0() {
-        return __BRIDGEOS_3_0;
-    }
-    private static final int __BRIDGEOS_3_1 = (int)30100L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_3_1 30100
-     * }
-     */
-    public static int __BRIDGEOS_3_1() {
-        return __BRIDGEOS_3_1;
-    }
-    private static final int __BRIDGEOS_3_4 = (int)30400L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_3_4 30400
-     * }
-     */
-    public static int __BRIDGEOS_3_4() {
-        return __BRIDGEOS_3_4;
-    }
-    private static final int __BRIDGEOS_4_0 = (int)40000L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_4_0 40000
-     * }
-     */
-    public static int __BRIDGEOS_4_0() {
-        return __BRIDGEOS_4_0;
-    }
-    private static final int __BRIDGEOS_4_1 = (int)40100L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_4_1 40100
-     * }
-     */
-    public static int __BRIDGEOS_4_1() {
-        return __BRIDGEOS_4_1;
-    }
-    private static final int __BRIDGEOS_5_0 = (int)50000L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_5_0 50000
-     * }
-     */
-    public static int __BRIDGEOS_5_0() {
-        return __BRIDGEOS_5_0;
-    }
-    private static final int __BRIDGEOS_5_1 = (int)50100L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_5_1 50100
-     * }
-     */
-    public static int __BRIDGEOS_5_1() {
-        return __BRIDGEOS_5_1;
-    }
-    private static final int __BRIDGEOS_5_3 = (int)50300L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_5_3 50300
-     * }
-     */
-    public static int __BRIDGEOS_5_3() {
-        return __BRIDGEOS_5_3;
-    }
-    private static final int __BRIDGEOS_6_0 = (int)60000L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_6_0 60000
-     * }
-     */
-    public static int __BRIDGEOS_6_0() {
-        return __BRIDGEOS_6_0;
-    }
-    private static final int __BRIDGEOS_6_2 = (int)60200L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_6_2 60200
-     * }
-     */
-    public static int __BRIDGEOS_6_2() {
-        return __BRIDGEOS_6_2;
-    }
-    private static final int __BRIDGEOS_6_4 = (int)60400L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_6_4 60400
-     * }
-     */
-    public static int __BRIDGEOS_6_4() {
-        return __BRIDGEOS_6_4;
-    }
-    private static final int __BRIDGEOS_6_5 = (int)60500L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_6_5 60500
-     * }
-     */
-    public static int __BRIDGEOS_6_5() {
-        return __BRIDGEOS_6_5;
-    }
-    private static final int __BRIDGEOS_6_6 = (int)60600L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_6_6 60600
-     * }
-     */
-    public static int __BRIDGEOS_6_6() {
-        return __BRIDGEOS_6_6;
-    }
-    private static final int __BRIDGEOS_7_0 = (int)70000L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_7_0 70000
-     * }
-     */
-    public static int __BRIDGEOS_7_0() {
-        return __BRIDGEOS_7_0;
-    }
-    private static final int __BRIDGEOS_7_1 = (int)70100L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_7_1 70100
-     * }
-     */
-    public static int __BRIDGEOS_7_1() {
-        return __BRIDGEOS_7_1;
-    }
-    private static final int __BRIDGEOS_7_2 = (int)70200L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_7_2 70200
-     * }
-     */
-    public static int __BRIDGEOS_7_2() {
-        return __BRIDGEOS_7_2;
-    }
-    private static final int __BRIDGEOS_7_3 = (int)70300L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_7_3 70300
-     * }
-     */
-    public static int __BRIDGEOS_7_3() {
-        return __BRIDGEOS_7_3;
-    }
-    private static final int __BRIDGEOS_7_4 = (int)70400L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_7_4 70400
-     * }
-     */
-    public static int __BRIDGEOS_7_4() {
-        return __BRIDGEOS_7_4;
-    }
-    private static final int __BRIDGEOS_7_6 = (int)70600L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_7_6 70600
-     * }
-     */
-    public static int __BRIDGEOS_7_6() {
-        return __BRIDGEOS_7_6;
-    }
-    private static final int __BRIDGEOS_8_0 = (int)80000L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_8_0 80000
-     * }
-     */
-    public static int __BRIDGEOS_8_0() {
-        return __BRIDGEOS_8_0;
-    }
-    private static final int __BRIDGEOS_8_1 = (int)80100L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_8_1 80100
-     * }
-     */
-    public static int __BRIDGEOS_8_1() {
-        return __BRIDGEOS_8_1;
-    }
-    private static final int __BRIDGEOS_8_2 = (int)80200L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_8_2 80200
-     * }
-     */
-    public static int __BRIDGEOS_8_2() {
-        return __BRIDGEOS_8_2;
-    }
-    private static final int __BRIDGEOS_8_3 = (int)80300L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_8_3 80300
-     * }
-     */
-    public static int __BRIDGEOS_8_3() {
-        return __BRIDGEOS_8_3;
-    }
-    private static final int __BRIDGEOS_8_4 = (int)80400L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_8_4 80400
-     * }
-     */
-    public static int __BRIDGEOS_8_4() {
-        return __BRIDGEOS_8_4;
-    }
-    private static final int __BRIDGEOS_8_5 = (int)80500L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_8_5 80500
-     * }
-     */
-    public static int __BRIDGEOS_8_5() {
-        return __BRIDGEOS_8_5;
-    }
-    private static final int __BRIDGEOS_8_6 = (int)80600L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_8_6 80600
-     * }
-     */
-    public static int __BRIDGEOS_8_6() {
-        return __BRIDGEOS_8_6;
-    }
-    private static final int __BRIDGEOS_9_0 = (int)90000L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_9_0 90000
-     * }
-     */
-    public static int __BRIDGEOS_9_0() {
-        return __BRIDGEOS_9_0;
-    }
-    private static final int __BRIDGEOS_9_1 = (int)90100L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_9_1 90100
-     * }
-     */
-    public static int __BRIDGEOS_9_1() {
-        return __BRIDGEOS_9_1;
-    }
-    private static final int __BRIDGEOS_9_2 = (int)90200L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_9_2 90200
-     * }
-     */
-    public static int __BRIDGEOS_9_2() {
-        return __BRIDGEOS_9_2;
-    }
-    private static final int __BRIDGEOS_9_3 = (int)90300L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_9_3 90300
-     * }
-     */
-    public static int __BRIDGEOS_9_3() {
-        return __BRIDGEOS_9_3;
-    }
-    private static final int __BRIDGEOS_9_4 = (int)90400L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_9_4 90400
-     * }
-     */
-    public static int __BRIDGEOS_9_4() {
-        return __BRIDGEOS_9_4;
-    }
-    private static final int __BRIDGEOS_9_5 = (int)90500L;
-    /**
-     * {@snippet lang=c :
-     * #define __BRIDGEOS_9_5 90500
-     * }
-     */
-    public static int __BRIDGEOS_9_5() {
-        return __BRIDGEOS_9_5;
-    }
-    private static final int __DRIVERKIT_19_0 = (int)190000L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_19_0 190000
-     * }
-     */
-    public static int __DRIVERKIT_19_0() {
-        return __DRIVERKIT_19_0;
-    }
-    private static final int __DRIVERKIT_20_0 = (int)200000L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_20_0 200000
-     * }
-     */
-    public static int __DRIVERKIT_20_0() {
-        return __DRIVERKIT_20_0;
-    }
-    private static final int __DRIVERKIT_21_0 = (int)210000L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_21_0 210000
-     * }
-     */
-    public static int __DRIVERKIT_21_0() {
-        return __DRIVERKIT_21_0;
-    }
-    private static final int __DRIVERKIT_22_0 = (int)220000L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_22_0 220000
-     * }
-     */
-    public static int __DRIVERKIT_22_0() {
-        return __DRIVERKIT_22_0;
-    }
-    private static final int __DRIVERKIT_22_4 = (int)220400L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_22_4 220400
-     * }
-     */
-    public static int __DRIVERKIT_22_4() {
-        return __DRIVERKIT_22_4;
-    }
-    private static final int __DRIVERKIT_22_5 = (int)220500L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_22_5 220500
-     * }
-     */
-    public static int __DRIVERKIT_22_5() {
-        return __DRIVERKIT_22_5;
-    }
-    private static final int __DRIVERKIT_22_6 = (int)220600L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_22_6 220600
-     * }
-     */
-    public static int __DRIVERKIT_22_6() {
-        return __DRIVERKIT_22_6;
-    }
-    private static final int __DRIVERKIT_23_0 = (int)230000L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_23_0 230000
-     * }
-     */
-    public static int __DRIVERKIT_23_0() {
-        return __DRIVERKIT_23_0;
-    }
-    private static final int __DRIVERKIT_23_1 = (int)230100L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_23_1 230100
-     * }
-     */
-    public static int __DRIVERKIT_23_1() {
-        return __DRIVERKIT_23_1;
-    }
-    private static final int __DRIVERKIT_23_2 = (int)230200L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_23_2 230200
-     * }
-     */
-    public static int __DRIVERKIT_23_2() {
-        return __DRIVERKIT_23_2;
-    }
-    private static final int __DRIVERKIT_23_3 = (int)230300L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_23_3 230300
-     * }
-     */
-    public static int __DRIVERKIT_23_3() {
-        return __DRIVERKIT_23_3;
-    }
-    private static final int __DRIVERKIT_23_4 = (int)230400L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_23_4 230400
-     * }
-     */
-    public static int __DRIVERKIT_23_4() {
-        return __DRIVERKIT_23_4;
-    }
-    private static final int __DRIVERKIT_23_5 = (int)230500L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_23_5 230500
-     * }
-     */
-    public static int __DRIVERKIT_23_5() {
-        return __DRIVERKIT_23_5;
-    }
-    private static final int __DRIVERKIT_23_6 = (int)230600L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_23_6 230600
-     * }
-     */
-    public static int __DRIVERKIT_23_6() {
-        return __DRIVERKIT_23_6;
-    }
-    private static final int __DRIVERKIT_24_0 = (int)240000L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_24_0 240000
-     * }
-     */
-    public static int __DRIVERKIT_24_0() {
-        return __DRIVERKIT_24_0;
-    }
-    private static final int __DRIVERKIT_24_1 = (int)240100L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_24_1 240100
-     * }
-     */
-    public static int __DRIVERKIT_24_1() {
-        return __DRIVERKIT_24_1;
-    }
-    private static final int __DRIVERKIT_24_2 = (int)240200L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_24_2 240200
-     * }
-     */
-    public static int __DRIVERKIT_24_2() {
-        return __DRIVERKIT_24_2;
-    }
-    private static final int __DRIVERKIT_24_3 = (int)240300L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_24_3 240300
-     * }
-     */
-    public static int __DRIVERKIT_24_3() {
-        return __DRIVERKIT_24_3;
-    }
-    private static final int __DRIVERKIT_24_4 = (int)240400L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_24_4 240400
-     * }
-     */
-    public static int __DRIVERKIT_24_4() {
-        return __DRIVERKIT_24_4;
-    }
-    private static final int __DRIVERKIT_24_5 = (int)240500L;
-    /**
-     * {@snippet lang=c :
-     * #define __DRIVERKIT_24_5 240500
-     * }
-     */
-    public static int __DRIVERKIT_24_5() {
-        return __DRIVERKIT_24_5;
-    }
-    private static final int __VISIONOS_1_0 = (int)10000L;
-    /**
-     * {@snippet lang=c :
-     * #define __VISIONOS_1_0 10000
-     * }
-     */
-    public static int __VISIONOS_1_0() {
-        return __VISIONOS_1_0;
-    }
-    private static final int __VISIONOS_1_1 = (int)10100L;
-    /**
-     * {@snippet lang=c :
-     * #define __VISIONOS_1_1 10100
-     * }
-     */
-    public static int __VISIONOS_1_1() {
-        return __VISIONOS_1_1;
-    }
-    private static final int __VISIONOS_1_2 = (int)10200L;
-    /**
-     * {@snippet lang=c :
-     * #define __VISIONOS_1_2 10200
-     * }
-     */
-    public static int __VISIONOS_1_2() {
-        return __VISIONOS_1_2;
-    }
-    private static final int __VISIONOS_1_3 = (int)10300L;
-    /**
-     * {@snippet lang=c :
-     * #define __VISIONOS_1_3 10300
-     * }
-     */
-    public static int __VISIONOS_1_3() {
-        return __VISIONOS_1_3;
-    }
-    private static final int __VISIONOS_2_0 = (int)20000L;
-    /**
-     * {@snippet lang=c :
-     * #define __VISIONOS_2_0 20000
-     * }
-     */
-    public static int __VISIONOS_2_0() {
-        return __VISIONOS_2_0;
-    }
-    private static final int __VISIONOS_2_1 = (int)20100L;
-    /**
-     * {@snippet lang=c :
-     * #define __VISIONOS_2_1 20100
-     * }
-     */
-    public static int __VISIONOS_2_1() {
-        return __VISIONOS_2_1;
-    }
-    private static final int __VISIONOS_2_2 = (int)20200L;
-    /**
-     * {@snippet lang=c :
-     * #define __VISIONOS_2_2 20200
-     * }
-     */
-    public static int __VISIONOS_2_2() {
-        return __VISIONOS_2_2;
-    }
-    private static final int __VISIONOS_2_3 = (int)20300L;
-    /**
-     * {@snippet lang=c :
-     * #define __VISIONOS_2_3 20300
-     * }
-     */
-    public static int __VISIONOS_2_3() {
-        return __VISIONOS_2_3;
-    }
-    private static final int __VISIONOS_2_4 = (int)20400L;
-    /**
-     * {@snippet lang=c :
-     * #define __VISIONOS_2_4 20400
-     * }
-     */
-    public static int __VISIONOS_2_4() {
-        return __VISIONOS_2_4;
-    }
-    private static final int __VISIONOS_2_5 = (int)20500L;
-    /**
-     * {@snippet lang=c :
-     * #define __VISIONOS_2_5 20500
-     * }
-     */
-    public static int __VISIONOS_2_5() {
-        return __VISIONOS_2_5;
-    }
-    private static final int __ENABLE_LEGACY_MAC_AVAILABILITY = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define __ENABLE_LEGACY_MAC_AVAILABILITY 1
-     * }
-     */
-    public static int __ENABLE_LEGACY_MAC_AVAILABILITY() {
-        return __ENABLE_LEGACY_MAC_AVAILABILITY;
-    }
-    private static final int USE_CLANG_STDDEF = (int)0L;
-    /**
-     * {@snippet lang=c :
-     * #define USE_CLANG_STDDEF 0
-     * }
-     */
-    public static int USE_CLANG_STDDEF() {
-        return USE_CLANG_STDDEF;
-    }
-    private static final int TIME_UTC = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define TIME_UTC 1
-     * }
-     */
-    public static int TIME_UTC() {
-        return TIME_UTC;
-    }
-    /**
-     * {@snippet lang=c :
-     * typedef long ptrdiff_t
-     * }
-     */
-    public static final OfLong ptrdiff_t = ipc_channel_h.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned long size_t
-     * }
-     */
-    public static final OfLong size_t = ipc_channel_h.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef int wchar_t
-     * }
-     */
-    public static final OfInt wchar_t = ipc_channel_h.C_INT;
     /**
      * {@snippet lang=c :
      * typedef signed char int8_t
@@ -3915,449 +729,262 @@ public class ipc_channel_h extends ipc_channel_h$shared {
      * }
      */
     public static final OfLong uintmax_t = ipc_channel_h.C_LONG;
-    private static final int IPC_OK = (int)0L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_OK = 0
+     * typedef long ptrdiff_t
      * }
      */
-    public static int IPC_OK() {
-        return IPC_OK;
+    public static final OfLong ptrdiff_t = ipc_channel_h.C_LONG;
+    /**
+     * {@snippet lang=c :
+     * typedef unsigned long size_t
+     * }
+     */
+    public static final OfLong size_t = ipc_channel_h.C_LONG;
+    /**
+     * {@snippet lang=c :
+     * typedef unsigned long rsize_t
+     * }
+     */
+    public static final OfLong rsize_t = ipc_channel_h.C_LONG;
+    /**
+     * {@snippet lang=c :
+     * typedef int wchar_t
+     * }
+     */
+    public static final OfInt wchar_t = ipc_channel_h.C_INT;
+    private static final int IPC_ERR_KIND_NONE = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.IPC_ERR_KIND_NONE = 0
+     * }
+     */
+    public static int IPC_ERR_KIND_NONE() {
+        return IPC_ERR_KIND_NONE;
     }
-    private static final int IPC_EMPTY = (int)1L;
+    private static final int IPC_ERR_KIND_ARG = (int)1L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_EMPTY = 1
+     * enum <anonymous>.IPC_ERR_KIND_ARG = 1
      * }
      */
-    public static int IPC_EMPTY() {
-        return IPC_EMPTY;
+    public static int IPC_ERR_KIND_ARG() {
+        return IPC_ERR_KIND_ARG;
     }
-    private static final int IPC_ALREADY_SKIPPED = (int)2L;
+    private static final int IPC_ERR_KIND_INTERNAL = (int)2L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ALREADY_SKIPPED = 2
+     * enum <anonymous>.IPC_ERR_KIND_INTERNAL = 2
      * }
      */
-    public static int IPC_ALREADY_SKIPPED() {
-        return IPC_ALREADY_SKIPPED;
+    public static int IPC_ERR_KIND_INTERNAL() {
+        return IPC_ERR_KIND_INTERNAL;
     }
-    private static final int IPC_PLACEHOLDER = (int)3L;
+    private static final int IPC_ERR_KIND_SYS = (int)3L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_PLACEHOLDER = 3
+     * enum <anonymous>.IPC_ERR_KIND_SYS = 3
      * }
      */
-    public static int IPC_PLACEHOLDER() {
-        return IPC_PLACEHOLDER;
+    public static int IPC_ERR_KIND_SYS() {
+        return IPC_ERR_KIND_SYS;
     }
-    private static final int IPC_ERR_ENTRY_TOO_LARGE = (int)-1L;
+    private static final int IPC_ERR_CODE_NONE = (int)0L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_ENTRY_TOO_LARGE = -1
+     * enum <anonymous>.IPC_ERR_CODE_NONE = 0
      * }
      */
-    public static int IPC_ERR_ENTRY_TOO_LARGE() {
-        return IPC_ERR_ENTRY_TOO_LARGE;
+    public static int IPC_ERR_CODE_NONE() {
+        return IPC_ERR_CODE_NONE;
     }
-    private static final int IPC_ERR_ALLOCATION = (int)-2L;
+    private static final int IPC_ERR_CODE_NULL_ARG = (int)1L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_ALLOCATION = -2
+     * enum <anonymous>.IPC_ERR_CODE_NULL_ARG = 1
      * }
      */
-    public static int IPC_ERR_ALLOCATION() {
-        return IPC_ERR_ALLOCATION;
+    public static int IPC_ERR_CODE_NULL_ARG() {
+        return IPC_ERR_CODE_NULL_ARG;
     }
-    private static final int IPC_ERR_INVALID_ARGUMENT = (int)-3L;
+    private static final int IPC_ERR_CODE_TOO_SMALL_SIZE = (int)2L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_INVALID_ARGUMENT = -3
+     * enum <anonymous>.IPC_ERR_CODE_TOO_SMALL_SIZE = 2
      * }
      */
-    public static int IPC_ERR_INVALID_ARGUMENT() {
-        return IPC_ERR_INVALID_ARGUMENT;
+    public static int IPC_ERR_CODE_TOO_SMALL_SIZE() {
+        return IPC_ERR_CODE_TOO_SMALL_SIZE;
     }
-    private static final int IPC_ERR_TOO_SMALL = (int)-4L;
+    private static final int IPC_ERR_CODE_ZERO_SIZE = (int)3L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_TOO_SMALL = -4
+     * enum <anonymous>.IPC_ERR_CODE_ZERO_SIZE = 3
      * }
      */
-    public static int IPC_ERR_TOO_SMALL() {
-        return IPC_ERR_TOO_SMALL;
+    public static int IPC_ERR_CODE_ZERO_SIZE() {
+        return IPC_ERR_CODE_ZERO_SIZE;
     }
-    private static final int IPC_ERR_ILLEGAL_STATE = (int)-5L;
+    private static final int IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER = (int)4L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_ILLEGAL_STATE = -5
+     * enum <anonymous>.IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER = 4
      * }
      */
-    public static int IPC_ERR_ILLEGAL_STATE() {
-        return IPC_ERR_ILLEGAL_STATE;
+    public static int IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER() {
+        return IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER;
     }
-    private static final int IPC_ERR_SYSTEM = (int)-6L;
+    private static final int IPC_ERR_CODE_INVALID_CAPACITY = (int)5L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_SYSTEM = -6
+     * enum <anonymous>.IPC_ERR_CODE_INVALID_CAPACITY = 5
      * }
      */
-    public static int IPC_ERR_SYSTEM() {
-        return IPC_ERR_SYSTEM;
+    public static int IPC_ERR_CODE_INVALID_CAPACITY() {
+        return IPC_ERR_CODE_INVALID_CAPACITY;
     }
-    private static final int IPC_ERR_NO_SPACE_CONTIGUOUS = (int)-7L;
+    private static final int IPC_ERR_CODE_INVALID_TIMEOUT = (int)6L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_NO_SPACE_CONTIGUOUS = -7
+     * enum <anonymous>.IPC_ERR_CODE_INVALID_TIMEOUT = 6
      * }
      */
-    public static int IPC_ERR_NO_SPACE_CONTIGUOUS() {
-        return IPC_ERR_NO_SPACE_CONTIGUOUS;
+    public static int IPC_ERR_CODE_INVALID_TIMEOUT() {
+        return IPC_ERR_CODE_INVALID_TIMEOUT;
     }
-    private static final int IPC_ERR_NOT_READY = (int)-8L;
+    private static final int IPC_ERR_CODE_OFFSET_CAS_FAILED = (int)7L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_NOT_READY = -8
+     * enum <anonymous>.IPC_ERR_CODE_OFFSET_CAS_FAILED = 7
      * }
      */
-    public static int IPC_ERR_NOT_READY() {
-        return IPC_ERR_NOT_READY;
+    public static int IPC_ERR_CODE_OFFSET_CAS_FAILED() {
+        return IPC_ERR_CODE_OFFSET_CAS_FAILED;
     }
-    private static final int IPC_ERR_LOCKED = (int)-9L;
+    private static final int IPC_ERR_CODE_ENTRY_CORRUPTED = (int)8L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_LOCKED = -9
+     * enum <anonymous>.IPC_ERR_CODE_ENTRY_CORRUPTED = 8
      * }
      */
-    public static int IPC_ERR_LOCKED() {
-        return IPC_ERR_LOCKED;
+    public static int IPC_ERR_CODE_ENTRY_CORRUPTED() {
+        return IPC_ERR_CODE_ENTRY_CORRUPTED;
     }
-    private static final int IPC_ERR_OFFSET_MISMATCH = (int)-10L;
+    private static final int IPC_ERR_CODE_ALLOCATION = (int)9L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_OFFSET_MISMATCH = -10
+     * enum <anonymous>.IPC_ERR_CODE_ALLOCATION = 9
      * }
      */
-    public static int IPC_ERR_OFFSET_MISMATCH() {
-        return IPC_ERR_OFFSET_MISMATCH;
+    public static int IPC_ERR_CODE_ALLOCATION() {
+        return IPC_ERR_CODE_ALLOCATION;
     }
-    private static final int IPC_ERR_TIMEOUT = (int)-11L;
+    private static final int IPC_ERR_CODE_GET_TIME = (int)10L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_TIMEOUT = -11
+     * enum <anonymous>.IPC_ERR_CODE_GET_TIME = 10
      * }
      */
-    public static int IPC_ERR_TIMEOUT() {
-        return IPC_ERR_TIMEOUT;
+    public static int IPC_ERR_CODE_GET_TIME() {
+        return IPC_ERR_CODE_GET_TIME;
     }
-    private static final int IPC_ERR_CORRUPTED = (int)-12L;
+    private static final int IPC_ERR_CODE_FUTEX_WAIT = (int)11L;
     /**
      * {@snippet lang=c :
-     * enum <anonymous>.IPC_ERR_CORRUPTED = -12
+     * enum <anonymous>.IPC_ERR_CODE_FUTEX_WAIT = 11
      * }
      */
-    public static int IPC_ERR_CORRUPTED() {
-        return IPC_ERR_CORRUPTED;
+    public static int IPC_ERR_CODE_FUTEX_WAIT() {
+        return IPC_ERR_CODE_FUTEX_WAIT;
     }
+    private static final int IPC_CAS_TARGET_NONE = (int)0L;
     /**
      * {@snippet lang=c :
-     * typedef int __darwin_nl_item
+     * enum <anonymous>.IPC_CAS_TARGET_NONE = 0
      * }
      */
-    public static final OfInt __darwin_nl_item = ipc_channel_h.C_INT;
+    public static int IPC_CAS_TARGET_NONE() {
+        return IPC_CAS_TARGET_NONE;
+    }
+    private static final int IPC_CAS_TARGET_TAIL = (int)1L;
     /**
      * {@snippet lang=c :
-     * typedef int __darwin_wctrans_t
+     * enum <anonymous>.IPC_CAS_TARGET_TAIL = 1
      * }
      */
-    public static final OfInt __darwin_wctrans_t = ipc_channel_h.C_INT;
+    public static int IPC_CAS_TARGET_TAIL() {
+        return IPC_CAS_TARGET_TAIL;
+    }
+    private static final int IPC_CAS_TARGET_HEAD = (int)2L;
     /**
      * {@snippet lang=c :
-     * typedef __uint32_t __darwin_wctype_t
+     * enum <anonymous>.IPC_CAS_TARGET_HEAD = 2
      * }
      */
-    public static final OfInt __darwin_wctype_t = ipc_channel_h.C_INT;
+    public static int IPC_CAS_TARGET_HEAD() {
+        return IPC_CAS_TARGET_HEAD;
+    }
+    private static final int IPC_STATUS_OK = (int)0L;
     /**
      * {@snippet lang=c :
-     * typedef unsigned char u_int8_t
+     * enum <anonymous>.IPC_STATUS_OK = 0
      * }
      */
-    public static final OfByte u_int8_t = ipc_channel_h.C_CHAR;
+    public static int IPC_STATUS_OK() {
+        return IPC_STATUS_OK;
+    }
+    private static final int IPC_STATUS_EMPTY = (int)1L;
     /**
      * {@snippet lang=c :
-     * typedef unsigned short u_int16_t
+     * enum <anonymous>.IPC_STATUS_EMPTY = 1
      * }
      */
-    public static final OfShort u_int16_t = ipc_channel_h.C_SHORT;
+    public static int IPC_STATUS_EMPTY() {
+        return IPC_STATUS_EMPTY;
+    }
+    private static final int IPC_STATUS_BUSY = (int)2L;
     /**
      * {@snippet lang=c :
-     * typedef unsigned int u_int32_t
+     * enum <anonymous>.IPC_STATUS_BUSY = 2
      * }
      */
-    public static final OfInt u_int32_t = ipc_channel_h.C_INT;
+    public static int IPC_STATUS_BUSY() {
+        return IPC_STATUS_BUSY;
+    }
+    private static final int IPC_STATUS_TIMEOUT = (int)3L;
     /**
      * {@snippet lang=c :
-     * typedef unsigned long long u_int64_t
+     * enum <anonymous>.IPC_STATUS_TIMEOUT = 3
      * }
      */
-    public static final OfLong u_int64_t = ipc_channel_h.C_LONG_LONG;
+    public static int IPC_STATUS_TIMEOUT() {
+        return IPC_STATUS_TIMEOUT;
+    }
+    private static final int IPC_STATUS_NO_SPACE = (int)4L;
     /**
      * {@snippet lang=c :
-     * typedef int64_t register_t
+     * enum <anonymous>.IPC_STATUS_NO_SPACE = 4
      * }
      */
-    public static final OfLong register_t = ipc_channel_h.C_LONG_LONG;
+    public static int IPC_STATUS_NO_SPACE() {
+        return IPC_STATUS_NO_SPACE;
+    }
+    private static final int IPC_STATUS_ERROR = (int)5L;
     /**
      * {@snippet lang=c :
-     * typedef u_int64_t user_addr_t
+     * enum <anonymous>.IPC_STATUS_ERROR = 5
      * }
      */
-    public static final OfLong user_addr_t = ipc_channel_h.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef u_int64_t user_size_t
-     * }
-     */
-    public static final OfLong user_size_t = ipc_channel_h.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef int64_t user_ssize_t
-     * }
-     */
-    public static final OfLong user_ssize_t = ipc_channel_h.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef int64_t user_long_t
-     * }
-     */
-    public static final OfLong user_long_t = ipc_channel_h.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef u_int64_t user_ulong_t
-     * }
-     */
-    public static final OfLong user_ulong_t = ipc_channel_h.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef int64_t user_time_t
-     * }
-     */
-    public static final OfLong user_time_t = ipc_channel_h.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef int64_t user_off_t
-     * }
-     */
-    public static final OfLong user_off_t = ipc_channel_h.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef u_int64_t syscall_arg_t
-     * }
-     */
-    public static final OfLong syscall_arg_t = ipc_channel_h.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef __darwin_clock_t clock_t
-     * }
-     */
-    public static final OfLong clock_t = ipc_channel_h.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef __darwin_time_t time_t
-     * }
-     */
-    public static final OfLong time_t = ipc_channel_h.C_LONG;
-
-    private static class tzname$constants {
-        public static final SequenceLayout LAYOUT = MemoryLayout.sequenceLayout(0, ipc_channel_h.C_POINTER);
-        public static final MemorySegment SEGMENT = SYMBOL_LOOKUP.findOrThrow("tzname").reinterpret(LAYOUT.byteSize());
-    public static final VarHandle HANDLE = LAYOUT.varHandle();
-
-        public static final long[] DIMS = {  };
+    public static int IPC_STATUS_ERROR() {
+        return IPC_STATUS_ERROR;
     }
 
-    /**
-     * Layout for variable:
-     * {@snippet lang=c :
-     * extern char *tzname[]
-     * }
-     */
-    public static SequenceLayout tzname$layout() {
-        return tzname$constants.LAYOUT;
-    }
-
-    /**
-     * Dimensions for array variable:
-     * {@snippet lang=c :
-     * extern char *tzname[]
-     * }
-     */
-    public static long[] tzname$dimensions() {
-        return tzname$constants.DIMS;
-    }
-
-    /**
-     * Getter for variable:
-     * {@snippet lang=c :
-     * extern char *tzname[]
-     * }
-     */
-    public static MemorySegment tzname() {
-        return tzname$constants.SEGMENT;
-    }
-
-    /**
-     * Setter for variable:
-     * {@snippet lang=c :
-     * extern char *tzname[]
-     * }
-     */
-    public static void tzname(MemorySegment varValue) {
-        MemorySegment.copy(varValue, 0L, tzname$constants.SEGMENT, 0L, tzname$constants.LAYOUT.byteSize());
-    }
-
-    private static class getdate_err$constants {
-        public static final OfInt LAYOUT = ipc_channel_h.C_INT;
-        public static final MemorySegment SEGMENT = SYMBOL_LOOKUP.findOrThrow("getdate_err").reinterpret(LAYOUT.byteSize());
-    }
-
-    /**
-     * Layout for variable:
-     * {@snippet lang=c :
-     * extern int getdate_err
-     * }
-     */
-    public static OfInt getdate_err$layout() {
-        return getdate_err$constants.LAYOUT;
-    }
-
-    /**
-     * Segment for variable:
-     * {@snippet lang=c :
-     * extern int getdate_err
-     * }
-     */
-    public static MemorySegment getdate_err$segment() {
-        return getdate_err$constants.SEGMENT;
-    }
-
-    /**
-     * Getter for variable:
-     * {@snippet lang=c :
-     * extern int getdate_err
-     * }
-     */
-    public static int getdate_err() {
-        return getdate_err$constants.SEGMENT.get(getdate_err$constants.LAYOUT, 0L);
-    }
-
-    /**
-     * Setter for variable:
-     * {@snippet lang=c :
-     * extern int getdate_err
-     * }
-     */
-    public static void getdate_err(int varValue) {
-        getdate_err$constants.SEGMENT.set(getdate_err$constants.LAYOUT, 0L, varValue);
-    }
-
-    private static class timezone$constants {
-        public static final OfLong LAYOUT = ipc_channel_h.C_LONG;
-        public static final MemorySegment SEGMENT = SYMBOL_LOOKUP.findOrThrow("timezone").reinterpret(LAYOUT.byteSize());
-    }
-
-    /**
-     * Layout for variable:
-     * {@snippet lang=c :
-     * extern long timezone
-     * }
-     */
-    public static OfLong timezone$layout() {
-        return timezone$constants.LAYOUT;
-    }
-
-    /**
-     * Segment for variable:
-     * {@snippet lang=c :
-     * extern long timezone
-     * }
-     */
-    public static MemorySegment timezone$segment() {
-        return timezone$constants.SEGMENT;
-    }
-
-    /**
-     * Getter for variable:
-     * {@snippet lang=c :
-     * extern long timezone
-     * }
-     */
-    public static long timezone() {
-        return timezone$constants.SEGMENT.get(timezone$constants.LAYOUT, 0L);
-    }
-
-    /**
-     * Setter for variable:
-     * {@snippet lang=c :
-     * extern long timezone
-     * }
-     */
-    public static void timezone(long varValue) {
-        timezone$constants.SEGMENT.set(timezone$constants.LAYOUT, 0L, varValue);
-    }
-
-    private static class daylight$constants {
-        public static final OfInt LAYOUT = ipc_channel_h.C_INT;
-        public static final MemorySegment SEGMENT = SYMBOL_LOOKUP.findOrThrow("daylight").reinterpret(LAYOUT.byteSize());
-    }
-
-    /**
-     * Layout for variable:
-     * {@snippet lang=c :
-     * extern int daylight
-     * }
-     */
-    public static OfInt daylight$layout() {
-        return daylight$constants.LAYOUT;
-    }
-
-    /**
-     * Segment for variable:
-     * {@snippet lang=c :
-     * extern int daylight
-     * }
-     */
-    public static MemorySegment daylight$segment() {
-        return daylight$constants.SEGMENT;
-    }
-
-    /**
-     * Getter for variable:
-     * {@snippet lang=c :
-     * extern int daylight
-     * }
-     */
-    public static int daylight() {
-        return daylight$constants.SEGMENT.get(daylight$constants.LAYOUT, 0L);
-    }
-
-    /**
-     * Setter for variable:
-     * {@snippet lang=c :
-     * extern int daylight
-     * }
-     */
-    public static void daylight(int varValue) {
-        daylight$constants.SEGMENT.set(daylight$constants.LAYOUT, 0L, varValue);
-    }
-
-    private static class asctime {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
+    private static class ipc_entry_destroy {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
+            ipc_entry_t.layout()
         );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("asctime");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_entry_destroy");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4365,45 +992,45 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * char *asctime(const struct tm *)
+     * void ipc_entry_destroy(ipc_entry_t entry)
      * }
      */
-    public static FunctionDescriptor asctime$descriptor() {
-        return asctime.DESC;
+    public static FunctionDescriptor ipc_entry_destroy$descriptor() {
+        return ipc_entry_destroy.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * char *asctime(const struct tm *)
+     * void ipc_entry_destroy(ipc_entry_t entry)
      * }
      */
-    public static MethodHandle asctime$handle() {
-        return asctime.HANDLE;
+    public static MethodHandle ipc_entry_destroy$handle() {
+        return ipc_entry_destroy.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * char *asctime(const struct tm *)
+     * void ipc_entry_destroy(ipc_entry_t entry)
      * }
      */
-    public static MemorySegment asctime$address() {
-        return asctime.ADDR;
+    public static MemorySegment ipc_entry_destroy$address() {
+        return ipc_entry_destroy.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * char *asctime(const struct tm *)
+     * void ipc_entry_destroy(ipc_entry_t entry)
      * }
      */
-    public static MemorySegment asctime(MemorySegment x0) {
-        var mh$ = asctime.HANDLE;
+    public static void ipc_entry_destroy(MemorySegment entry) {
+        var mh$ = ipc_entry_destroy.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("asctime", x0);
+                traceDowncall("ipc_entry_destroy", entry);
             }
-            return (MemorySegment)mh$.invokeExact(x0);
+            mh$.invokeExact(entry);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -4411,1650 +1038,11 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
-    private static class clock {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_LONG    );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("clock");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * clock_t clock()
-     * }
-     */
-    public static FunctionDescriptor clock$descriptor() {
-        return clock.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * clock_t clock()
-     * }
-     */
-    public static MethodHandle clock$handle() {
-        return clock.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * clock_t clock()
-     * }
-     */
-    public static MemorySegment clock$address() {
-        return clock.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * clock_t clock()
-     * }
-     */
-    public static long clock() {
-        var mh$ = clock.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("clock");
-            }
-            return (long)mh$.invokeExact();
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ctime {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ctime");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * char *ctime(const time_t *)
-     * }
-     */
-    public static FunctionDescriptor ctime$descriptor() {
-        return ctime.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * char *ctime(const time_t *)
-     * }
-     */
-    public static MethodHandle ctime$handle() {
-        return ctime.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * char *ctime(const time_t *)
-     * }
-     */
-    public static MemorySegment ctime$address() {
-        return ctime.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * char *ctime(const time_t *)
-     * }
-     */
-    public static MemorySegment ctime(MemorySegment x0) {
-        var mh$ = ctime.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ctime", x0);
-            }
-            return (MemorySegment)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class difftime {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_DOUBLE,
-            ipc_channel_h.C_LONG,
-            ipc_channel_h.C_LONG
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("difftime");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * double difftime(time_t, time_t)
-     * }
-     */
-    public static FunctionDescriptor difftime$descriptor() {
-        return difftime.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * double difftime(time_t, time_t)
-     * }
-     */
-    public static MethodHandle difftime$handle() {
-        return difftime.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * double difftime(time_t, time_t)
-     * }
-     */
-    public static MemorySegment difftime$address() {
-        return difftime.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * double difftime(time_t, time_t)
-     * }
-     */
-    public static double difftime(long x0, long x1) {
-        var mh$ = difftime.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("difftime", x0, x1);
-            }
-            return (double)mh$.invokeExact(x0, x1);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class getdate {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("getdate");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * struct tm *getdate(const char *)
-     * }
-     */
-    public static FunctionDescriptor getdate$descriptor() {
-        return getdate.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * struct tm *getdate(const char *)
-     * }
-     */
-    public static MethodHandle getdate$handle() {
-        return getdate.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * struct tm *getdate(const char *)
-     * }
-     */
-    public static MemorySegment getdate$address() {
-        return getdate.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * struct tm *getdate(const char *)
-     * }
-     */
-    public static MemorySegment getdate(MemorySegment x0) {
-        var mh$ = getdate.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("getdate", x0);
-            }
-            return (MemorySegment)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class gmtime {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("gmtime");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * struct tm *gmtime(const time_t *)
-     * }
-     */
-    public static FunctionDescriptor gmtime$descriptor() {
-        return gmtime.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * struct tm *gmtime(const time_t *)
-     * }
-     */
-    public static MethodHandle gmtime$handle() {
-        return gmtime.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * struct tm *gmtime(const time_t *)
-     * }
-     */
-    public static MemorySegment gmtime$address() {
-        return gmtime.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * struct tm *gmtime(const time_t *)
-     * }
-     */
-    public static MemorySegment gmtime(MemorySegment x0) {
-        var mh$ = gmtime.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("gmtime", x0);
-            }
-            return (MemorySegment)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class localtime {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("localtime");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * struct tm *localtime(const time_t *)
-     * }
-     */
-    public static FunctionDescriptor localtime$descriptor() {
-        return localtime.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * struct tm *localtime(const time_t *)
-     * }
-     */
-    public static MethodHandle localtime$handle() {
-        return localtime.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * struct tm *localtime(const time_t *)
-     * }
-     */
-    public static MemorySegment localtime$address() {
-        return localtime.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * struct tm *localtime(const time_t *)
-     * }
-     */
-    public static MemorySegment localtime(MemorySegment x0) {
-        var mh$ = localtime.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("localtime", x0);
-            }
-            return (MemorySegment)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class mktime {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_LONG,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("mktime");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * time_t mktime(struct tm *)
-     * }
-     */
-    public static FunctionDescriptor mktime$descriptor() {
-        return mktime.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * time_t mktime(struct tm *)
-     * }
-     */
-    public static MethodHandle mktime$handle() {
-        return mktime.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * time_t mktime(struct tm *)
-     * }
-     */
-    public static MemorySegment mktime$address() {
-        return mktime.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * time_t mktime(struct tm *)
-     * }
-     */
-    public static long mktime(MemorySegment x0) {
-        var mh$ = mktime.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("mktime", x0);
-            }
-            return (long)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class strftime {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_LONG,
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_LONG,
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("strftime");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * size_t strftime(char *restrict, size_t __maxsize, const char *restrict, const struct tm *restrict)
-     * }
-     */
-    public static FunctionDescriptor strftime$descriptor() {
-        return strftime.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * size_t strftime(char *restrict, size_t __maxsize, const char *restrict, const struct tm *restrict)
-     * }
-     */
-    public static MethodHandle strftime$handle() {
-        return strftime.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * size_t strftime(char *restrict, size_t __maxsize, const char *restrict, const struct tm *restrict)
-     * }
-     */
-    public static MemorySegment strftime$address() {
-        return strftime.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * size_t strftime(char *restrict, size_t __maxsize, const char *restrict, const struct tm *restrict)
-     * }
-     */
-    public static long strftime(MemorySegment x0, long __maxsize, MemorySegment x2, MemorySegment x3) {
-        var mh$ = strftime.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("strftime", x0, __maxsize, x2, x3);
-            }
-            return (long)mh$.invokeExact(x0, __maxsize, x2, x3);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class strptime {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("strptime");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * char *strptime(const char *restrict, const char *restrict, struct tm *restrict)
-     * }
-     */
-    public static FunctionDescriptor strptime$descriptor() {
-        return strptime.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * char *strptime(const char *restrict, const char *restrict, struct tm *restrict)
-     * }
-     */
-    public static MethodHandle strptime$handle() {
-        return strptime.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * char *strptime(const char *restrict, const char *restrict, struct tm *restrict)
-     * }
-     */
-    public static MemorySegment strptime$address() {
-        return strptime.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * char *strptime(const char *restrict, const char *restrict, struct tm *restrict)
-     * }
-     */
-    public static MemorySegment strptime(MemorySegment x0, MemorySegment x1, MemorySegment x2) {
-        var mh$ = strptime.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("strptime", x0, x1, x2);
-            }
-            return (MemorySegment)mh$.invokeExact(x0, x1, x2);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class time {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_LONG,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("time");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * time_t time(time_t *)
-     * }
-     */
-    public static FunctionDescriptor time$descriptor() {
-        return time.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * time_t time(time_t *)
-     * }
-     */
-    public static MethodHandle time$handle() {
-        return time.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * time_t time(time_t *)
-     * }
-     */
-    public static MemorySegment time$address() {
-        return time.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * time_t time(time_t *)
-     * }
-     */
-    public static long time(MemorySegment x0) {
-        var mh$ = time.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("time", x0);
-            }
-            return (long)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class tzset {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(    );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("tzset");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * void tzset()
-     * }
-     */
-    public static FunctionDescriptor tzset$descriptor() {
-        return tzset.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * void tzset()
-     * }
-     */
-    public static MethodHandle tzset$handle() {
-        return tzset.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * void tzset()
-     * }
-     */
-    public static MemorySegment tzset$address() {
-        return tzset.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * void tzset()
-     * }
-     */
-    public static void tzset() {
-        var mh$ = tzset.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("tzset");
-            }
-            mh$.invokeExact();
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class asctime_r {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("asctime_r");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * char *asctime_r(const struct tm *restrict, char *restrict)
-     * }
-     */
-    public static FunctionDescriptor asctime_r$descriptor() {
-        return asctime_r.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * char *asctime_r(const struct tm *restrict, char *restrict)
-     * }
-     */
-    public static MethodHandle asctime_r$handle() {
-        return asctime_r.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * char *asctime_r(const struct tm *restrict, char *restrict)
-     * }
-     */
-    public static MemorySegment asctime_r$address() {
-        return asctime_r.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * char *asctime_r(const struct tm *restrict, char *restrict)
-     * }
-     */
-    public static MemorySegment asctime_r(MemorySegment x0, MemorySegment x1) {
-        var mh$ = asctime_r.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("asctime_r", x0, x1);
-            }
-            return (MemorySegment)mh$.invokeExact(x0, x1);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ctime_r {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ctime_r");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * char *ctime_r(const time_t *, char *)
-     * }
-     */
-    public static FunctionDescriptor ctime_r$descriptor() {
-        return ctime_r.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * char *ctime_r(const time_t *, char *)
-     * }
-     */
-    public static MethodHandle ctime_r$handle() {
-        return ctime_r.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * char *ctime_r(const time_t *, char *)
-     * }
-     */
-    public static MemorySegment ctime_r$address() {
-        return ctime_r.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * char *ctime_r(const time_t *, char *)
-     * }
-     */
-    public static MemorySegment ctime_r(MemorySegment x0, MemorySegment x1) {
-        var mh$ = ctime_r.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ctime_r", x0, x1);
-            }
-            return (MemorySegment)mh$.invokeExact(x0, x1);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class gmtime_r {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("gmtime_r");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * struct tm *gmtime_r(const time_t *restrict, struct tm *restrict)
-     * }
-     */
-    public static FunctionDescriptor gmtime_r$descriptor() {
-        return gmtime_r.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * struct tm *gmtime_r(const time_t *restrict, struct tm *restrict)
-     * }
-     */
-    public static MethodHandle gmtime_r$handle() {
-        return gmtime_r.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * struct tm *gmtime_r(const time_t *restrict, struct tm *restrict)
-     * }
-     */
-    public static MemorySegment gmtime_r$address() {
-        return gmtime_r.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * struct tm *gmtime_r(const time_t *restrict, struct tm *restrict)
-     * }
-     */
-    public static MemorySegment gmtime_r(MemorySegment x0, MemorySegment x1) {
-        var mh$ = gmtime_r.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("gmtime_r", x0, x1);
-            }
-            return (MemorySegment)mh$.invokeExact(x0, x1);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class localtime_r {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("localtime_r");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * struct tm *localtime_r(const time_t *restrict, struct tm *restrict)
-     * }
-     */
-    public static FunctionDescriptor localtime_r$descriptor() {
-        return localtime_r.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * struct tm *localtime_r(const time_t *restrict, struct tm *restrict)
-     * }
-     */
-    public static MethodHandle localtime_r$handle() {
-        return localtime_r.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * struct tm *localtime_r(const time_t *restrict, struct tm *restrict)
-     * }
-     */
-    public static MemorySegment localtime_r$address() {
-        return localtime_r.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * struct tm *localtime_r(const time_t *restrict, struct tm *restrict)
-     * }
-     */
-    public static MemorySegment localtime_r(MemorySegment x0, MemorySegment x1) {
-        var mh$ = localtime_r.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("localtime_r", x0, x1);
-            }
-            return (MemorySegment)mh$.invokeExact(x0, x1);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class posix2time {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_LONG,
-            ipc_channel_h.C_LONG
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("posix2time");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * time_t posix2time(time_t)
-     * }
-     */
-    public static FunctionDescriptor posix2time$descriptor() {
-        return posix2time.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * time_t posix2time(time_t)
-     * }
-     */
-    public static MethodHandle posix2time$handle() {
-        return posix2time.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * time_t posix2time(time_t)
-     * }
-     */
-    public static MemorySegment posix2time$address() {
-        return posix2time.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * time_t posix2time(time_t)
-     * }
-     */
-    public static long posix2time(long x0) {
-        var mh$ = posix2time.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("posix2time", x0);
-            }
-            return (long)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class tzsetwall {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(    );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("tzsetwall");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * void tzsetwall()
-     * }
-     */
-    public static FunctionDescriptor tzsetwall$descriptor() {
-        return tzsetwall.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * void tzsetwall()
-     * }
-     */
-    public static MethodHandle tzsetwall$handle() {
-        return tzsetwall.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * void tzsetwall()
-     * }
-     */
-    public static MemorySegment tzsetwall$address() {
-        return tzsetwall.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * void tzsetwall()
-     * }
-     */
-    public static void tzsetwall() {
-        var mh$ = tzsetwall.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("tzsetwall");
-            }
-            mh$.invokeExact();
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class time2posix {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_LONG,
-            ipc_channel_h.C_LONG
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("time2posix");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * time_t time2posix(time_t)
-     * }
-     */
-    public static FunctionDescriptor time2posix$descriptor() {
-        return time2posix.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * time_t time2posix(time_t)
-     * }
-     */
-    public static MethodHandle time2posix$handle() {
-        return time2posix.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * time_t time2posix(time_t)
-     * }
-     */
-    public static MemorySegment time2posix$address() {
-        return time2posix.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * time_t time2posix(time_t)
-     * }
-     */
-    public static long time2posix(long x0) {
-        var mh$ = time2posix.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("time2posix", x0);
-            }
-            return (long)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class timelocal {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_LONG,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("timelocal");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * time_t timelocal(struct tm *const)
-     * }
-     */
-    public static FunctionDescriptor timelocal$descriptor() {
-        return timelocal.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * time_t timelocal(struct tm *const)
-     * }
-     */
-    public static MethodHandle timelocal$handle() {
-        return timelocal.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * time_t timelocal(struct tm *const)
-     * }
-     */
-    public static MemorySegment timelocal$address() {
-        return timelocal.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * time_t timelocal(struct tm *const)
-     * }
-     */
-    public static long timelocal(MemorySegment x0) {
-        var mh$ = timelocal.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("timelocal", x0);
-            }
-            return (long)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class timegm {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_LONG,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("timegm");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * time_t timegm(struct tm *const)
-     * }
-     */
-    public static FunctionDescriptor timegm$descriptor() {
-        return timegm.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * time_t timegm(struct tm *const)
-     * }
-     */
-    public static MethodHandle timegm$handle() {
-        return timegm.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * time_t timegm(struct tm *const)
-     * }
-     */
-    public static MemorySegment timegm$address() {
-        return timegm.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * time_t timegm(struct tm *const)
-     * }
-     */
-    public static long timegm(MemorySegment x0) {
-        var mh$ = timegm.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("timegm", x0);
-            }
-            return (long)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class nanosleep {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_INT,
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("nanosleep");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * int nanosleep(const struct timespec *__rqtp, struct timespec *__rmtp)
-     * }
-     */
-    public static FunctionDescriptor nanosleep$descriptor() {
-        return nanosleep.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * int nanosleep(const struct timespec *__rqtp, struct timespec *__rmtp)
-     * }
-     */
-    public static MethodHandle nanosleep$handle() {
-        return nanosleep.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * int nanosleep(const struct timespec *__rqtp, struct timespec *__rmtp)
-     * }
-     */
-    public static MemorySegment nanosleep$address() {
-        return nanosleep.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * int nanosleep(const struct timespec *__rqtp, struct timespec *__rmtp)
-     * }
-     */
-    public static int nanosleep(MemorySegment __rqtp, MemorySegment __rmtp) {
-        var mh$ = nanosleep.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("nanosleep", __rqtp, __rmtp);
-            }
-            return (int)mh$.invokeExact(__rqtp, __rmtp);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-    private static final int _CLOCK_REALTIME = (int)0L;
-    /**
-     * {@snippet lang=c :
-     * enum <anonymous>._CLOCK_REALTIME = 0
-     * }
-     */
-    public static int _CLOCK_REALTIME() {
-        return _CLOCK_REALTIME;
-    }
-    private static final int _CLOCK_MONOTONIC = (int)6L;
-    /**
-     * {@snippet lang=c :
-     * enum <anonymous>._CLOCK_MONOTONIC = 6
-     * }
-     */
-    public static int _CLOCK_MONOTONIC() {
-        return _CLOCK_MONOTONIC;
-    }
-    private static final int _CLOCK_MONOTONIC_RAW = (int)4L;
-    /**
-     * {@snippet lang=c :
-     * enum <anonymous>._CLOCK_MONOTONIC_RAW = 4
-     * }
-     */
-    public static int _CLOCK_MONOTONIC_RAW() {
-        return _CLOCK_MONOTONIC_RAW;
-    }
-    private static final int _CLOCK_MONOTONIC_RAW_APPROX = (int)5L;
-    /**
-     * {@snippet lang=c :
-     * enum <anonymous>._CLOCK_MONOTONIC_RAW_APPROX = 5
-     * }
-     */
-    public static int _CLOCK_MONOTONIC_RAW_APPROX() {
-        return _CLOCK_MONOTONIC_RAW_APPROX;
-    }
-    private static final int _CLOCK_UPTIME_RAW = (int)8L;
-    /**
-     * {@snippet lang=c :
-     * enum <anonymous>._CLOCK_UPTIME_RAW = 8
-     * }
-     */
-    public static int _CLOCK_UPTIME_RAW() {
-        return _CLOCK_UPTIME_RAW;
-    }
-    private static final int _CLOCK_UPTIME_RAW_APPROX = (int)9L;
-    /**
-     * {@snippet lang=c :
-     * enum <anonymous>._CLOCK_UPTIME_RAW_APPROX = 9
-     * }
-     */
-    public static int _CLOCK_UPTIME_RAW_APPROX() {
-        return _CLOCK_UPTIME_RAW_APPROX;
-    }
-    private static final int _CLOCK_PROCESS_CPUTIME_ID = (int)12L;
-    /**
-     * {@snippet lang=c :
-     * enum <anonymous>._CLOCK_PROCESS_CPUTIME_ID = 12
-     * }
-     */
-    public static int _CLOCK_PROCESS_CPUTIME_ID() {
-        return _CLOCK_PROCESS_CPUTIME_ID;
-    }
-    private static final int _CLOCK_THREAD_CPUTIME_ID = (int)16L;
-    /**
-     * {@snippet lang=c :
-     * enum <anonymous>._CLOCK_THREAD_CPUTIME_ID = 16
-     * }
-     */
-    public static int _CLOCK_THREAD_CPUTIME_ID() {
-        return _CLOCK_THREAD_CPUTIME_ID;
-    }
-
-    private static class clock_getres {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_INT,
-            ipc_channel_h.C_INT,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("clock_getres");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * int clock_getres(clockid_t __clock_id, struct timespec *__res)
-     * }
-     */
-    public static FunctionDescriptor clock_getres$descriptor() {
-        return clock_getres.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * int clock_getres(clockid_t __clock_id, struct timespec *__res)
-     * }
-     */
-    public static MethodHandle clock_getres$handle() {
-        return clock_getres.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * int clock_getres(clockid_t __clock_id, struct timespec *__res)
-     * }
-     */
-    public static MemorySegment clock_getres$address() {
-        return clock_getres.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * int clock_getres(clockid_t __clock_id, struct timespec *__res)
-     * }
-     */
-    public static int clock_getres(int __clock_id, MemorySegment __res) {
-        var mh$ = clock_getres.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("clock_getres", __clock_id, __res);
-            }
-            return (int)mh$.invokeExact(__clock_id, __res);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class clock_gettime {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_INT,
-            ipc_channel_h.C_INT,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("clock_gettime");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * int clock_gettime(clockid_t __clock_id, struct timespec *__tp)
-     * }
-     */
-    public static FunctionDescriptor clock_gettime$descriptor() {
-        return clock_gettime.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * int clock_gettime(clockid_t __clock_id, struct timespec *__tp)
-     * }
-     */
-    public static MethodHandle clock_gettime$handle() {
-        return clock_gettime.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * int clock_gettime(clockid_t __clock_id, struct timespec *__tp)
-     * }
-     */
-    public static MemorySegment clock_gettime$address() {
-        return clock_gettime.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * int clock_gettime(clockid_t __clock_id, struct timespec *__tp)
-     * }
-     */
-    public static int clock_gettime(int __clock_id, MemorySegment __tp) {
-        var mh$ = clock_gettime.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("clock_gettime", __clock_id, __tp);
-            }
-            return (int)mh$.invokeExact(__clock_id, __tp);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class clock_gettime_nsec_np {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_LONG_LONG,
-            ipc_channel_h.C_INT
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("clock_gettime_nsec_np");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * __uint64_t clock_gettime_nsec_np(clockid_t __clock_id)
-     * }
-     */
-    public static FunctionDescriptor clock_gettime_nsec_np$descriptor() {
-        return clock_gettime_nsec_np.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * __uint64_t clock_gettime_nsec_np(clockid_t __clock_id)
-     * }
-     */
-    public static MethodHandle clock_gettime_nsec_np$handle() {
-        return clock_gettime_nsec_np.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * __uint64_t clock_gettime_nsec_np(clockid_t __clock_id)
-     * }
-     */
-    public static MemorySegment clock_gettime_nsec_np$address() {
-        return clock_gettime_nsec_np.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * __uint64_t clock_gettime_nsec_np(clockid_t __clock_id)
-     * }
-     */
-    public static long clock_gettime_nsec_np(int __clock_id) {
-        var mh$ = clock_gettime_nsec_np.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("clock_gettime_nsec_np", __clock_id);
-            }
-            return (long)mh$.invokeExact(__clock_id);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class clock_settime {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_INT,
-            ipc_channel_h.C_INT,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("clock_settime");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * int clock_settime(clockid_t __clock_id, const struct timespec *__tp)
-     * }
-     */
-    public static FunctionDescriptor clock_settime$descriptor() {
-        return clock_settime.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * int clock_settime(clockid_t __clock_id, const struct timespec *__tp)
-     * }
-     */
-    public static MethodHandle clock_settime$handle() {
-        return clock_settime.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * int clock_settime(clockid_t __clock_id, const struct timespec *__tp)
-     * }
-     */
-    public static MemorySegment clock_settime$address() {
-        return clock_settime.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * int clock_settime(clockid_t __clock_id, const struct timespec *__tp)
-     * }
-     */
-    public static int clock_settime(int __clock_id, MemorySegment __tp) {
-        var mh$ = clock_settime.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("clock_settime", __clock_id, __tp);
-            }
-            return (int)mh$.invokeExact(__clock_id, __tp);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class timespec_get {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_INT,
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_INT
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("timespec_get");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * int timespec_get(struct timespec *ts, int base)
-     * }
-     */
-    public static FunctionDescriptor timespec_get$descriptor() {
-        return timespec_get.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * int timespec_get(struct timespec *ts, int base)
-     * }
-     */
-    public static MethodHandle timespec_get$handle() {
-        return timespec_get.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * int timespec_get(struct timespec *ts, int base)
-     * }
-     */
-    public static MemorySegment timespec_get$address() {
-        return timespec_get.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * int timespec_get(struct timespec *ts, int base)
-     * }
-     */
-    public static int timespec_get(MemorySegment ts, int base) {
-        var mh$ = timespec_get.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("timespec_get", ts, base);
-            }
-            return (int)mh$.invokeExact(ts, base);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ipc_channel_get_memory_overhead {
+    private static class ipc_channel_memory_overhead {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             ipc_channel_h.C_LONG_LONG    );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_get_memory_overhead");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_memory_overhead");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6062,43 +1050,43 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_memory_overhead()
+     * uint64_t ipc_channel_memory_overhead()
      * }
      */
-    public static FunctionDescriptor ipc_channel_get_memory_overhead$descriptor() {
-        return ipc_channel_get_memory_overhead.DESC;
+    public static FunctionDescriptor ipc_channel_memory_overhead$descriptor() {
+        return ipc_channel_memory_overhead.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_memory_overhead()
+     * uint64_t ipc_channel_memory_overhead()
      * }
      */
-    public static MethodHandle ipc_channel_get_memory_overhead$handle() {
-        return ipc_channel_get_memory_overhead.HANDLE;
+    public static MethodHandle ipc_channel_memory_overhead$handle() {
+        return ipc_channel_memory_overhead.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_memory_overhead()
+     * uint64_t ipc_channel_memory_overhead()
      * }
      */
-    public static MemorySegment ipc_channel_get_memory_overhead$address() {
-        return ipc_channel_get_memory_overhead.ADDR;
+    public static MemorySegment ipc_channel_memory_overhead$address() {
+        return ipc_channel_memory_overhead.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_memory_overhead()
+     * uint64_t ipc_channel_memory_overhead()
      * }
      */
-    public static long ipc_channel_get_memory_overhead() {
-        var mh$ = ipc_channel_get_memory_overhead.HANDLE;
+    public static long ipc_channel_memory_overhead() {
+        var mh$ = ipc_channel_memory_overhead.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_get_memory_overhead");
+                traceDowncall("ipc_channel_memory_overhead");
             }
             return (long)mh$.invokeExact();
         } catch (Error | RuntimeException ex) {
@@ -6108,11 +1096,11 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
-    private static class ipc_channel_get_min_size {
+    private static class ipc_channel_min_size {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             ipc_channel_h.C_LONG_LONG    );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_get_min_size");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_min_size");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6120,45 +1108,105 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_min_size()
+     * uint64_t ipc_channel_min_size()
      * }
      */
-    public static FunctionDescriptor ipc_channel_get_min_size$descriptor() {
-        return ipc_channel_get_min_size.DESC;
+    public static FunctionDescriptor ipc_channel_min_size$descriptor() {
+        return ipc_channel_min_size.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_min_size()
+     * uint64_t ipc_channel_min_size()
      * }
      */
-    public static MethodHandle ipc_channel_get_min_size$handle() {
-        return ipc_channel_get_min_size.HANDLE;
+    public static MethodHandle ipc_channel_min_size$handle() {
+        return ipc_channel_min_size.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_min_size()
+     * uint64_t ipc_channel_min_size()
      * }
      */
-    public static MemorySegment ipc_channel_get_min_size$address() {
-        return ipc_channel_get_min_size.ADDR;
+    public static MemorySegment ipc_channel_min_size$address() {
+        return ipc_channel_min_size.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * uint64_t ipc_channel_get_min_size()
+     * uint64_t ipc_channel_min_size()
      * }
      */
-    public static long ipc_channel_get_min_size() {
-        var mh$ = ipc_channel_get_min_size.HANDLE;
+    public static long ipc_channel_min_size() {
+        var mh$ = ipc_channel_min_size.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_get_min_size");
+                traceDowncall("ipc_channel_min_size");
             }
             return (long)mh$.invokeExact();
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class ipc_channel_get_notify_signal {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            ipc_channel_h.C_INT,
+            ipc_channel_h.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_get_notify_signal");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * uint32_t ipc_channel_get_notify_signal(ipc_channel_t *channel)
+     * }
+     */
+    public static FunctionDescriptor ipc_channel_get_notify_signal$descriptor() {
+        return ipc_channel_get_notify_signal.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * uint32_t ipc_channel_get_notify_signal(ipc_channel_t *channel)
+     * }
+     */
+    public static MethodHandle ipc_channel_get_notify_signal$handle() {
+        return ipc_channel_get_notify_signal.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * uint32_t ipc_channel_get_notify_signal(ipc_channel_t *channel)
+     * }
+     */
+    public static MemorySegment ipc_channel_get_notify_signal$address() {
+        return ipc_channel_get_notify_signal.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * uint32_t ipc_channel_get_notify_signal(ipc_channel_t *channel)
+     * }
+     */
+    public static int ipc_channel_get_notify_signal(MemorySegment channel) {
+        var mh$ = ipc_channel_get_notify_signal.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("ipc_channel_get_notify_signal", channel);
+            }
+            return (int)mh$.invokeExact(channel);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6226,193 +1274,16 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
-    private static class ipc_channel_get_notify_signal {
+    private static class ipc_channel_init {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             ipc_channel_h.C_INT,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_get_notify_signal");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
-     * }
-     */
-    public static FunctionDescriptor ipc_channel_get_notify_signal$descriptor() {
-        return ipc_channel_get_notify_signal.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
-     * }
-     */
-    public static MethodHandle ipc_channel_get_notify_signal$handle() {
-        return ipc_channel_get_notify_signal.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
-     * }
-     */
-    public static MemorySegment ipc_channel_get_notify_signal$address() {
-        return ipc_channel_get_notify_signal.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * uint32_t ipc_channel_get_notify_signal(IpcChannel *channel)
-     * }
-     */
-    public static int ipc_channel_get_notify_signal(MemorySegment channel) {
-        var mh$ = ipc_channel_get_notify_signal.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_get_notify_signal", channel);
-            }
-            return (int)mh$.invokeExact(channel);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ipc_channel_is_retry_status {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            ipc_channel_h.C_BOOL,
-            ipc_channel_h.C_INT
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_is_retry_status");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * bool ipc_channel_is_retry_status(const IpcStatus)
-     * }
-     */
-    public static FunctionDescriptor ipc_channel_is_retry_status$descriptor() {
-        return ipc_channel_is_retry_status.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * bool ipc_channel_is_retry_status(const IpcStatus)
-     * }
-     */
-    public static MethodHandle ipc_channel_is_retry_status$handle() {
-        return ipc_channel_is_retry_status.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * bool ipc_channel_is_retry_status(const IpcStatus)
-     * }
-     */
-    public static MemorySegment ipc_channel_is_retry_status$address() {
-        return ipc_channel_is_retry_status.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * bool ipc_channel_is_retry_status(const IpcStatus)
-     * }
-     */
-    public static boolean ipc_channel_is_retry_status(int x0) {
-        var mh$ = ipc_channel_is_retry_status.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_is_retry_status", x0);
-            }
-            return (boolean)mh$.invokeExact(x0);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ipc_entry_free {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_entry_free");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * void ipc_entry_free(const IpcEntry *entry)
-     * }
-     */
-    public static FunctionDescriptor ipc_entry_free$descriptor() {
-        return ipc_entry_free.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * void ipc_entry_free(const IpcEntry *entry)
-     * }
-     */
-    public static MethodHandle ipc_entry_free$handle() {
-        return ipc_entry_free.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * void ipc_entry_free(const IpcEntry *entry)
-     * }
-     */
-    public static MemorySegment ipc_entry_free$address() {
-        return ipc_entry_free.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * void ipc_entry_free(const IpcEntry *entry)
-     * }
-     */
-    public static void ipc_entry_free(MemorySegment entry) {
-        var mh$ = ipc_entry_free.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_entry_free", entry);
-            }
-            mh$.invokeExact(entry);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ipc_channel_create {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelCreateResult.layout(),
             ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_LONG
+            ipc_channel_h.C_LONG,
+            ipc_channel_h.C_POINTER,
+            ipc_channel_h.C_POINTER
         );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_create");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_init");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6420,45 +1291,45 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
+     * ipc_status_t ipc_channel_init(void *mem, size_t size, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static FunctionDescriptor ipc_channel_create$descriptor() {
-        return ipc_channel_create.DESC;
+    public static FunctionDescriptor ipc_channel_init$descriptor() {
+        return ipc_channel_init.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
+     * ipc_status_t ipc_channel_init(void *mem, size_t size, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MethodHandle ipc_channel_create$handle() {
-        return ipc_channel_create.HANDLE;
+    public static MethodHandle ipc_channel_init$handle() {
+        return ipc_channel_init.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
+     * ipc_status_t ipc_channel_init(void *mem, size_t size, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_create$address() {
-        return ipc_channel_create.ADDR;
+    public static MemorySegment ipc_channel_init$address() {
+        return ipc_channel_init.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * IpcChannelCreateResult ipc_channel_create(void *mem, const size_t size)
+     * ipc_status_t ipc_channel_init(void *mem, size_t size, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_create(SegmentAllocator allocator, MemorySegment mem, long size) {
-        var mh$ = ipc_channel_create.HANDLE;
+    public static int ipc_channel_init(MemorySegment mem, long size, MemorySegment out, MemorySegment err) {
+        var mh$ = ipc_channel_init.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_create", allocator, mem, size);
+                traceDowncall("ipc_channel_init", mem, size, out, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, mem, size);
+            return (int)mh$.invokeExact(mem, size, out, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6466,13 +1337,15 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
-    private static class ipc_channel_connect {
+    private static class ipc_channel_attach {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelConnectResult.layout(),
+            ipc_channel_h.C_INT,
+            ipc_channel_h.C_POINTER,
+            ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER
         );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_connect");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_attach");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6480,45 +1353,45 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelConnectResult ipc_channel_connect(void *mem)
+     * ipc_status_t ipc_channel_attach(void *mem, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static FunctionDescriptor ipc_channel_connect$descriptor() {
-        return ipc_channel_connect.DESC;
+    public static FunctionDescriptor ipc_channel_attach$descriptor() {
+        return ipc_channel_attach.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelConnectResult ipc_channel_connect(void *mem)
+     * ipc_status_t ipc_channel_attach(void *mem, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MethodHandle ipc_channel_connect$handle() {
-        return ipc_channel_connect.HANDLE;
+    public static MethodHandle ipc_channel_attach$handle() {
+        return ipc_channel_attach.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelConnectResult ipc_channel_connect(void *mem)
+     * ipc_status_t ipc_channel_attach(void *mem, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_connect$address() {
-        return ipc_channel_connect.ADDR;
+    public static MemorySegment ipc_channel_attach$address() {
+        return ipc_channel_attach.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * IpcChannelConnectResult ipc_channel_connect(void *mem)
+     * ipc_status_t ipc_channel_attach(void *mem, ipc_channel_t **out, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_connect(SegmentAllocator allocator, MemorySegment mem) {
-        var mh$ = ipc_channel_connect.HANDLE;
+    public static int ipc_channel_attach(MemorySegment mem, MemorySegment out, MemorySegment err) {
+        var mh$ = ipc_channel_attach.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_connect", allocator, mem);
+                traceDowncall("ipc_channel_attach", mem, out, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, mem);
+            return (int)mh$.invokeExact(mem, out, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6526,13 +1399,14 @@ public class ipc_channel_h extends ipc_channel_h$shared {
         }
     }
 
-    private static class ipc_channel_destroy {
+    private static class ipc_channel_detach {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelDestroyResult.layout(),
+            ipc_channel_h.C_INT,
+            ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER
         );
 
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_destroy");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_detach");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6540,45 +1414,45 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel)
+     * ipc_status_t ipc_channel_detach(ipc_channel_t *channel, ipc_error_t *err)
      * }
      */
-    public static FunctionDescriptor ipc_channel_destroy$descriptor() {
-        return ipc_channel_destroy.DESC;
+    public static FunctionDescriptor ipc_channel_detach$descriptor() {
+        return ipc_channel_detach.DESC;
     }
 
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel)
+     * ipc_status_t ipc_channel_detach(ipc_channel_t *channel, ipc_error_t *err)
      * }
      */
-    public static MethodHandle ipc_channel_destroy$handle() {
-        return ipc_channel_destroy.HANDLE;
+    public static MethodHandle ipc_channel_detach$handle() {
+        return ipc_channel_detach.HANDLE;
     }
 
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel)
+     * ipc_status_t ipc_channel_detach(ipc_channel_t *channel, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_destroy$address() {
-        return ipc_channel_destroy.ADDR;
+    public static MemorySegment ipc_channel_detach$address() {
+        return ipc_channel_detach.ADDR;
     }
 
     /**
      * {@snippet lang=c :
-     * IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel)
+     * ipc_status_t ipc_channel_detach(ipc_channel_t *channel, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_destroy(SegmentAllocator allocator, MemorySegment channel) {
-        var mh$ = ipc_channel_destroy.HANDLE;
+    public static int ipc_channel_detach(MemorySegment channel, MemorySegment err) {
+        var mh$ = ipc_channel_detach.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_destroy", allocator, channel);
+                traceDowncall("ipc_channel_detach", channel, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, channel);
+            return (int)mh$.invokeExact(channel, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6588,10 +1462,11 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     private static class ipc_channel_write {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelWriteResult.layout(),
+            ipc_channel_h.C_INT,
             ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_LONG
+            ipc_channel_h.C_LONG,
+            ipc_channel_h.C_POINTER
         );
 
         public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_write");
@@ -6602,7 +1477,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data, const size_t size)
+     * ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t size, ipc_error_t *err)
      * }
      */
     public static FunctionDescriptor ipc_channel_write$descriptor() {
@@ -6612,7 +1487,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data, const size_t size)
+     * ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t size, ipc_error_t *err)
      * }
      */
     public static MethodHandle ipc_channel_write$handle() {
@@ -6622,7 +1497,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data, const size_t size)
+     * ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t size, ipc_error_t *err)
      * }
      */
     public static MemorySegment ipc_channel_write$address() {
@@ -6631,16 +1506,16 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     /**
      * {@snippet lang=c :
-     * IpcChannelWriteResult ipc_channel_write(IpcChannel *channel, const void *data, const size_t size)
+     * ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t size, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_write(SegmentAllocator allocator, MemorySegment channel, MemorySegment data, long size) {
+    public static int ipc_channel_write(MemorySegment channel, MemorySegment data, long size, MemorySegment err) {
         var mh$ = ipc_channel_write.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_write", allocator, channel, data, size);
+                traceDowncall("ipc_channel_write", channel, data, size, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, channel, data, size);
+            return (int)mh$.invokeExact(channel, data, size, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6650,9 +1525,10 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     private static class ipc_channel_read {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelReadResult.layout(),
+            ipc_channel_h.C_INT,
             ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER,
+            ipc_channel_h.C_LONG_LONG,
             ipc_channel_h.C_POINTER
         );
 
@@ -6664,7 +1540,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout)
+     * ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_t timeout_ns, ipc_error_t *err)
      * }
      */
     public static FunctionDescriptor ipc_channel_read$descriptor() {
@@ -6674,7 +1550,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout)
+     * ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_t timeout_ns, ipc_error_t *err)
      * }
      */
     public static MethodHandle ipc_channel_read$handle() {
@@ -6684,7 +1560,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout)
+     * ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_t timeout_ns, ipc_error_t *err)
      * }
      */
     public static MemorySegment ipc_channel_read$address() {
@@ -6693,16 +1569,16 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     /**
      * {@snippet lang=c :
-     * IpcChannelReadResult ipc_channel_read(IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout)
+     * ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_t timeout_ns, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_read(SegmentAllocator allocator, MemorySegment channel, MemorySegment dest, MemorySegment timeout) {
+    public static int ipc_channel_read(MemorySegment channel, MemorySegment dest, long timeout_ns, MemorySegment err) {
         var mh$ = ipc_channel_read.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_read", allocator, channel, dest, timeout);
+                traceDowncall("ipc_channel_read", channel, dest, timeout_ns, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, channel, dest, timeout);
+            return (int)mh$.invokeExact(channel, dest, timeout_ns, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
@@ -6712,7 +1588,8 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     private static class ipc_channel_try_read {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelTryReadResult.layout(),
+            ipc_channel_h.C_INT,
+            ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER,
             ipc_channel_h.C_POINTER
         );
@@ -6725,7 +1602,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest)
+     * ipc_status_t ipc_channel_try_read(ipc_channel_t *channel, ipc_entry_t *dest, ipc_error_t *err)
      * }
      */
     public static FunctionDescriptor ipc_channel_try_read$descriptor() {
@@ -6735,7 +1612,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest)
+     * ipc_status_t ipc_channel_try_read(ipc_channel_t *channel, ipc_entry_t *dest, ipc_error_t *err)
      * }
      */
     public static MethodHandle ipc_channel_try_read$handle() {
@@ -6745,7 +1622,7 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     /**
      * Address for:
      * {@snippet lang=c :
-     * IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest)
+     * ipc_status_t ipc_channel_try_read(ipc_channel_t *channel, ipc_entry_t *dest, ipc_error_t *err)
      * }
      */
     public static MemorySegment ipc_channel_try_read$address() {
@@ -6754,212 +1631,21 @@ public class ipc_channel_h extends ipc_channel_h$shared {
 
     /**
      * {@snippet lang=c :
-     * IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel, IpcEntry *dest)
+     * ipc_status_t ipc_channel_try_read(ipc_channel_t *channel, ipc_entry_t *dest, ipc_error_t *err)
      * }
      */
-    public static MemorySegment ipc_channel_try_read(SegmentAllocator allocator, MemorySegment channel, MemorySegment dest) {
+    public static int ipc_channel_try_read(MemorySegment channel, MemorySegment dest, MemorySegment err) {
         var mh$ = ipc_channel_try_read.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_try_read", allocator, channel, dest);
+                traceDowncall("ipc_channel_try_read", channel, dest, err);
             }
-            return (MemorySegment)mh$.invokeExact(allocator, channel, dest);
+            return (int)mh$.invokeExact(channel, dest, err);
         } catch (Error | RuntimeException ex) {
            throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
-    }
-
-    private static class ipc_channel_peek {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelPeekResult.layout(),
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_peek");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel, IpcEntry *dest)
-     * }
-     */
-    public static FunctionDescriptor ipc_channel_peek$descriptor() {
-        return ipc_channel_peek.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel, IpcEntry *dest)
-     * }
-     */
-    public static MethodHandle ipc_channel_peek$handle() {
-        return ipc_channel_peek.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel, IpcEntry *dest)
-     * }
-     */
-    public static MemorySegment ipc_channel_peek$address() {
-        return ipc_channel_peek.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel, IpcEntry *dest)
-     * }
-     */
-    public static MemorySegment ipc_channel_peek(SegmentAllocator allocator, MemorySegment channel, MemorySegment dest) {
-        var mh$ = ipc_channel_peek.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_peek", allocator, channel, dest);
-            }
-            return (MemorySegment)mh$.invokeExact(allocator, channel, dest);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ipc_channel_skip {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelSkipResult.layout(),
-            ipc_channel_h.C_POINTER,
-            ipc_channel_h.C_LONG_LONG
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_skip");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel, const uint64_t offset)
-     * }
-     */
-    public static FunctionDescriptor ipc_channel_skip$descriptor() {
-        return ipc_channel_skip.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel, const uint64_t offset)
-     * }
-     */
-    public static MethodHandle ipc_channel_skip$handle() {
-        return ipc_channel_skip.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel, const uint64_t offset)
-     * }
-     */
-    public static MemorySegment ipc_channel_skip$address() {
-        return ipc_channel_skip.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel, const uint64_t offset)
-     * }
-     */
-    public static MemorySegment ipc_channel_skip(SegmentAllocator allocator, MemorySegment channel, long offset) {
-        var mh$ = ipc_channel_skip.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_skip", allocator, channel, offset);
-            }
-            return (MemorySegment)mh$.invokeExact(allocator, channel, offset);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class ipc_channel_skip_force {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            IpcChannelSkipForceResult.layout(),
-            ipc_channel_h.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("ipc_channel_skip_force");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel)
-     * }
-     */
-    public static FunctionDescriptor ipc_channel_skip_force$descriptor() {
-        return ipc_channel_skip_force.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel)
-     * }
-     */
-    public static MethodHandle ipc_channel_skip_force$handle() {
-        return ipc_channel_skip_force.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel)
-     * }
-     */
-    public static MemorySegment ipc_channel_skip_force$address() {
-        return ipc_channel_skip_force.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * IpcChannelSkipForceResult ipc_channel_skip_force(IpcChannel *channel)
-     * }
-     */
-    public static MemorySegment ipc_channel_skip_force(SegmentAllocator allocator, MemorySegment channel) {
-        var mh$ = ipc_channel_skip_force.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("ipc_channel_skip_force", allocator, channel);
-            }
-            return (MemorySegment)mh$.invokeExact(allocator, channel);
-        } catch (Error | RuntimeException ex) {
-           throw ex;
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-    private static final MemorySegment NULL = MemorySegment.ofAddress(0L);
-    /**
-     * {@snippet lang=c :
-     * #define NULL (void*) 0
-     * }
-     */
-    public static MemorySegment NULL() {
-        return NULL;
     }
     /**
      * {@snippet lang=c :
@@ -7432,794 +2118,14 @@ public class ipc_channel_h extends ipc_channel_h$shared {
     public static int SIG_ATOMIC_MAX() {
         return SIG_ATOMIC_MAX;
     }
-    private static final int __DARWIN_WCHAR_MAX = (int)2147483647L;
+    private static final MemorySegment NULL = MemorySegment.ofAddress(0L);
     /**
      * {@snippet lang=c :
-     * #define __DARWIN_WCHAR_MAX 2147483647
+     * #define NULL (void*) 0
      * }
      */
-    public static int __DARWIN_WCHAR_MAX() {
-        return __DARWIN_WCHAR_MAX;
-    }
-    private static final int __DARWIN_WCHAR_MIN = (int)-2147483648L;
-    /**
-     * {@snippet lang=c :
-     * #define __DARWIN_WCHAR_MIN -2147483648
-     * }
-     */
-    public static int __DARWIN_WCHAR_MIN() {
-        return __DARWIN_WCHAR_MIN;
-    }
-    private static final int __DARWIN_WEOF = (int)-1L;
-    /**
-     * {@snippet lang=c :
-     * #define __DARWIN_WEOF -1
-     * }
-     */
-    public static int __DARWIN_WEOF() {
-        return __DARWIN_WEOF;
-    }
-    private static final int MAC_OS_X_VERSION_10_0 = (int)1000L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_0 1000
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_0() {
-        return MAC_OS_X_VERSION_10_0;
-    }
-    private static final int MAC_OS_X_VERSION_10_1 = (int)1010L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_1 1010
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_1() {
-        return MAC_OS_X_VERSION_10_1;
-    }
-    private static final int MAC_OS_X_VERSION_10_2 = (int)1020L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_2 1020
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_2() {
-        return MAC_OS_X_VERSION_10_2;
-    }
-    private static final int MAC_OS_X_VERSION_10_3 = (int)1030L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_3 1030
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_3() {
-        return MAC_OS_X_VERSION_10_3;
-    }
-    private static final int MAC_OS_X_VERSION_10_4 = (int)1040L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_4 1040
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_4() {
-        return MAC_OS_X_VERSION_10_4;
-    }
-    private static final int MAC_OS_X_VERSION_10_5 = (int)1050L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_5 1050
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_5() {
-        return MAC_OS_X_VERSION_10_5;
-    }
-    private static final int MAC_OS_X_VERSION_10_6 = (int)1060L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_6 1060
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_6() {
-        return MAC_OS_X_VERSION_10_6;
-    }
-    private static final int MAC_OS_X_VERSION_10_7 = (int)1070L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_7 1070
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_7() {
-        return MAC_OS_X_VERSION_10_7;
-    }
-    private static final int MAC_OS_X_VERSION_10_8 = (int)1080L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_8 1080
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_8() {
-        return MAC_OS_X_VERSION_10_8;
-    }
-    private static final int MAC_OS_X_VERSION_10_9 = (int)1090L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_9 1090
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_9() {
-        return MAC_OS_X_VERSION_10_9;
-    }
-    private static final int MAC_OS_X_VERSION_10_10 = (int)101000L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_10 101000
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_10() {
-        return MAC_OS_X_VERSION_10_10;
-    }
-    private static final int MAC_OS_X_VERSION_10_10_2 = (int)101002L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_10_2 101002
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_10_2() {
-        return MAC_OS_X_VERSION_10_10_2;
-    }
-    private static final int MAC_OS_X_VERSION_10_10_3 = (int)101003L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_10_3 101003
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_10_3() {
-        return MAC_OS_X_VERSION_10_10_3;
-    }
-    private static final int MAC_OS_X_VERSION_10_11 = (int)101100L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_11 101100
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_11() {
-        return MAC_OS_X_VERSION_10_11;
-    }
-    private static final int MAC_OS_X_VERSION_10_11_2 = (int)101102L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_11_2 101102
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_11_2() {
-        return MAC_OS_X_VERSION_10_11_2;
-    }
-    private static final int MAC_OS_X_VERSION_10_11_3 = (int)101103L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_11_3 101103
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_11_3() {
-        return MAC_OS_X_VERSION_10_11_3;
-    }
-    private static final int MAC_OS_X_VERSION_10_11_4 = (int)101104L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_11_4 101104
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_11_4() {
-        return MAC_OS_X_VERSION_10_11_4;
-    }
-    private static final int MAC_OS_X_VERSION_10_12 = (int)101200L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_12 101200
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_12() {
-        return MAC_OS_X_VERSION_10_12;
-    }
-    private static final int MAC_OS_X_VERSION_10_12_1 = (int)101201L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_12_1 101201
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_12_1() {
-        return MAC_OS_X_VERSION_10_12_1;
-    }
-    private static final int MAC_OS_X_VERSION_10_12_2 = (int)101202L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_12_2 101202
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_12_2() {
-        return MAC_OS_X_VERSION_10_12_2;
-    }
-    private static final int MAC_OS_X_VERSION_10_12_4 = (int)101204L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_12_4 101204
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_12_4() {
-        return MAC_OS_X_VERSION_10_12_4;
-    }
-    private static final int MAC_OS_X_VERSION_10_13 = (int)101300L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_13 101300
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_13() {
-        return MAC_OS_X_VERSION_10_13;
-    }
-    private static final int MAC_OS_X_VERSION_10_13_1 = (int)101301L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_13_1 101301
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_13_1() {
-        return MAC_OS_X_VERSION_10_13_1;
-    }
-    private static final int MAC_OS_X_VERSION_10_13_2 = (int)101302L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_13_2 101302
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_13_2() {
-        return MAC_OS_X_VERSION_10_13_2;
-    }
-    private static final int MAC_OS_X_VERSION_10_13_4 = (int)101304L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_13_4 101304
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_13_4() {
-        return MAC_OS_X_VERSION_10_13_4;
-    }
-    private static final int MAC_OS_X_VERSION_10_14 = (int)101400L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_14 101400
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_14() {
-        return MAC_OS_X_VERSION_10_14;
-    }
-    private static final int MAC_OS_X_VERSION_10_14_1 = (int)101401L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_14_1 101401
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_14_1() {
-        return MAC_OS_X_VERSION_10_14_1;
-    }
-    private static final int MAC_OS_X_VERSION_10_14_4 = (int)101404L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_14_4 101404
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_14_4() {
-        return MAC_OS_X_VERSION_10_14_4;
-    }
-    private static final int MAC_OS_X_VERSION_10_14_5 = (int)101405L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_14_5 101405
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_14_5() {
-        return MAC_OS_X_VERSION_10_14_5;
-    }
-    private static final int MAC_OS_X_VERSION_10_14_6 = (int)101406L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_14_6 101406
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_14_6() {
-        return MAC_OS_X_VERSION_10_14_6;
-    }
-    private static final int MAC_OS_X_VERSION_10_15 = (int)101500L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_15 101500
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_15() {
-        return MAC_OS_X_VERSION_10_15;
-    }
-    private static final int MAC_OS_X_VERSION_10_15_1 = (int)101501L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_15_1 101501
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_15_1() {
-        return MAC_OS_X_VERSION_10_15_1;
-    }
-    private static final int MAC_OS_X_VERSION_10_15_4 = (int)101504L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_15_4 101504
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_15_4() {
-        return MAC_OS_X_VERSION_10_15_4;
-    }
-    private static final int MAC_OS_X_VERSION_10_16 = (int)101600L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_X_VERSION_10_16 101600
-     * }
-     */
-    public static int MAC_OS_X_VERSION_10_16() {
-        return MAC_OS_X_VERSION_10_16;
-    }
-    private static final int MAC_OS_VERSION_11_0 = (int)110000L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_11_0 110000
-     * }
-     */
-    public static int MAC_OS_VERSION_11_0() {
-        return MAC_OS_VERSION_11_0;
-    }
-    private static final int MAC_OS_VERSION_11_1 = (int)110100L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_11_1 110100
-     * }
-     */
-    public static int MAC_OS_VERSION_11_1() {
-        return MAC_OS_VERSION_11_1;
-    }
-    private static final int MAC_OS_VERSION_11_3 = (int)110300L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_11_3 110300
-     * }
-     */
-    public static int MAC_OS_VERSION_11_3() {
-        return MAC_OS_VERSION_11_3;
-    }
-    private static final int MAC_OS_VERSION_11_4 = (int)110400L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_11_4 110400
-     * }
-     */
-    public static int MAC_OS_VERSION_11_4() {
-        return MAC_OS_VERSION_11_4;
-    }
-    private static final int MAC_OS_VERSION_11_5 = (int)110500L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_11_5 110500
-     * }
-     */
-    public static int MAC_OS_VERSION_11_5() {
-        return MAC_OS_VERSION_11_5;
-    }
-    private static final int MAC_OS_VERSION_11_6 = (int)110600L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_11_6 110600
-     * }
-     */
-    public static int MAC_OS_VERSION_11_6() {
-        return MAC_OS_VERSION_11_6;
-    }
-    private static final int MAC_OS_VERSION_12_0 = (int)120000L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_12_0 120000
-     * }
-     */
-    public static int MAC_OS_VERSION_12_0() {
-        return MAC_OS_VERSION_12_0;
-    }
-    private static final int MAC_OS_VERSION_12_1 = (int)120100L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_12_1 120100
-     * }
-     */
-    public static int MAC_OS_VERSION_12_1() {
-        return MAC_OS_VERSION_12_1;
-    }
-    private static final int MAC_OS_VERSION_12_2 = (int)120200L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_12_2 120200
-     * }
-     */
-    public static int MAC_OS_VERSION_12_2() {
-        return MAC_OS_VERSION_12_2;
-    }
-    private static final int MAC_OS_VERSION_12_3 = (int)120300L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_12_3 120300
-     * }
-     */
-    public static int MAC_OS_VERSION_12_3() {
-        return MAC_OS_VERSION_12_3;
-    }
-    private static final int MAC_OS_VERSION_12_4 = (int)120400L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_12_4 120400
-     * }
-     */
-    public static int MAC_OS_VERSION_12_4() {
-        return MAC_OS_VERSION_12_4;
-    }
-    private static final int MAC_OS_VERSION_12_5 = (int)120500L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_12_5 120500
-     * }
-     */
-    public static int MAC_OS_VERSION_12_5() {
-        return MAC_OS_VERSION_12_5;
-    }
-    private static final int MAC_OS_VERSION_12_6 = (int)120600L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_12_6 120600
-     * }
-     */
-    public static int MAC_OS_VERSION_12_6() {
-        return MAC_OS_VERSION_12_6;
-    }
-    private static final int MAC_OS_VERSION_12_7 = (int)120700L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_12_7 120700
-     * }
-     */
-    public static int MAC_OS_VERSION_12_7() {
-        return MAC_OS_VERSION_12_7;
-    }
-    private static final int MAC_OS_VERSION_13_0 = (int)130000L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_13_0 130000
-     * }
-     */
-    public static int MAC_OS_VERSION_13_0() {
-        return MAC_OS_VERSION_13_0;
-    }
-    private static final int MAC_OS_VERSION_13_1 = (int)130100L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_13_1 130100
-     * }
-     */
-    public static int MAC_OS_VERSION_13_1() {
-        return MAC_OS_VERSION_13_1;
-    }
-    private static final int MAC_OS_VERSION_13_2 = (int)130200L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_13_2 130200
-     * }
-     */
-    public static int MAC_OS_VERSION_13_2() {
-        return MAC_OS_VERSION_13_2;
-    }
-    private static final int MAC_OS_VERSION_13_3 = (int)130300L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_13_3 130300
-     * }
-     */
-    public static int MAC_OS_VERSION_13_3() {
-        return MAC_OS_VERSION_13_3;
-    }
-    private static final int MAC_OS_VERSION_13_4 = (int)130400L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_13_4 130400
-     * }
-     */
-    public static int MAC_OS_VERSION_13_4() {
-        return MAC_OS_VERSION_13_4;
-    }
-    private static final int MAC_OS_VERSION_13_5 = (int)130500L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_13_5 130500
-     * }
-     */
-    public static int MAC_OS_VERSION_13_5() {
-        return MAC_OS_VERSION_13_5;
-    }
-    private static final int MAC_OS_VERSION_13_6 = (int)130600L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_13_6 130600
-     * }
-     */
-    public static int MAC_OS_VERSION_13_6() {
-        return MAC_OS_VERSION_13_6;
-    }
-    private static final int MAC_OS_VERSION_13_7 = (int)130700L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_13_7 130700
-     * }
-     */
-    public static int MAC_OS_VERSION_13_7() {
-        return MAC_OS_VERSION_13_7;
-    }
-    private static final int MAC_OS_VERSION_14_0 = (int)140000L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_14_0 140000
-     * }
-     */
-    public static int MAC_OS_VERSION_14_0() {
-        return MAC_OS_VERSION_14_0;
-    }
-    private static final int MAC_OS_VERSION_14_1 = (int)140100L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_14_1 140100
-     * }
-     */
-    public static int MAC_OS_VERSION_14_1() {
-        return MAC_OS_VERSION_14_1;
-    }
-    private static final int MAC_OS_VERSION_14_2 = (int)140200L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_14_2 140200
-     * }
-     */
-    public static int MAC_OS_VERSION_14_2() {
-        return MAC_OS_VERSION_14_2;
-    }
-    private static final int MAC_OS_VERSION_14_3 = (int)140300L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_14_3 140300
-     * }
-     */
-    public static int MAC_OS_VERSION_14_3() {
-        return MAC_OS_VERSION_14_3;
-    }
-    private static final int MAC_OS_VERSION_14_4 = (int)140400L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_14_4 140400
-     * }
-     */
-    public static int MAC_OS_VERSION_14_4() {
-        return MAC_OS_VERSION_14_4;
-    }
-    private static final int MAC_OS_VERSION_14_5 = (int)140500L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_14_5 140500
-     * }
-     */
-    public static int MAC_OS_VERSION_14_5() {
-        return MAC_OS_VERSION_14_5;
-    }
-    private static final int MAC_OS_VERSION_14_6 = (int)140600L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_14_6 140600
-     * }
-     */
-    public static int MAC_OS_VERSION_14_6() {
-        return MAC_OS_VERSION_14_6;
-    }
-    private static final int MAC_OS_VERSION_14_7 = (int)140700L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_14_7 140700
-     * }
-     */
-    public static int MAC_OS_VERSION_14_7() {
-        return MAC_OS_VERSION_14_7;
-    }
-    private static final int MAC_OS_VERSION_15_0 = (int)150000L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_15_0 150000
-     * }
-     */
-    public static int MAC_OS_VERSION_15_0() {
-        return MAC_OS_VERSION_15_0;
-    }
-    private static final int MAC_OS_VERSION_15_1 = (int)150100L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_15_1 150100
-     * }
-     */
-    public static int MAC_OS_VERSION_15_1() {
-        return MAC_OS_VERSION_15_1;
-    }
-    private static final int MAC_OS_VERSION_15_2 = (int)150200L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_15_2 150200
-     * }
-     */
-    public static int MAC_OS_VERSION_15_2() {
-        return MAC_OS_VERSION_15_2;
-    }
-    private static final int MAC_OS_VERSION_15_3 = (int)150300L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_15_3 150300
-     * }
-     */
-    public static int MAC_OS_VERSION_15_3() {
-        return MAC_OS_VERSION_15_3;
-    }
-    private static final int MAC_OS_VERSION_15_4 = (int)150400L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_15_4 150400
-     * }
-     */
-    public static int MAC_OS_VERSION_15_4() {
-        return MAC_OS_VERSION_15_4;
-    }
-    private static final int MAC_OS_VERSION_15_5 = (int)150500L;
-    /**
-     * {@snippet lang=c :
-     * #define MAC_OS_VERSION_15_5 150500
-     * }
-     */
-    public static int MAC_OS_VERSION_15_5() {
-        return MAC_OS_VERSION_15_5;
-    }
-    private static final int __AVAILABILITY_VERSIONS_VERSION_HASH = (int)93585900L;
-    /**
-     * {@snippet lang=c :
-     * #define __AVAILABILITY_VERSIONS_VERSION_HASH 93585900
-     * }
-     */
-    public static int __AVAILABILITY_VERSIONS_VERSION_HASH() {
-        return __AVAILABILITY_VERSIONS_VERSION_HASH;
-    }
-    /**
-     * {@snippet lang=c :
-     * #define __AVAILABILITY_VERSIONS_VERSION_STRING "Local"
-     * }
-     */
-    public static MemorySegment __AVAILABILITY_VERSIONS_VERSION_STRING() {
-        class Holder {
-            static final MemorySegment __AVAILABILITY_VERSIONS_VERSION_STRING
-                = ipc_channel_h.LIBRARY_ARENA.allocateFrom("Local");
-        }
-        return Holder.__AVAILABILITY_VERSIONS_VERSION_STRING;
-    }
-    /**
-     * {@snippet lang=c :
-     * #define __AVAILABILITY_FILE "AvailabilityVersions.h"
-     * }
-     */
-    public static MemorySegment __AVAILABILITY_FILE() {
-        class Holder {
-            static final MemorySegment __AVAILABILITY_FILE
-                = ipc_channel_h.LIBRARY_ARENA.allocateFrom("AvailabilityVersions.h");
-        }
-        return Holder.__AVAILABILITY_FILE;
-    }
-    private static final int __MAC_OS_X_VERSION_MAX_ALLOWED = (int)150500L;
-    /**
-     * {@snippet lang=c :
-     * #define __MAC_OS_X_VERSION_MAX_ALLOWED 150500
-     * }
-     */
-    public static int __MAC_OS_X_VERSION_MAX_ALLOWED() {
-        return __MAC_OS_X_VERSION_MAX_ALLOWED;
-    }
-    private static final long USER_ADDR_NULL = 0L;
-    /**
-     * {@snippet lang=c :
-     * #define USER_ADDR_NULL 0
-     * }
-     */
-    public static long USER_ADDR_NULL() {
-        return USER_ADDR_NULL;
-    }
-    private static final long CLOCKS_PER_SEC = 1000000L;
-    /**
-     * {@snippet lang=c :
-     * #define CLOCKS_PER_SEC 1000000
-     * }
-     */
-    public static long CLOCKS_PER_SEC() {
-        return CLOCKS_PER_SEC;
-    }
-    private static final int CLOCK_REALTIME = (int)0L;
-    /**
-     * {@snippet lang=c :
-     * #define CLOCK_REALTIME 0
-     * }
-     */
-    public static int CLOCK_REALTIME() {
-        return CLOCK_REALTIME;
-    }
-    private static final int CLOCK_MONOTONIC = (int)6L;
-    /**
-     * {@snippet lang=c :
-     * #define CLOCK_MONOTONIC 6
-     * }
-     */
-    public static int CLOCK_MONOTONIC() {
-        return CLOCK_MONOTONIC;
-    }
-    private static final int CLOCK_MONOTONIC_RAW = (int)4L;
-    /**
-     * {@snippet lang=c :
-     * #define CLOCK_MONOTONIC_RAW 4
-     * }
-     */
-    public static int CLOCK_MONOTONIC_RAW() {
-        return CLOCK_MONOTONIC_RAW;
-    }
-    private static final int CLOCK_MONOTONIC_RAW_APPROX = (int)5L;
-    /**
-     * {@snippet lang=c :
-     * #define CLOCK_MONOTONIC_RAW_APPROX 5
-     * }
-     */
-    public static int CLOCK_MONOTONIC_RAW_APPROX() {
-        return CLOCK_MONOTONIC_RAW_APPROX;
-    }
-    private static final int CLOCK_UPTIME_RAW = (int)8L;
-    /**
-     * {@snippet lang=c :
-     * #define CLOCK_UPTIME_RAW 8
-     * }
-     */
-    public static int CLOCK_UPTIME_RAW() {
-        return CLOCK_UPTIME_RAW;
-    }
-    private static final int CLOCK_UPTIME_RAW_APPROX = (int)9L;
-    /**
-     * {@snippet lang=c :
-     * #define CLOCK_UPTIME_RAW_APPROX 9
-     * }
-     */
-    public static int CLOCK_UPTIME_RAW_APPROX() {
-        return CLOCK_UPTIME_RAW_APPROX;
-    }
-    private static final int CLOCK_PROCESS_CPUTIME_ID = (int)12L;
-    /**
-     * {@snippet lang=c :
-     * #define CLOCK_PROCESS_CPUTIME_ID 12
-     * }
-     */
-    public static int CLOCK_PROCESS_CPUTIME_ID() {
-        return CLOCK_PROCESS_CPUTIME_ID;
-    }
-    private static final int CLOCK_THREAD_CPUTIME_ID = (int)16L;
-    /**
-     * {@snippet lang=c :
-     * #define CLOCK_THREAD_CPUTIME_ID 16
-     * }
-     */
-    public static int CLOCK_THREAD_CPUTIME_ID() {
-        return CLOCK_THREAD_CPUTIME_ID;
+    public static MemorySegment NULL() {
+        return NULL;
     }
 }
 
