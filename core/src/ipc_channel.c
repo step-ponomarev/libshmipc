@@ -15,8 +15,7 @@
 #define CHANNEL_HEADER_SIZE_ALIGNED ALIGN_UP_BY_CACHE_LINE(sizeof(ipc_channel_header))
 
 typedef struct {
-    _Atomic uint32_t notify;
-    uint8_t _padding[64 - sizeof(uint32_t)];
+    _Alignas(CACHE_LINE_SIZE) _Atomic uint32_t notify;
 } ipc_channel_header;
 
 struct ipc_channel_t {
@@ -24,7 +23,7 @@ struct ipc_channel_t {
     ipc_buffer_t *buffer;
 };
 
-static ipc_status_t try_read(ipc_channel_t * channel, ipc_entry_t * dest, ipc_error_t *err);
+static ipc_status_t try_read(ipc_channel_t *channel, ipc_entry_t *dest, ipc_error_t *err);
 
 inline uint64_t ipc_channel_memory_overhead(void) {
     return CHANNEL_HEADER_SIZE_ALIGNED + ipc_buffer_memory_overhead();

@@ -15,12 +15,9 @@
 #define LOCK(offset) ((offset) | 0x1)
 
 typedef struct {
-    _Atomic uint64_t head;
+    _Alignas(CACHE_LINE_SIZE) _Atomic uint64_t head;
+    _Alignas(CACHE_LINE_SIZE) _Atomic uint64_t tail;
     _Atomic uint64_t buffer_size; // TODO: static value read once
-    uint8_t _r_padding[64 - 2 * sizeof(uint64_t)];
-
-    _Atomic uint64_t tail;
-    uint8_t _w_padding[64 - sizeof(uint64_t)];
 } ipc_buffer_header_t;
 
 typedef struct {
