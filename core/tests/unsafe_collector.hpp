@@ -6,7 +6,6 @@
 
 template <typename T>
 class UnsafeCollector {
-private:
     std::vector<T> data;
     
 public:

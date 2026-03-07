@@ -3,13 +3,13 @@
 #include "doctest/doctest.h"
 #include "shmipc/ipc_buffer.h"
 #include "shmipc/ipc_channel.h"
+#include "EntryWrapper.hpp"
+#include "ChannelWrapper.hpp"
+#include "BufferWrapper.hpp"
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
 #include <vector>
-
-template<typename T>
-class ConcurrentSet;
 
 namespace test_utils {
     constexpr size_t SMALL_BUFFER_SIZE = 256;
@@ -17,149 +17,6 @@ namespace test_utils {
     constexpr size_t LARGE_BUFFER_SIZE = 1024;
     constexpr size_t DEFAULT_COUNT = 100000;
     constexpr size_t LARGE_COUNT = 50000;
-
-    class BufferWrapper {
-    public:
-        explicit BufferWrapper(size_t size) : mem_(ipc_buffer_suggest_size(size)) {
-            const ipc_status_t status = ipc_buffer_init(mem_.data(), ipc_buffer_suggest_size(size), &buffer_, NULL);
-            CHECK(status == IPC_STATUS_OK);
-        }
-
-        ~BufferWrapper() {
-            if (buffer_) {
-                ipc_buffer_detach(buffer_, nullptr);
-            }
-        }
-
-        ipc_buffer_t *get() const { return buffer_; }
-        ipc_buffer_t *operator->() const { return buffer_; }
-
-        BufferWrapper(const BufferWrapper &) = delete;
-
-        BufferWrapper &operator=(const BufferWrapper &) = delete;
-
-        BufferWrapper(BufferWrapper &&other) noexcept
-            : buffer_(other.buffer_), mem_(std::move(other.mem_)) {
-            other.buffer_ = nullptr;
-        }
-
-        BufferWrapper &operator=(BufferWrapper &&other) noexcept {
-            if (this != &other) {
-                buffer_ = other.buffer_;
-                mem_ = std::move(other.mem_);
-                other.buffer_ = nullptr;
-            }
-            return *this;
-        }
-
-    private:
-        ipc_buffer_t *buffer_;
-        std::vector<uint8_t> mem_;
-    };
-
-    class ChannelWrapper {
-    public:
-        explicit ChannelWrapper(size_t size) : mem_(ipc_channel_suggest_size(size)) {
-            channel_ = nullptr;
-            ipc_error_t err;
-            const ipc_status_t status =
-                    ipc_channel_init(mem_.data(),
-                                       ipc_channel_suggest_size(size),
-                                       &channel_,
-                                       &err);
-            CHECK(status == IPC_STATUS_OK);
-            CHECK(channel_ != nullptr);
-        }
-
-        ~ChannelWrapper() {
-            if (channel_) {
-                ipc_channel_detach(channel_, nullptr);
-            }
-        }
-
-        ipc_channel_t *get() const { return channel_; }
-        ipc_channel_t *operator->() const { return channel_; }
-        const uint8_t *get_mem() const { return mem_.data(); }
-
-        ipc_channel_t *release() {
-            ipc_channel_t *result = channel_;
-            channel_ = nullptr;
-            return result;
-        }
-
-        ChannelWrapper(const ChannelWrapper &) = delete;
-
-        ChannelWrapper &operator=(const ChannelWrapper &) = delete;
-
-        ChannelWrapper(ChannelWrapper &&other) noexcept
-            : channel_(other.channel_), mem_(std::move(other.mem_)) {
-            other.channel_ = nullptr;
-        }
-
-        ChannelWrapper &operator=(ChannelWrapper &&other) noexcept {
-            if (this != &other) {
-                if (channel_) {
-                    ipc_channel_detach(channel_, nullptr);
-                }
-                channel_ = other.channel_;
-                mem_ = std::move(other.mem_);
-                other.channel_ = nullptr;
-            }
-            return *this;
-        }
-
-    private:
-        ipc_channel_t *channel_;
-        std::vector<uint8_t> mem_;
-    };
-
-    class EntryWrapper {
-    public:
-        explicit EntryWrapper(size_t size) : size_(size) {
-            payload_ = malloc(size);
-            CHECK(payload_ != nullptr);
-        }
-
-        ~EntryWrapper() {
-            if (payload_) {
-                free(payload_);
-            }
-        }
-
-        ipc_entry_t get() const {
-            return {.offset = 0, .payload = payload_, .size = size_};
-        }
-
-        void *payload() const { return payload_; }
-        size_t size() const { return size_; }
-
-        EntryWrapper(const EntryWrapper &) = delete;
-
-        EntryWrapper &operator=(const EntryWrapper &) = delete;
-
-        EntryWrapper(EntryWrapper &&other) noexcept
-            : payload_(other.payload_), size_(other.size_) {
-            other.payload_ = nullptr;
-            other.size_ = 0;
-        }
-
-        EntryWrapper &operator=(EntryWrapper &&other) noexcept {
-            if (this != &other) {
-                if (payload_) {
-                    free(payload_);
-                }
-                payload_ = other.payload_;
-                size_ = other.size_;
-                other.payload_ = nullptr;
-                other.size_ = 0;
-            }
-            return *this;
-        }
-
-    private:
-        void *payload_;
-        size_t size_;
-    };
 
     inline void CHECK_NULL_ARG_ERROR(ipc_status_t expected_status, ipc_error_t err) {
         CHECK(expected_status == IPC_STATUS_ERROR);
@@ -173,6 +30,16 @@ namespace test_utils {
         CHECK(err.kind == IPC_ERR_KIND_ARG);
         CHECK(err.code == IPC_ERR_CODE_INVALID_CAPACITY);
         CHECK(err.message != nullptr);
+    }
+
+    inline void CHECK_INVALID_CAPACITY_SIZE_EXCEEDS_ARG_ERROR(ipc_status_t expected_status, ipc_error_t err) {
+        CHECK(expected_status == IPC_STATUS_ERROR);
+        CHECK(err.kind == IPC_ERR_KIND_ARG);
+        CHECK(err.code == IPC_ERR_CODE_SIZE_EXCEEDS_BUFFER);
+        CHECK(err.message != nullptr);
+        CHECK(err.as.arg.size.requested_size > err.as.arg.size.limit);
+        CHECK(err.as.arg.size.limit > 0);
+        CHECK(err.as.arg.size.suggested_size == err.as.arg.size.limit);
     }
 
     inline void CHECK_CAPACITY_ERROR(ipc_status_t status,
@@ -270,7 +137,7 @@ namespace test_utils {
 
     template<typename T>
     T read_data_safe(ipc_buffer_t *buffer) {
-        test_utils::EntryWrapper entry(sizeof(T));
+        EntryWrapper entry(sizeof(T));
         ipc_entry_t entry_ref = entry.get();
         const ipc_status_t status = ipc_buffer_read(buffer, &entry_ref, nullptr);
         if (status != IPC_STATUS_OK) {
@@ -321,4 +188,4 @@ namespace test_utils {
             throw std::runtime_error("Failed to write to channel");
         }
     }
-} // namespace test_utils
+}

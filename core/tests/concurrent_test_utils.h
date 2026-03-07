@@ -33,7 +33,7 @@ inline void produce_channel(ipc_channel_t *channel, size_t from, size_t to) {
 inline void consume_buffer(ipc_buffer_t *buffer,
                            UnsafeCollector<size_t> &collector,
                            ConcurrencyManager<size_t> &manager) {
-  test_utils::EntryWrapper entry(sizeof(size_t));
+  EntryWrapper entry(sizeof(size_t));
   ipc_entry_t entry_ref = entry.get();
 
   bool finished = false;

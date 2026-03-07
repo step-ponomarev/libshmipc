@@ -3,6 +3,7 @@
 
 #include "shmipc/ipc_buffer.h"
 #include "test_utils.h"
+#include "BufferWrapper.hpp"
 #include <cstring>
 
 TEST_CASE("buffer init - null out") {
@@ -190,14 +191,14 @@ TEST_CASE("buffer write - null buffer") {
 }
 
 TEST_CASE("buffer write - null data") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     ipc_error_t err;
     const ipc_status_t status = ipc_buffer_write(buffer.get(), nullptr, sizeof(int), &err);
     test_utils::CHECK_NULL_ARG_ERROR(status, err);
 }
 
 TEST_CASE("buffer write - zero size") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const int data = 42;
     ipc_error_t err;
     const ipc_status_t status = ipc_buffer_write(buffer.get(), &data, 0, &err);
@@ -208,7 +209,7 @@ TEST_CASE("buffer write - zero size") {
 }
 
 TEST_CASE("buffer write - size exceeds buffer") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     std::vector<uint8_t> large_data(test_utils::SMALL_BUFFER_SIZE * 10, 0xAB);
 
     ipc_error_t err;
@@ -224,7 +225,7 @@ TEST_CASE("buffer write - size exceeds buffer") {
 }
 
 TEST_CASE("buffer write - no space") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     size_t count = 0;
     while (ipc_buffer_write(buffer.get(), &count, sizeof(count), nullptr) == IPC_STATUS_OK) {
@@ -236,13 +237,13 @@ TEST_CASE("buffer write - no space") {
 }
 
 TEST_CASE("buffer write - success") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const int data = 42;
     CHECK(test_utils::write_data_safe(buffer.get(), data));
 }
 
 TEST_CASE("buffer read - null buffer") {
-    test_utils::EntryWrapper entry(sizeof(int));
+    EntryWrapper entry(sizeof(int));
     ipc_entry_t entry_ref = entry.get();
     ipc_error_t err;
     const ipc_status_t status = ipc_buffer_read(nullptr, &entry_ref, &err);
@@ -250,27 +251,27 @@ TEST_CASE("buffer read - null buffer") {
 }
 
 TEST_CASE("buffer read - null dest") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     ipc_error_t err;
     const ipc_status_t status = ipc_buffer_read(buffer.get(), nullptr, &err);
     test_utils::CHECK_NULL_ARG_ERROR(status, err);
 }
 
 TEST_CASE("buffer read - empty buffer") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
-    test_utils::EntryWrapper entry(sizeof(int));
+    EntryWrapper entry(sizeof(int));
     ipc_entry_t entry_ref = entry.get();
     const ipc_status_t status = ipc_buffer_read(buffer.get(), &entry_ref, nullptr);
     CHECK(status == IPC_STATUS_EMPTY);
 }
 
 TEST_CASE("buffer read - dest too small") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     int val = 42;
     test_utils::write_data(buffer.get(), val);
 
-    test_utils::EntryWrapper entry(sizeof(val) - 1);
+    EntryWrapper entry(sizeof(val) - 1);
     ipc_entry_t entry_ref = entry.get();
     ipc_error_t err;
     const ipc_status_t status = ipc_buffer_read(buffer.get(), &entry_ref, &err);
@@ -278,15 +279,15 @@ TEST_CASE("buffer read - dest too small") {
 }
 
 TEST_CASE("buffer read - dest too small does not consume entry") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     int val = 42;
     test_utils::write_data(buffer.get(), val);
 
-    test_utils::EntryWrapper small_entry(sizeof(val) - 1);
+    EntryWrapper small_entry(sizeof(val) - 1);
     ipc_entry_t small_ref = small_entry.get();
     CHECK(ipc_buffer_read(buffer.get(), &small_ref, nullptr) == IPC_STATUS_ERROR);
 
-    test_utils::EntryWrapper entry(sizeof(val));
+    EntryWrapper entry(sizeof(val));
     ipc_entry_t entry_ref = entry.get();
     CHECK(ipc_buffer_read(buffer.get(), &entry_ref, nullptr) == IPC_STATUS_OK);
 
@@ -296,11 +297,11 @@ TEST_CASE("buffer read - dest too small does not consume entry") {
 }
 
 TEST_CASE("buffer read - dest larger than payload") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const int data = 42;
     test_utils::write_data(buffer.get(), data);
 
-    test_utils::EntryWrapper entry(sizeof(int) * 4);
+    EntryWrapper entry(sizeof(int) * 4);
     ipc_entry_t entry_ref = entry.get();
     CHECK(ipc_buffer_read(buffer.get(), &entry_ref, nullptr) == IPC_STATUS_OK);
     CHECK(entry_ref.size == sizeof(int));
@@ -311,7 +312,7 @@ TEST_CASE("buffer read - dest larger than payload") {
 }
 
 TEST_CASE("buffer read - success") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const int data = 42;
     test_utils::write_data(buffer.get(), data);
 
@@ -327,14 +328,14 @@ TEST_CASE("buffer next_entry_size - null buffer") {
 }
 
 TEST_CASE("buffer next_entry_size - null out_size") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     ipc_error_t err;
     const ipc_status_t status = ipc_buffer_next_entry_size(buffer.get(), nullptr, &err);
     test_utils::CHECK_NULL_ARG_ERROR(status, err);
 }
 
 TEST_CASE("buffer next_entry_size - empty buffer") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     size_t out_size = 999;
     const ipc_status_t status = ipc_buffer_next_entry_size(buffer.get(), &out_size, nullptr);
     CHECK(status == IPC_STATUS_EMPTY);
@@ -342,7 +343,7 @@ TEST_CASE("buffer next_entry_size - empty buffer") {
 }
 
 TEST_CASE("buffer next_entry_size - success") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const int data = 42;
     test_utils::write_data(buffer.get(), data);
 
@@ -353,7 +354,7 @@ TEST_CASE("buffer next_entry_size - success") {
 }
 
 TEST_CASE("buffer next_entry_size - does not consume entry") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
     const int data = 42;
     test_utils::write_data(buffer.get(), data);
 
@@ -369,7 +370,7 @@ TEST_CASE("buffer next_entry_size - does not consume entry") {
 }
 
 TEST_CASE("buffer next_entry_size - skips placeholder") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     size_t count = 0;
     while (ipc_buffer_write(buffer.get(), &count, sizeof(count), nullptr) != IPC_STATUS_NO_SPACE) {
@@ -377,7 +378,7 @@ TEST_CASE("buffer next_entry_size - skips placeholder") {
     }
     CHECK(count > 1);
 
-    test_utils::EntryWrapper drain_entry(sizeof(size_t));
+    EntryWrapper drain_entry(sizeof(size_t));
     ipc_entry_t drain_ref = drain_entry.get();
     CHECK(ipc_buffer_read(buffer.get(), &drain_ref, nullptr) == IPC_STATUS_OK);
 
@@ -395,12 +396,12 @@ TEST_CASE("buffer next_entry_size - skips placeholder") {
 }
 
 TEST_CASE("buffer data - single byte") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     uint8_t byte = 0xFF;
     test_utils::write_data(buffer.get(), byte);
 
-    test_utils::EntryWrapper entry(sizeof(uint8_t));
+    EntryWrapper entry(sizeof(uint8_t));
     ipc_entry_t entry_ref = entry.get();
     CHECK(ipc_buffer_read(buffer.get(), &entry_ref, nullptr) == IPC_STATUS_OK);
     CHECK(entry_ref.size == sizeof(uint8_t));
@@ -411,7 +412,7 @@ TEST_CASE("buffer data - single byte") {
 }
 
 TEST_CASE("buffer data - different sizes") {
-    test_utils::BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::LARGE_BUFFER_SIZE);
 
     struct TestData {
         size_t size;
@@ -425,7 +426,7 @@ TEST_CASE("buffer data - different sizes") {
 
     std::vector<std::vector<uint8_t> > written_data;
     for (const auto &tc: test_cases) {
-        std::vector<uint8_t> data(tc.size, tc.pattern);
+        std::vector data(tc.size, tc.pattern);
         written_data.push_back(data);
 
         if (ipc_buffer_write(buffer.get(), data.data(), data.size(), nullptr) != IPC_STATUS_OK) {
@@ -435,20 +436,20 @@ TEST_CASE("buffer data - different sizes") {
     }
 
     for (size_t i = 0; i < written_data.size(); ++i) {
-        test_utils::EntryWrapper entry(written_data[i].size());
+        EntryWrapper entry(written_data[i].size());
         ipc_entry_t entry_ref = entry.get();
         CHECK(ipc_buffer_read(buffer.get(), &entry_ref, nullptr) == IPC_STATUS_OK);
         CHECK(entry_ref.size == written_data[i].size());
         CHECK(memcmp(entry_ref.payload, written_data[i].data(), written_data[i].size()) == 0);
     }
 
-    test_utils::EntryWrapper entry(1);
+    EntryWrapper entry(1);
     ipc_entry_t entry_ref = entry.get();
     CHECK(ipc_buffer_read(buffer.get(), &entry_ref, nullptr) == IPC_STATUS_EMPTY);
 }
 
 TEST_CASE("buffer data - fill and drain") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     size_t count = 0;
     while (ipc_buffer_write(buffer.get(), &count, sizeof(count), nullptr) != IPC_STATUS_NO_SPACE) {
@@ -456,7 +457,7 @@ TEST_CASE("buffer data - fill and drain") {
     }
     CHECK(count > 0);
 
-    test_utils::EntryWrapper entry(sizeof(size_t));
+    EntryWrapper entry(sizeof(size_t));
     for (size_t i = 0; i < count; i++) {
         ipc_entry_t entry_ref = entry.get();
         CHECK(ipc_buffer_read(buffer.get(), &entry_ref, nullptr) == IPC_STATUS_OK);
@@ -472,9 +473,9 @@ TEST_CASE("buffer data - fill and drain") {
 }
 
 TEST_CASE("buffer data - fill drain refill") {
-    test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
 
-    test_utils::EntryWrapper entry(sizeof(int));
+    EntryWrapper entry(sizeof(int));
 
     for (int i = 0; i < 3; ++i) {
         test_utils::write_data(buffer.get(), i);
@@ -504,7 +505,7 @@ TEST_CASE("buffer data - fill drain refill") {
 }
 
 TEST_CASE("buffer data - wrap around") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     size_t count = 0;
     while (ipc_buffer_write(buffer.get(), &count, sizeof(count), nullptr) == IPC_STATUS_OK) {
@@ -512,14 +513,14 @@ TEST_CASE("buffer data - wrap around") {
     }
     CHECK(ipc_buffer_write(buffer.get(), &count, sizeof(count), nullptr) == IPC_STATUS_NO_SPACE);
 
-    test_utils::EntryWrapper drain_entry(sizeof(size_t));
+    EntryWrapper drain_entry(sizeof(size_t));
     ipc_entry_t drain_ref = drain_entry.get();
     CHECK(ipc_buffer_read(buffer.get(), &drain_ref, nullptr) == IPC_STATUS_OK);
 
     const size_t wrap_val = 666;
     CHECK(ipc_buffer_write(buffer.get(), &wrap_val, sizeof(wrap_val), nullptr) == IPC_STATUS_OK);
 
-    test_utils::EntryWrapper entry(sizeof(size_t));
+    EntryWrapper entry(sizeof(size_t));
     size_t last = 0;
     while (true) {
         ipc_entry_t entry_ref = entry.get();
@@ -531,7 +532,7 @@ TEST_CASE("buffer data - wrap around") {
 }
 
 TEST_CASE("buffer data - next_entry_size then read") {
-    test_utils::BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::MEDIUM_BUFFER_SIZE);
     int data = 42;
     test_utils::write_data(buffer.get(), data);
 
@@ -539,7 +540,7 @@ TEST_CASE("buffer data - next_entry_size then read") {
     CHECK(ipc_buffer_next_entry_size(buffer.get(), &next_size, nullptr) == IPC_STATUS_OK);
     CHECK(next_size == sizeof(int));
 
-    test_utils::EntryWrapper entry(next_size);
+    EntryWrapper entry(next_size);
     ipc_entry_t entry_ref = entry.get();
     CHECK(ipc_buffer_read(buffer.get(), &entry_ref, nullptr) == IPC_STATUS_OK);
 
@@ -551,7 +552,7 @@ TEST_CASE("buffer data - next_entry_size then read") {
 }
 
 TEST_CASE("buffer data - error recovery") {
-    test_utils::BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
+    BufferWrapper buffer(test_utils::SMALL_BUFFER_SIZE);
 
     std::vector<uint8_t> large_data(1000);
     ipc_error_t err;
