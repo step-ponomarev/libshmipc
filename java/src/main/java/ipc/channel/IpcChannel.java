@@ -94,24 +94,7 @@ public final class IpcChannel implements Closeable {
 
         try (Arena tmpArena = Arena.ofConfined()) {
             final MemorySegment err = ipc_error_t.allocate(tmpArena);
-
-            final IpcStatus status;
-            lock.readLock().lock();
-            try {
-                if (closed) {
-                    throw new IllegalStateException("channel is closed");
-                }
-
-                status = IpcStatus.of(ipc_channel_h.ipc_channel_write(
-                                channel,
-                                tmpArena.allocateFrom(ValueLayout.JAVA_BYTE, bytes),
-                                bytes.length,
-                                err
-                        )
-                );
-            } finally {
-                lock.readLock().unlock();
-            }
+            final IpcStatus status = write(tmpArena.allocateFrom(ValueLayout.JAVA_BYTE, bytes), bytes.length, err);
 
             if (status == IpcStatus.IPC_STATUS_ERROR) {
                 throw IpcException.from(err);
@@ -134,33 +117,11 @@ public final class IpcChannel implements Closeable {
             final long startNs = System.nanoTime();
             final long timeNs = timeout.toNanos();
 
-            long notify;
-            lock.readLock().lock();
-            try {
-                if (closed) {
-                    throw new IllegalStateException("channel is closed");
-                }
-
-                notify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
-            } finally {
-                lock.readLock().unlock();
-            }
-
+            long notify = getNotifySignal();
             final MemorySegment err = ipc_error_t.allocate(arena);
             final MemorySegment entry = ipc_entry_t.allocate(arena);
             do {
-                final IpcStatus status;
-                lock.readLock().lock();
-                try {
-                    if (closed) {
-                        throw new IllegalStateException("channel is closed");
-                    }
-
-                    status = IpcStatus.of(ipc_channel_h.ipc_channel_try_read(channel, entry, err));
-                } finally {
-                    lock.readLock().unlock();
-                }
-
+                final IpcStatus status = tryRead(entry, err);
                 if (status == IpcStatus.IPC_STATUS_ERROR) {
                     throw IpcException.from(err);
                 }
@@ -180,18 +141,7 @@ public final class IpcChannel implements Closeable {
                         return null;
                     }
 
-                    long currNotify;
-                    lock.readLock().lock();
-                    try {
-                        if (closed) {
-                            throw new IllegalStateException("channel is closed");
-                        }
-
-                        currNotify = ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
-                    } finally {
-                        lock.readLock().unlock();
-                    }
-
+                    long currNotify = getNotifySignal();
                     if (currNotify != notify) {
                         notify = currNotify;
                         break;
@@ -212,10 +162,49 @@ public final class IpcChannel implements Closeable {
         }
     }
 
-    private static byte[] ipcEntryToBytes(MemorySegment ipcEntry) {
-        final MemorySegment payload = ipc_entry_t.payload(ipcEntry);
+    private IpcStatus write(MemorySegment data, long size, MemorySegment err) {
+        lock.readLock().lock();
+        try {
+            if (closed) {
+                throw new IllegalStateException("channel is closed");
+            }
 
-        return payload.reinterpret(ipc_entry_t.size(ipcEntry)).toArray(ValueLayout.JAVA_BYTE);
+            return IpcStatus.of(ipc_channel_h.ipc_channel_write(
+                            channel,
+                            data,
+                            size,
+                            err
+                    )
+            );
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    private IpcStatus tryRead(MemorySegment entry, MemorySegment err) {
+        lock.readLock().lock();
+        try {
+            if (closed) {
+                throw new IllegalStateException("channel is closed");
+            }
+
+            return IpcStatus.of(ipc_channel_h.ipc_channel_try_read(channel, entry, err));
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    private long getNotifySignal() {
+        lock.readLock().lock();
+        try {
+            if (closed) {
+                throw new IllegalStateException("channel is closed");
+            }
+
+            return ipc_channel_h.ipc_channel_get_notify_signal(this.channel);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     @Override
@@ -235,5 +224,11 @@ public final class IpcChannel implements Closeable {
         } finally {
             lock.writeLock().unlock();
         }
+    }
+
+    private static byte[] ipcEntryToBytes(MemorySegment ipcEntry) {
+        final MemorySegment payload = ipc_entry_t.payload(ipcEntry);
+
+        return payload.reinterpret(ipc_entry_t.size(ipcEntry)).toArray(ValueLayout.JAVA_BYTE);
     }
 }
