@@ -1,87 +1,35 @@
 #pragma once
 
-#include <shmipc/ipc_common.h>
+#include <shmipc/ipc_error.h>
+#include <shmipc/ipc_status.h>
 #include <shmipc/ipc_export.h>
-#include <time.h>
+#include <shmipc/ipc_entry.h>
 
 SHMIPC_BEGIN_DECLS
 
-typedef struct IpcChannel IpcChannel;
+typedef struct ipc_channel_t ipc_channel_t;
 
-SHMIPC_API uint64_t ipc_channel_get_memory_overhead(void);
-SHMIPC_API uint64_t ipc_channel_get_min_size(void);
+SHMIPC_API uint64_t ipc_channel_memory_overhead(void);
+
+SHMIPC_API uint64_t ipc_channel_min_size(void);
+
+SHMIPC_API uint32_t ipc_channel_get_notify_signal(ipc_channel_t *channel);
+
 SHMIPC_API uint64_t ipc_channel_suggest_size(size_t desired_capacity);
-SHMIPC_API uint32_t ipc_channel_get_notify_signal(IpcChannel *channel);
-SHMIPC_API bool ipc_channel_is_retry_status(const IpcStatus);
 
-typedef struct IpcChannelCreateError {
-  size_t requested_size;
-  size_t min_size;
-  int sys_errno;
-} IpcChannelCreateError;
-IPC_RESULT(IpcChannelCreateResult, IpcChannel *, IpcChannelCreateError)
-SHMIPC_API IpcChannelCreateResult ipc_channel_create(void *mem,
-                                                     const size_t size);
+SHMIPC_API ipc_status_t ipc_channel_init(void *mem, size_t size, ipc_channel_t **out, ipc_error_t *err);
 
-typedef struct IpcChannelConnectError {
-  int sys_errno;
-  size_t min_size;
-} IpcChannelConnectError;
-IPC_RESULT(IpcChannelConnectResult, IpcChannel *, IpcChannelConnectError)
-SHMIPC_API IpcChannelConnectResult ipc_channel_connect(void *mem);
+SHMIPC_API ipc_status_t ipc_channel_attach(void *mem, ipc_channel_t **out, ipc_error_t *err);
 
-typedef struct IpcChannelDestroyError {
-  bool _unit;
-} IpcChannelDestroyError;
-IPC_RESULT_UNIT(IpcChannelDestroyResult, IpcChannelDestroyError)
-SHMIPC_API IpcChannelDestroyResult ipc_channel_destroy(IpcChannel *channel);
+SHMIPC_API ipc_status_t ipc_channel_detach(ipc_channel_t *channel, ipc_error_t *err);
 
-typedef struct IpcChannelWriteError {
-  uint64_t offset;
-  size_t requested_size;
-  size_t available_contiguous;
-  size_t buffer_size;
-} IpcChannelWriteError;
-IPC_RESULT_UNIT(IpcChannelWriteResult, IpcChannelWriteError)
-SHMIPC_API IpcChannelWriteResult ipc_channel_write(IpcChannel *channel,
-                                                   const void *data,
-                                                   const size_t size);
+SHMIPC_API ipc_status_t ipc_channel_write(ipc_channel_t *channel, const void *data, size_t size, ipc_error_t *err);
 
-typedef struct IpcChannelReadError {
-  uint64_t offset;
-  struct timespec timeout_used;
-  int sys_errno;
-} IpcChannelReadError;
-IPC_RESULT_UNIT(IpcChannelReadResult, IpcChannelReadError)
-SHMIPC_API IpcChannelReadResult ipc_channel_read(
-    IpcChannel *channel, IpcEntry *dest, const struct timespec *timeout);
+SHMIPC_API ipc_status_t ipc_channel_read(ipc_channel_t *channel, ipc_entry_t *dest, uint64_t timeout_ns,
+                                         ipc_error_t *err);
 
-typedef struct IpcChannelTryReadError {
-  uint64_t offset;
-} IpcChannelTryReadError;
-IPC_RESULT_UNIT(IpcChannelTryReadResult, IpcChannelTryReadError)
-SHMIPC_API IpcChannelTryReadResult ipc_channel_try_read(IpcChannel *channel,
-                                                        IpcEntry *dest);
-
-typedef struct IpcChannelPeekError {
-  uint64_t offset;
-} IpcChannelPeekError;
-IPC_RESULT_UNIT(IpcChannelPeekResult, IpcChannelPeekError)
-SHMIPC_API IpcChannelPeekResult ipc_channel_peek(const IpcChannel *channel,
-                                                 IpcEntry *dest);
-
-typedef struct IpcChannelSkipError {
-  uint64_t offset;
-} IpcChannelSkipError;
-IPC_RESULT(IpcChannelSkipResult, uint64_t, IpcChannelSkipError)
-SHMIPC_API IpcChannelSkipResult ipc_channel_skip(IpcChannel *channel,
-                                                 const uint64_t offset);
-
-typedef struct IpcChannelSkipForceError {
-  bool _unit;
-} IpcChannelSkipForceError;
-IPC_RESULT(IpcChannelSkipForceResult, uint64_t, IpcChannelSkipForceError)
-SHMIPC_API IpcChannelSkipForceResult
-ipc_channel_skip_force(IpcChannel *channel);
+SHMIPC_API ipc_status_t ipc_channel_try_read(ipc_channel_t *channel,
+                                             ipc_entry_t *dest,
+                                             ipc_error_t *err);
 
 SHMIPC_END_DECLS

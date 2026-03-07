@@ -28,9 +28,9 @@ public class __darwin_pthread_handler_rec {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        ipc_common_h.C_POINTER.withName("__routine"),
-        ipc_common_h.C_POINTER.withName("__arg"),
-        ipc_common_h.C_POINTER.withName("__next")
+        ipc_entry_h.C_POINTER.withName("__routine"),
+        ipc_entry_h.C_POINTER.withName("__arg"),
+        ipc_entry_h.C_POINTER.withName("__next")
     ).withName("__darwin_pthread_handler_rec");
 
     /**
@@ -59,7 +59,7 @@ public class __darwin_pthread_handler_rec {
         }
 
         private static final FunctionDescriptor $DESC = FunctionDescriptor.ofVoid(
-            ipc_common_h.C_POINTER
+            ipc_entry_h.C_POINTER
         );
 
         /**
@@ -69,7 +69,7 @@ public class __darwin_pthread_handler_rec {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = ipc_common_h.upcallHandle(__routine.Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = ipc_entry_h.upcallHandle(__routine.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.

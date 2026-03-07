@@ -3,22 +3,27 @@
 
 #ifdef __APPLE__
 
+// TODO: use modern api
 extern int __ulock_wait(uint32_t operation, void *addr, uint64_t value,
                         uint32_t timeout);
 extern int __ulock_wake(uint32_t operation, void *addr, uint64_t wake_value);
 
+static uint32_t to_ulock_timeout_us(const struct timespec *timeout);
 #define UL_COMPARE_AND_WAIT 1
 #define ULF_WAKE_ALL 0x00000100
 
 int ipc_futex_wait(_Atomic uint32_t *addr, uint32_t expected,
                    const struct timespec *timeout) {
-  int res = __ulock_wait(UL_COMPARE_AND_WAIT, addr, expected,
-                         timeout->tv_sec * 1000000 + timeout->tv_nsec / 1000);
+  const uint32_t timeout_us = to_ulock_timeout_us(timeout);
+  if (timeout_us == 0) {
+    return 0;
+  }
+
+  int res = __ulock_wait(UL_COMPARE_AND_WAIT, addr, expected, timeout_us);
   if (res != 0) {
-    // EAGAIN/EWOULDBLOCK: value changed before we slept - this is normal
+    // ENOENT: value changed before we slept (compare failed) - this is normal
     // EINTR: interrupted by signal - continue waiting
-    // ETIMEDOUT: timeout expired - return error so caller can check
-    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+    if (errno == ENOENT || errno == EINTR) {
       return 0; // Treat as success, continue loop
     }
     // For ETIMEDOUT and other errors, return -1
@@ -45,6 +50,25 @@ int ipc_futex_wake_all(_Atomic uint32_t *addr) {
   }
 
   return res;
+}
+
+static uint32_t to_ulock_timeout_us(const struct timespec *timeout) {
+  if (timeout == NULL) {
+    return 0;
+  }
+
+  uint64_t us = (uint64_t) timeout->tv_sec * 1000000ULL;
+  us += (uint64_t) timeout->tv_nsec / 1000ULL;
+
+  if (us == 0) {
+    return 0;
+  }
+
+  if (us > UINT32_MAX) {
+    us = UINT32_MAX;
+  }
+
+  return (uint32_t) us;
 }
 
 #elif defined(__linux__)
