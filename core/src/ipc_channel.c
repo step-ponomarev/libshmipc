@@ -42,19 +42,6 @@ inline uint32_t ipc_channel_get_notify_signal(ipc_channel_t *channel) {
     return atomic_load(&channel->header->notify);
 }
 
-inline void ipc_entry_free(IpcEntry *entry) {
-  if (entry == NULL) {
-    return;
-  }
-
-  if (entry->size == 0) {
-    return;
-  }
-
-  free(entry->payload);
-  entry->payload = NULL;
-}
-
 uint64_t ipc_channel_suggest_size(size_t desired_capacity) {
     const uint64_t min_size = ipc_channel_min_size();
     const uint64_t overhead = ipc_channel_memory_overhead();
