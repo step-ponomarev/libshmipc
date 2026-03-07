@@ -131,7 +131,7 @@ public final class IpcChannel implements Closeable {
         }
 
         try (Arena arena = Arena.ofConfined()) {
-            final long start = System.nanoTime();
+            final long startNs = System.nanoTime();
             final long timeNs = timeout.toNanos();
 
             long notify;
@@ -173,9 +173,9 @@ public final class IpcChannel implements Closeable {
                     }
                 }
 
-                long sleep = 10;
-                while (true) { // TODO: measure and optimise, do not use native wait
-                    final long spend = System.nanoTime() - start;
+                long sleepNs = 10000;
+                while (true) { // TODO: measure and optimise, "smart" backoff
+                    final long spend = System.nanoTime() - startNs;
                     if (spend >= timeNs) {
                         return null;
                     }
@@ -197,9 +197,12 @@ public final class IpcChannel implements Closeable {
                         break;
                     }
 
-                    //TODO fix owerflow
-                    sleep = Math.min(Math.max(sleep * 2, sleep), timeNs - spend);
-                    LockSupport.parkNanos(sleep); // virtual threads fix
+                    LockSupport.parkNanos(sleepNs); // virtual threads fix
+                    long next = sleepNs << 1;
+                    if (next <= 0) {
+                        next = sleepNs;
+                    }
+                    sleepNs = Math.min(next, timeNs - spend);
                 }
             } while (true);
         } catch (RuntimeException e) {
