@@ -4,6 +4,8 @@ import ipc.status.IpcStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.charset.StandardCharsets;
@@ -183,6 +185,58 @@ public class IpcChannelTest {
                 Assert.assertNull(result);
                 Assert.assertTrue(System.nanoTime() - beforeRead >= readTimeoutMs.toNanos());
             }
+        }
+    }
+
+    @Test(timeout = 60000)
+    public void noNativeMemoryLeak() throws Exception {
+        final int messageSize = 256;
+        final byte[] data = new byte[messageSize];
+
+        final int iterations = 1_000_000;
+        final long rssBefore = getProcessRssKb();
+        try (Arena arena = Arena.ofShared()) {
+            MemorySegment memory = arena.allocate(IpcChannel.getSuggestedSize(4096));
+            try (IpcChannel producer = IpcChannel.init(memory, memory.byteSize());
+                 IpcChannel consumer = IpcChannel.attach(memory)) {
+                for (int i = 0; i < iterations; i++) {
+                    producer.write(data);
+                    consumer.read(Duration.ofMillis(20));
+                }
+            }
+        }
+
+        System.gc();
+        Thread.sleep(200);
+
+        final long rssAfter = getProcessRssKb();
+        final long rssGrowthKb = rssAfter - rssBefore;
+        final long maxAllowedGrowthKb = 20 * 1024; // 20kb
+
+        Assert.assertTrue(
+                String.format("Native memory leak detected: RSS grew by %d KB (max allowed: %d KB)",
+                        rssGrowthKb, maxAllowedGrowthKb),
+                rssGrowthKb < maxAllowedGrowthKb
+        );
+    }
+
+    private static long getProcessRssKb() throws Exception {
+        final long pid = ProcessHandle.current().pid();
+        final String os = System.getProperty("os.name").toLowerCase();
+
+        final Process process;
+        if (os.contains("mac") || os.contains("linux")) {
+            process = Runtime.getRuntime().exec(new String[]{"ps", "-o", "rss=", "-p", String.valueOf(pid)});
+        } else {
+            throw new IllegalStateException("Unsupported OS: " + os);
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line = reader.readLine();
+            if (line == null || line.isBlank()) {
+                throw new RuntimeException("Failed to get RSS");
+            }
+            return Long.parseLong(line.trim());
         }
     }
 }

@@ -17,3 +17,10 @@ cc_binary(
     linkshared = 1,
     visibility = ["//visibility:public"],
 )
+
+filegroup(
+    name = "libshmipc_shared.dylib",
+    srcs = [":shmipc_shared"],
+    output_group = "main",
+    visibility = ["//visibility:public"],
+)

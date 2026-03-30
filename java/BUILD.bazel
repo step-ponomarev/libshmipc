@@ -1,14 +1,6 @@
 load("@rules_java//java:defs.bzl", "java_library")
 load("//java:tools/java_tests.bzl", "java_tests")
 
-package(default_visibility = ["//visibility:private"])
-
-java_library(
-    name = "shmipc_java_core",
-    srcs = glob(["src/main/java/**/*.java"]),
-    visibility = ["//visibility:private"],
-)
-
 java_library(
     name = "shmipc_java",
     srcs = glob(["src/main/java/**/*.java"]),
