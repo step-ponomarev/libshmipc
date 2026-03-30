@@ -23,6 +23,9 @@ public final class IpcChannel implements Closeable {
         LibLoader.load();
     }
 
+    private static final int SPIN_ITERS = 128;
+    private static final int INIT_SLEEP_NS = 10_000;
+
     private final MemorySegment channel;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private boolean closed;
@@ -134,7 +137,8 @@ public final class IpcChannel implements Closeable {
                     }
                 }
 
-                long sleepNs = 10000;
+                long sleepNs = INIT_SLEEP_NS;
+                int iters = SPIN_ITERS;
                 while (true) { // TODO: measure and optimise, "smart" backoff
                     final long spend = System.nanoTime() - startNs;
                     if (spend >= timeNs) {
@@ -147,12 +151,19 @@ public final class IpcChannel implements Closeable {
                         break;
                     }
 
+                    if (iters-- > 0) {
+                        Thread.onSpinWait();
+                        continue;
+                    }
+
+                    sleepNs = Math.min(sleepNs, timeNs - spend);
                     LockSupport.parkNanos(sleepNs); // virtual threads fix
+
                     long next = sleepNs << 1;
                     if (next <= 0) {
                         next = sleepNs;
                     }
-                    sleepNs = Math.min(next, timeNs - spend);
+                    sleepNs = next;
                 }
             } while (true);
         } catch (RuntimeException e) {
