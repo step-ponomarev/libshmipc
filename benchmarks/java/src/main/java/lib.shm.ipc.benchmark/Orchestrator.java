@@ -1,16 +1,11 @@
 package lib.shm.ipc.benchmark;
 
+import ipc.channel.IpcChannel;
 import lib.shm.ipc.benchmark.actors.LatencyResult;
 import lib.shm.ipc.benchmark.actors.Mode;
 import lib.shm.ipc.benchmark.args.ArgsUtils;
 import lib.shm.ipc.benchmark.signal.Signal;
 import lib.shm.ipc.benchmark.utils.PathUtils;
-import lib.shm.ipc.channel.IpcChannel;
-import lib.shm.ipc.exeption.IpcLockedException;
-import lib.shm.ipc.exeption.IpcReadException;
-import lib.shm.ipc.exeption.IpcSystemError;
-import lib.shm.ipc.exeption.IpcTimeoutException;
-import lib.shm.ipc.exeption.IpcWriteException;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -28,19 +23,20 @@ public final class Orchestrator {
         final Map<String, String> params = ArgsUtils.getArgs(args);
         final Mode mode = params.containsKey(ArgsUtils.ARG_MODE)
                 ? Mode.valueOf(params.get(ArgsUtils.ARG_MODE))
-                : Mode.SHM_PING_PONG;
+                : Mode.UDS_PING_PONG;
 
-        final long suggestedSize = IpcChannel.getSuggestedSize(SIGNAL_BUFFER_SIZE);
+        final long suggestedSiz
+        e = IpcChannel.getSuggestedSize(SIGNAL_BUFFER_SIZE);
         try (
                 final SharedMemoryFile producerRequestShm = SharedMemoryFile.create(PathUtils.inPath(mode.producerRole), suggestedSize);
                 final SharedMemoryFile producerResponseShm = SharedMemoryFile.create(PathUtils.outPath(mode.producerRole), suggestedSize);
-                final IpcChannel producerInChannel = IpcChannel.create(producerRequestShm.segment(), suggestedSize);
-                final IpcChannel producerOutChannel = IpcChannel.create(producerResponseShm.segment(), suggestedSize);
+                final IpcChannel producerInChannel = IpcChannel.init(producerRequestShm.segment(), suggestedSize);
+                final IpcChannel producerOutChannel = IpcChannel.init(producerResponseShm.segment(), suggestedSize);
 
                 final SharedMemoryFile consumerRequestShm = SharedMemoryFile.create(PathUtils.inPath(mode.consumerRole), suggestedSize);
                 final SharedMemoryFile consumerResponseShm = SharedMemoryFile.create(PathUtils.outPath(mode.consumerRole), suggestedSize);
-                final IpcChannel consumerInChannel = IpcChannel.create(consumerRequestShm.segment(), suggestedSize);
-                final IpcChannel consumerOutChannel = IpcChannel.create(consumerResponseShm.segment(), suggestedSize);
+                final IpcChannel consumerInChannel = IpcChannel.init(consumerRequestShm.segment(), suggestedSize);
+                final IpcChannel consumerOutChannel = IpcChannel.init(consumerResponseShm.segment(), suggestedSize);
         ) {
             final Map<String, String> preparedArgs = prepareArgs(params);
             printArgs(preparedArgs);
@@ -98,7 +94,7 @@ public final class Orchestrator {
 
         preparedArgs.putIfAbsent(ArgsUtils.ARG_MESSAGE_COUNT, "1000000");
         preparedArgs.putIfAbsent(ArgsUtils.ARG_WARMUP_COUNT, "100000");
-        preparedArgs.putIfAbsent(ArgsUtils.ARG_MESSAGE_SIZE, String.valueOf(64 * 1024)); // 64kb
+        preparedArgs.putIfAbsent(ArgsUtils.ARG_MESSAGE_SIZE, String.valueOf(64)); // 64kb
         preparedArgs.putIfAbsent(
                 ArgsUtils.ARG_BUFFER_SIZE,
                 String.valueOf(Integer.parseInt(preparedArgs.get(ArgsUtils.ARG_MESSAGE_SIZE)) * 16) // 16 messages
@@ -112,7 +108,7 @@ public final class Orchestrator {
             IpcChannel producerOutChannel,
             IpcChannel consumerInChannel,
             IpcChannel consumerOutChannel
-    ) throws IpcLockedException, IpcWriteException, IpcSystemError, IpcTimeoutException, IpcReadException {
+    ) {
         sendSignal(producerInChannel, Signal.INIT);
         waitReady(producerOutChannel);
 
@@ -146,7 +142,7 @@ public final class Orchestrator {
             IpcChannel producerOutChannel,
             IpcChannel consumerInChannel,
             IpcChannel consumerOutChannel
-    ) throws IpcLockedException, IpcWriteException, IpcSystemError, IpcTimeoutException, IpcReadException {
+    ) {
         sendSignal(consumerInChannel, Signal.INIT);
         waitReady(consumerOutChannel);
 
@@ -199,7 +195,7 @@ public final class Orchestrator {
         System.out.println("------"); // todo end block
     }
 
-    private static void waitReady(IpcChannel channel) throws IpcTimeoutException, IpcReadException {
+    private static void waitReady(IpcChannel channel) {
         Signal signal = Signal.valueOf(channel.read(TIMEOUT));
         if (signal == Signal.DONE) {
             return;
@@ -208,7 +204,7 @@ public final class Orchestrator {
         throw new IllegalStateException("Unexpected signal: " + signal);
     }
 
-    private static void sendSignal(IpcChannel channel, Signal signal) throws IpcLockedException, IpcWriteException, IpcSystemError {
+    private static void sendSignal(IpcChannel channel, Signal signal) {
         channel.write(signal.bytes());
     }
 }

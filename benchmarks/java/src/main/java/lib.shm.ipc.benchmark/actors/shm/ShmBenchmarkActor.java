@@ -1,9 +1,9 @@
 package lib.shm.ipc.benchmark.actors.shm;
 
+import ipc.channel.IpcChannel;
 import lib.shm.ipc.benchmark.SharedMemoryFile;
 import lib.shm.ipc.benchmark.actors.ActorConfig;
 import lib.shm.ipc.benchmark.actors.BenchmarkActor;
-import lib.shm.ipc.channel.IpcChannel;
 
 public abstract class ShmBenchmarkActor extends BenchmarkActor {
     protected final static String DATA_BUFFER_PATH = "/tmp/ipc_shm_data_benchmark";

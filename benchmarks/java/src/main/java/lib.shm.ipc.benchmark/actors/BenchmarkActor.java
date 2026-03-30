@@ -1,9 +1,9 @@
 package lib.shm.ipc.benchmark.actors;
 
+import ipc.channel.IpcChannel;
 import lib.shm.ipc.benchmark.SharedMemoryFile;
 import lib.shm.ipc.benchmark.signal.Signal;
 import lib.shm.ipc.benchmark.utils.PathUtils;
-import lib.shm.ipc.channel.IpcChannel;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Duration;
@@ -25,8 +25,8 @@ public abstract class BenchmarkActor {
     public final void run(ActorConfig config) throws Exception {
         try (final SharedMemoryFile inShm = SharedMemoryFile.open(PathUtils.inPath(pathSuffix));
              final SharedMemoryFile outShm = SharedMemoryFile.open(PathUtils.outPath(pathSuffix));
-             final IpcChannel inChannel = IpcChannel.connect(inShm.segment());
-             final IpcChannel outChannel = IpcChannel.connect(outShm.segment())
+             final IpcChannel inChannel = IpcChannel.attach(inShm.segment());
+             final IpcChannel outChannel = IpcChannel.attach(outShm.segment())
         ) {
             boolean running = true;
             while (running) {
