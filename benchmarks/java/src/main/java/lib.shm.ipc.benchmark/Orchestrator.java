@@ -23,10 +23,9 @@ public final class Orchestrator {
         final Map<String, String> params = ArgsUtils.getArgs(args);
         final Mode mode = params.containsKey(ArgsUtils.ARG_MODE)
                 ? Mode.valueOf(params.get(ArgsUtils.ARG_MODE))
-                : Mode.UDS_PING_PONG;
+                : Mode.SHM_PING_PONG;
 
-        final long suggestedSiz
-        e = IpcChannel.getSuggestedSize(SIGNAL_BUFFER_SIZE);
+        final long suggestedSize = IpcChannel.getSuggestedSize(SIGNAL_BUFFER_SIZE);
         try (
                 final SharedMemoryFile producerRequestShm = SharedMemoryFile.create(PathUtils.inPath(mode.producerRole), suggestedSize);
                 final SharedMemoryFile producerResponseShm = SharedMemoryFile.create(PathUtils.outPath(mode.producerRole), suggestedSize);
