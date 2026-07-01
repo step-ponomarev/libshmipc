@@ -20,8 +20,9 @@ filegroup(
     name = "build_all",
     srcs = [
         ":shmipc",
-        ":shmipc_shared",
         ":shmipc_java",
+        ":shmipc_shared",
+        "//benchmarks:native_benchmarks",
     ],
     visibility = ["//visibility:public"],
 )

@@ -30,5 +30,18 @@ def shmipc_copts():
         "//conditions:default": SHMIPC_OPT_COPTS,
     })
 
+SHMIPC_CXX_BASE_COPTS = [
+    "-std=c++17",
+    "-Wall",
+    "-Wextra",
+]
+
+def shmipc_cxx_copts():
+    return SHMIPC_CXX_BASE_COPTS + select({
+        "//tools/build:dbg": SHMIPC_DBG_COPTS,
+        "//tools/build:opt": SHMIPC_OPT_COPTS,
+        "//conditions:default": SHMIPC_OPT_COPTS,
+    })
+
 def shmipc_defines():
     return SHMIPC_BASE_DEFINES

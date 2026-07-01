@@ -1,4 +1,10 @@
 alias(
+    name = "native_benchmarks",
+    actual = "//benchmarks/native:native_benchmarks",
+    visibility = ["//visibility:public"],
+)
+
+alias(
     name = "java_benchmarks",
     actual = "//benchmarks/java:benchmarks_bins",
     visibility = ["//visibility:public"],

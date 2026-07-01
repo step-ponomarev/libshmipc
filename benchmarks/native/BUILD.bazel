@@ -1,0 +1,15 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("//tools/copts:defs.bzl", "shmipc_cxx_copts", "shmipc_defines")
+
+cc_binary(
+    name = "native_benchmarks",
+    srcs = glob(["src/*.cpp"]),
+    copts = shmipc_cxx_copts(),
+    defines = shmipc_defines(),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//include:shmipc_headers",
+        "@google_benchmark//:benchmark",
+        "@hdrhistogram_c//:hdrhistogram_c"
+    ],
+)
